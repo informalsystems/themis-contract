@@ -4,6 +4,7 @@ import { logger } from '../shared/logging'
 import { readFileAsync } from '../shared/async-io'
 import { DEFAULT_TEXT_FILE_ENCODING, templateCachePath, DEFAULT_PROFILE_PATH } from '../shared/constants'
 import { DocumentCache } from '../shared/document-cache'
+import { cliWrap } from '../shared/cli-helpers'
 
 export default class Compile extends Command {
   static description = 'compile a contract to produce a PDF'
@@ -15,9 +16,9 @@ export default class Compile extends Command {
 
   static flags = {
     help: flags.help({ char: 'h' }),
-    outputFile: flags.string({ char: 'o', default: './contract.pdf', description: 'where to write the output contract PDF' }),
-    profilePath: flags.string({ char: 'p', default: DEFAULT_PROFILE_PATH, description: 'your local profile path (for managing identities, templates, etc.)' }),
-    styleFile: flags.string({ char: 's', description: 'an optional style file to specify the font and PDF engine to use when rendering the PDF' }),
+    output: flags.string({ char: 'o', default: './contract.pdf', description: 'where to write the output contract PDF' }),
+    profile: flags.string({ char: 'p', default: DEFAULT_PROFILE_PATH, description: 'your local profile path (for managing identities, templates, etc.)' }),
+    style: flags.string({ char: 's', description: 'an optional style file to specify the font and PDF engine to use when rendering the PDF' }),
     verbose: flags.boolean({ char: 'v', default: false, description: 'increase output logging verbosity to DEBUG level' }),
   }
 
@@ -28,26 +29,16 @@ export default class Compile extends Command {
   async run() {
     const { args, flags } = this.parse(Compile)
     logger.level = flags.verbose ? 'debug' : 'info'
-    let style: any = {}
-    if (flags.styleFile) {
-      try {
-        style = await readFileAsync(flags.styleFile, { encoding: DEFAULT_TEXT_FILE_ENCODING })
-      } catch (error) {
-        logger.error(`Failed to read style file (${flags.styleFile}): ${error}`)
+    await cliWrap(flags.verbose, async () => {
+      let style: any = {}
+      if (flags.style) {
+        style = await readFileAsync(flags.style, { encoding: DEFAULT_TEXT_FILE_ENCODING })
+        logger.debug(`Loaded style: ${style}`)
       }
-      logger.debug(`Loaded style: ${style}`)
-    }
-    try {
       // configure our template cache
-      const cache = await DocumentCache.init(templateCachePath(flags.profilePath))
+      const cache = await DocumentCache.init(templateCachePath(flags.profile))
       const contract = await Contract.fromFile(args.path, cache)
-      await contract.compile(flags.outputFile, style)
-    } catch (error) {
-      if (error instanceof Error) {
-        logger.error(`${error.message}\n${error.stack}`)
-      } else {
-        logger.error(`${error}`)
-      }
-    }
+      await contract.compile(flags.output, style)
+    })
   }
 }

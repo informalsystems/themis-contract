@@ -29,3 +29,21 @@ export const extractTemplateVariables = (templateSrc: string): Map<string, any> 
   template(makeVariableTrackerProxy({}, [], vars), {allowProtoPropertiesByDefault: true})
   return vars
 }
+
+/**
+ * Converts the given template variables map into a plain JavaScript object that
+ * can be serialized easily to JSON or TOML. Works recursively.
+ * @param {Map<string, any>} vars The variables to be converted.
+ * @returns {any} The object form of the supplied variable mapping.
+ */
+export const templateVarsToObj = (vars: Map<string, any>): any => {
+  const obj: any = {}
+  vars.forEach((v, k) => {
+    if (v instanceof Map) {
+      obj[k] = (v.size === 0) ? '' : templateVarsToObj(v)
+    } else {
+      obj[k] = v
+    }
+  })
+  return obj
+}

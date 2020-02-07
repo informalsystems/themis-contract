@@ -18,5 +18,9 @@ export const templateCachePath = (profilePath: string): string => {
   return path.join(profilePath, 'templates')
 }
 
+export const counterpartyDBPath = (profilePath: string): string => {
+  return path.join(profilePath, 'counterparties')
+}
+
 export const DEFAULT_TOML_INDENT = 2
 export const DEFAULT_TOML_INDENT_SECTIONS = false

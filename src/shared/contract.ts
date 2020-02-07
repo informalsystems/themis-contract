@@ -8,97 +8,10 @@ import { statAsync, readFileAsync, writeFileAsync } from './async-io'
 import { DocumentCache } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
-import { extractTemplateVariables } from './template-helpers'
-
-export class ContractFormatError extends Error { }
-
-export class ContractMissingFieldError extends ContractFormatError {
-  constructor(fieldName: string) {
-    super(`Missing field in contract: "${fieldName}"`)
-  }
-}
-
-export class SignatoryMissingFieldError extends ContractFormatError {
-  constructor(counterpartyId: string, signatoryId: string, fieldName: string) {
-    super(`Signatory "${signatoryId}" for counterparty "${counterpartyId}" is missing field "${fieldName}"`)
-  }
-}
-
-export class CounterpartyMissingFieldError extends ContractFormatError {
-  constructor(counterpartyId: string, fieldName: string) {
-    super(`Counterparty "${counterpartyId}" is missing field "${fieldName}"`)
-  }
-}
-
-export class Signatory {
-  id: string
-
-  fullNames: string
-
-  keybaseId?: string
-
-  constructor(id: string, fullNames: string, keybaseId?: string) {
-    this.id = id
-    this.fullNames = fullNames
-    this.keybaseId = keybaseId
-  }
-
-  static fromAny(counterpartyId: string, signatoryId: string, a: any): Signatory {
-    if (!(signatoryId in a)) {
-      throw new ContractFormatError(`Missing section for signatory "${signatoryId}" of counterparty "${counterpartyId}"`)
-    }
-    if (!('full_names' in a[signatoryId])) {
-      throw new SignatoryMissingFieldError(counterpartyId, signatoryId, 'full_names')
-    }
-    let keybaseId: string | undefined
-    if ('keybase_id' in a[signatoryId]) {
-      keybaseId = a[signatoryId].keybase_id
-    }
-    return new Signatory(signatoryId, a[signatoryId].full_names, keybaseId)
-  }
-}
-
-export class Counterparty {
-  /** A unique identifier for this counterparty. */
-  id: string
-
-  /** The full name of this counterparty. */
-  fullName: string
-
-  /** One or more signatories for this counterparty. */
-  signatories: Signatory[]
-
-  constructor(id: string, fullName: string, signatories: Signatory[]) {
-    this.id = id
-    this.fullName = fullName
-    this.signatories = signatories
-  }
-
-  static fromAny(id: string, a: any): Counterparty {
-    if (!(id in a)) {
-      throw new ContractFormatError(`Missing section for counterparty "${id}"`)
-    }
-    if (!('full_name' in a[id])) {
-      throw new CounterpartyMissingFieldError(id, 'full_name')
-    }
-    if (!('signatories' in a[id])) {
-      throw new CounterpartyMissingFieldError(id, 'signatories')
-    }
-    if (!Array.isArray(a[id].signatories)) {
-      throw new ContractFormatError(`Expected "signatories" field for counterparty "${id}" to be an array`)
-    }
-    if (a[id].signatories.length === 0) {
-      throw new ContractFormatError(`Expected at least one signatory for counterparty "${id}"`)
-    }
-    return new Counterparty(
-      id,
-      a[id].full_name,
-      a[id].signatories.map((sigId: string) => Signatory.fromAny(id, sigId, a)),
-    )
-  }
-}
-
-export class TemplateError extends Error { }
+import { extractTemplateVariables, templateVarsToObj } from './template-helpers'
+import { writeTOMLFileAsync } from './toml'
+import {TemplateError, ContractMissingFieldError, ContractFormatError} from './errors'
+import {Counterparty} from './counterparties'
 
 /**
  * A contract template. Uses Mustache for template rendering.
@@ -191,6 +104,7 @@ export type ContractCreateOptions = {
   template?: string;
   force?: boolean;
   cache?: DocumentCache;
+  counterparties?: string[];
 }
 
 /**
@@ -278,6 +192,22 @@ export class Contract {
   }
 
   static async createNew(filename: string, opts?: ContractCreateOptions) {
-    logger.info(`This should create a contract at: ${filename} (opts: ${opts})`)
+    let vars = new Map<string, any>()
+    let counterparties: string[] = []
+    if (opts) {
+      if (opts.counterparties) {
+        counterparties = opts.counterparties
+      }
+      if (opts.template) {
+        const template = await Template.load(opts.template, opts.cache)
+        // extract the variables from the template
+        vars = template.getVariables()
+        vars.set('template', opts.template)
+      }
+    }
+    // ensure we've got our counterparties and template variable
+    vars.set('counterparties', counterparties)
+    await writeTOMLFileAsync(filename, templateVarsToObj(vars))
+    logger.info(`Created new contract: ${filename}`)
   }
 }

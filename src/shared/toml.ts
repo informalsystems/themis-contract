@@ -80,7 +80,7 @@ export class TOML {
     }
 
     const sectionHeader = sections.length > 0 ? `${i}[${sections.join('.')}]\n` : ''
-    return `${sectionHeader}${properties}\n${objs}\n`
+    return `${sectionHeader}${properties}\n${objs}`
   }
 
   private static serializeString(s: string): string {
