@@ -1,87 +1,14 @@
 import { TomlReader } from '@sgarciac/bombadil'
-import * as mustache from 'mustache'
+import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
 import { spawnSync } from 'child_process'
 import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE } from './constants'
 import { isGitURL } from './git-url'
-import * as requestAsync from 'request-promise-native'
 import { statAsync, readFileAsync, writeFileAsync } from './async-io'
 import { DocumentCache } from './document-cache'
 import { logger } from './logging'
-
-// const DEFAULT_FONT = 'Helvetica'
-// const DEFAULT_PDF_ENGINE = 'tectonic'
-
-// const DEFAULT_CONTRACT_FILE = 'contract.html'
-// const DEFAULT_CONTRACT_TEMPLATE = `<h1>New Contract</h1>
-// <p>Created on {{date}}. Start adding your contract content here.</p>`
-
-// const DEFAULT_TMPL = `
-// # If you want to reference a specific file
-// template = "../icf-grant-template-v1.0.0.html"
-
-// # You could also reference a Git repository
-// # template = "git://
-
-// counterparties = [
-//   "icf",
-//   "company_a"
-// ]
-
-// [icf]
-// full_name = "Interchain Foundation"
-// signatories = [
-//   "aflemming",
-//   "ebuchman"
-// ]
-
-// [aflemming]
-// full_names = "Arianne Flemming"
-// keybase_id = "aflemming"
-
-// [ebuchman]
-// full_names = "Ethan Buchman"
-// keybase_id = "ebuchman"
-// `
-
-// const DEFAULT_PARAMS_FILE = 'params.toml'
-// const DEFAULT_PARAMS = `counterparties = []
-// date = "${moment().format('YYYY-MM-DD')}"
-// `
-
-// const DEFAULT_STYLE_FILE = 'style.toml'
-// const DEFAULT_STYLE = `font = "${DEFAULT_FONT}"
-// pdf_engine = "${DEFAULT_PDF_ENGINE}"
-// `
-
-// const DEFAULT_ENCODING = 'utf8'
-
-// const forceWriteFileSync = (filename: string, data: string, force?: boolean) => {
-//   const exists = fs.existsSync(filename)
-//   if (!exists || (exists && force)) {
-//     fs.writeFileSync(filename, data)
-//     logger.debug(`Wrote output file: ${filename}`)
-//   } else {
-//     logger.debug(`File already exists and not forcing, so skipping: ${filename}`)
-//   }
-// }
-
-// const readFileSyncWithDefault = (basePath: string, filename: string, defaultData?: string): string => {
-//   const filePath = path.join(basePath, filename)
-//   if (!fs.existsSync(filePath)) {
-//     if (defaultData) {
-//       forceWriteFileSync(filePath, defaultData)
-//     }
-//   }
-//   return fs.readFileSync(filePath, { encoding: DEFAULT_ENCODING })
-// }
-
-// const readTomlFileSync = (basePath: string, filename: string, defaultData?: string): any => {
-//   const content = readFileSyncWithDefault(basePath, filename, defaultData)
-//   const reader = new TomlReader()
-//   reader.readToml(content)
-//   return reader.result
-// }
+import axios from 'axios'
+import { extractTemplateVariables } from './template-helpers'
 
 export class ContractFormatError extends Error { }
 
@@ -177,15 +104,27 @@ export class TemplateError extends Error { }
  * A contract template. Uses Mustache for template rendering.
  */
 export class Template {
+  // This template's source
+  private src: string
+
   // The raw Mustache content of the template
   private content: string
 
-  constructor(content?: string) {
+  constructor(src: string, content?: string) {
+    this.src = src
     this.content = content ? content : ''
+  }
+
+  getSource(): string {
+    return this.src
   }
 
   getContent(): string {
     return this.content
+  }
+
+  getVariables(): Map<string, any> {
+    return extractTemplateVariables(this.content)
   }
 
   /**
@@ -209,10 +148,9 @@ export class Template {
   }
 
   static async loadFromFile(filename: string, encoding?: string): Promise<Template> {
+    logger.debug(`Attempting to load template as file: ${filename}`)
     const content = await readFileAsync(filename, { encoding: encoding ? encoding : DEFAULT_TEXT_FILE_ENCODING })
-    const template = new Template()
-    template.content = content
-    return template
+    return new Template(filename, content)
   }
 
   static async loadFromRemote(url: string, cache?: DocumentCache): Promise<Template> {
@@ -223,23 +161,20 @@ export class Template {
   }
 
   static async loadFromURL(url: string, cache?: DocumentCache): Promise<Template> {
+    logger.debug(`Attempting to load template from remote URL: ${url}`)
     if (cache) {
       // check if we can load the document from cache
       const cachedContent = await cache.getContent(url)
       if (cachedContent !== null) {
         logger.debug(`Found template in cache: ${url}`)
-        return new Template(cachedContent)
+        return new Template(url, cachedContent)
       }
     }
-    const res = await requestAsync({
-      uri: url,
-      method: 'GET',
-      resolveWithFullResponse: true,
-    })
-    if (res.statusCode && res.statusCode >= 300) {
-      throw new TemplateError(`GET request to ${url} resulted in status code ${res.statusCode}`)
+    const res = await axios.get(url)
+    if (res.status >= 300) {
+      throw new TemplateError(`GET request to ${url} resulted in status code ${res.status}`)
     }
-    const template = new Template(res.body)
+    const template = new Template(url, res.data)
     if (cache) {
       await cache.add(url, template.getContent())
     }
@@ -248,8 +183,14 @@ export class Template {
 
   // Renders this template to a string using the specified parameters.
   render(params: any): string {
-    return mustache.render(this.content, params)
+    return Handlebars.compile(this.content)(params)
   }
+}
+
+export type ContractCreateOptions = {
+  template?: string;
+  force?: boolean;
+  cache?: DocumentCache;
 }
 
 /**
@@ -336,89 +277,7 @@ export class Contract {
     return Contract.fromAny(reader.result, cache)
   }
 
-  static async createNew(basePath: string, force?: boolean) {
-    logger.info(`This will create a contract in ${basePath} (force=${force})`)
+  static async createNew(filename: string, opts?: ContractCreateOptions) {
+    logger.info(`This should create a contract at: ${filename} (opts: ${opts})`)
   }
 }
-
-// class ContractOld {
-//   private template = ''
-
-//   private params: any
-
-//   private style: any
-
-//   static createNew(basePath: string, force?: boolean) {
-//     if (!fs.existsSync(basePath)) {
-//       fs.mkdirSync(basePath)
-//       logger.debug(`Created folder: ${basePath}`)
-//     }
-//     forceWriteFileSync(path.join(basePath, DEFAULT_CONTRACT_FILE), DEFAULT_CONTRACT_TEMPLATE, force)
-//     forceWriteFileSync(path.join(basePath, DEFAULT_PARAMS_FILE), DEFAULT_PARAMS, force)
-//     forceWriteFileSync(path.join(basePath, DEFAULT_STYLE_FILE), DEFAULT_STYLE, force)
-//     logger.info(`Contract available at ${basePath}`)
-//   }
-
-//   static loadFromPath(basePath: string): Contract {
-//     const contract = new Contract()
-//     contract.template = readFileSyncWithDefault(
-//       basePath,
-//       DEFAULT_CONTRACT_FILE,
-//       DEFAULT_CONTRACT_TEMPLATE,
-//     )
-//     contract.params = readTomlFileSync(
-//       basePath,
-//       DEFAULT_PARAMS_FILE,
-//       DEFAULT_PARAMS,
-//     )
-//     contract.style = readTomlFileSync(
-//       basePath,
-//       DEFAULT_STYLE_FILE,
-//       DEFAULT_STYLE,
-//     )
-//     return contract
-//   }
-
-//   compile(outputFile: string) {
-//     // render the template to a temporary directory
-//     const contractFile = tmp.fileSync({ postfix: '.html' })
-//     try {
-//       fs.writeFileSync(
-//         contractFile.name,
-//         mustache.render(this.template, this.params),
-//       )
-//       logger.debug(`Wrote contract to temporary file: ${contractFile.name}`)
-
-//       logger.info('Generating PDF...')
-//       const pandocArgs = this.buildPandocArgs(contractFile.name, outputFile)
-//       logger.debug(`Using pandoc args: ${pandocArgs}`)
-//       const pandoc = spawnSync(
-//         'pandoc',
-//         pandocArgs,
-//       )
-//       logger.debug(`pandoc stdout:\n${pandoc.stdout}`)
-//       logger.debug(`pandoc stderr:\n${pandoc.stderr}`)
-//       if (pandoc.status !== null && pandoc.status !== 0) {
-//         logger.error(`pandoc failed with status: ${pandoc.status}`)
-//       } else {
-//         logger.info(`Successfully generated PDF: ${outputFile}`)
-//       }
-//     } finally {
-//       // ensure we clean up the temporary file
-//       contractFile.removeCallback()
-//     }
-//   }
-
-//   private buildPandocArgs(inputFile: string, outputFile: string): string[] {
-//     const font = 'font' in this.style ? this.style.font : DEFAULT_FONT
-//     const pdfEngine = 'pdf_engine' in this.style ? this.style.pdf_engine : DEFAULT_PDF_ENGINE
-//     return [
-//       inputFile,
-//       '-V',
-//       `mainfont="${font}"`,
-//       `--pdf-engine=${pdfEngine}`,
-//       '-o',
-//       outputFile,
-//     ]
-//   }
-// }

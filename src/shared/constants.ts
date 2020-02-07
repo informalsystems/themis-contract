@@ -17,3 +17,6 @@ export const DEFAULT_PROFILE_PATH = path.join(os.homedir(), '.neat-contract')
 export const templateCachePath = (profilePath: string): string => {
   return path.join(profilePath, 'templates')
 }
+
+export const DEFAULT_TOML_INDENT = 2
+export const DEFAULT_TOML_INDENT_SECTIONS = false

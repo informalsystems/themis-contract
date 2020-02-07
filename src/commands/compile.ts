@@ -9,8 +9,8 @@ export default class Compile extends Command {
   static description = 'compile a contract to produce a PDF'
 
   static examples = [
-    '$ neat-contract compile ./contract/',
-    '$ neat-contract compile -o ./contract/mycontract.pdf ./contract/',
+    '$ neat-contract compile ./contract/contract.toml',
+    '$ neat-contract compile -o ./contract/mycontract.pdf ./contract/contract.toml',
   ]
 
   static flags = {
@@ -22,7 +22,7 @@ export default class Compile extends Command {
   }
 
   static args = [
-    { name: 'path', description: 'path to the contract to compile', default: '.' },
+    { name: 'path', description: 'path to the contract to compile', default: 'contract.toml' },
   ]
 
   async run() {
