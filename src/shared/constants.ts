@@ -9,7 +9,7 @@ export const DEFAULT_PARAMS_FILENAME = 'params.toml'
 export const DEFAULT_PDF_FONT = 'Helvetica'
 export const DEFAULT_PDF_ENGINE = 'tectonic'
 
-export const DEFAULT_PROFILE_PATH = path.join(os.homedir(), '.neat-contract')
+export const DEFAULT_PROFILE_PATH = path.join(os.homedir(), '.neat', 'contract')
 
 // We store cached templates in this folder, where the names of the files are
 // MD5 hashes (in hex) of their source paths. This allows us to track many
