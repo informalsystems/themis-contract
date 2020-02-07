@@ -1,5 +1,5 @@
 import { Command, flags } from '@oclif/command'
-import Contract from '../shared/contracts'
+import { Contract } from '../shared/contract'
 import { logger } from '../shared/logging'
 
 export default class New extends Command {
