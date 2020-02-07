@@ -9,15 +9,14 @@ up development of the CLI tool.
 To run this application, you will need:
 
 * One of the latest [NodeJS](https://nodejs.org/en/) LTS editions
-* [Yarn](https://classic.yarnpkg.com/lang/en/)
+* [Yarn](https://classic.yarnpkg.com/lang/en/) (`npm i -g yarn`)
+* [pandoc](https://pandoc.org/)
+* [tectonic](https://tectonic-typesetting.github.io/en-US/)
 
 ## Installation
-Once you have NodeJS installed, simply:
+Once you have the requirements installed, simply:
 
 ```bash
-# Install Yarn
-> npm i -g yarn
-
 # Clone this repository
 > git clone git@github.com:informalsystems/neat-contract.git
 > cd neat-contract
