@@ -3,12 +3,16 @@ import { DEFAULT_PROFILE_PATH, counterpartyDBPath } from '../shared/constants'
 import { cliWrap } from '../shared/cli-helpers'
 import { CounterpartyDB } from '../shared/counterparties'
 import {cli} from 'cli-ux'
+import { logger } from '../shared/logging'
 
 export default class ListCounterparties extends Command {
   static description = 'prints a table of all counterparties and their IDs, for convenience'
 
+  static aliases = ['cpls']
+
   static examples = [
     '$ neat-contract list-counterparties',
+    '$ neat-contract cpls',
   ]
 
   static flags = {
@@ -20,9 +24,13 @@ export default class ListCounterparties extends Command {
 
   async run() {
     const { flags } = this.parse(ListCounterparties)
-    await cliWrap(flags.verbose, async () => {
+    await cliWrap(this, flags.verbose, async () => {
       const db = await CounterpartyDB.init(counterpartyDBPath(flags.profile))
       const sorted = db.all()
+      if (sorted.length === 0) {
+        logger.info('Empty counterparties database')
+        return
+      }
       const longestID = sorted.map(c => c.id.length).reduce((prev, cur) => {
         return (cur > prev) ? cur : prev
       })

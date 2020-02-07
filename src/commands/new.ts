@@ -44,7 +44,7 @@ export default class New extends Command {
         }])).template
       }
     }
-    await cliWrap(flags.verbose, async () => {
+    await cliWrap(this, flags.verbose, async () => {
       const cache = await DocumentCache.init(templateCachePath(flags.profile))
       await Contract.createNew(args.output, {
         template: template,

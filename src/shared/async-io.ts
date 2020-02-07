@@ -6,6 +6,7 @@ export const readFileAsync = promisify(fs.readFile)
 export const writeFileAsync = promisify(fs.writeFile)
 export const mkdirAsync = promisify(fs.mkdir)
 export const readdirAsync = promisify(fs.readdir)
+export const unlinkAsync = promisify(fs.unlink)
 
 export class IOError extends Error { }
 

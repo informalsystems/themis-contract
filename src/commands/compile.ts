@@ -29,7 +29,7 @@ export default class Compile extends Command {
   async run() {
     const { args, flags } = this.parse(Compile)
     logger.level = flags.verbose ? 'debug' : 'info'
-    await cliWrap(flags.verbose, async () => {
+    await cliWrap(this, flags.verbose, async () => {
       let style: any = {}
       if (flags.style) {
         style = await readFileAsync(flags.style, { encoding: DEFAULT_TEXT_FILE_ENCODING })

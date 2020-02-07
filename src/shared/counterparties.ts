@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import * as path from 'path'
 import {ContractFormatError, SignatoryMissingFieldError, CounterpartyMissingFieldError} from './errors'
-import { ensurePath, dirExistsAsync, readdirAsync, fileExistsAsync } from './async-io'
+import { ensurePath, dirExistsAsync, readdirAsync, fileExistsAsync, unlinkAsync } from './async-io'
 import { logger } from './logging'
 import { writeTOMLFileAsync, readTOMLFileAsync } from './toml'
 
@@ -115,11 +115,34 @@ export class CounterpartyDB {
     this.basePath = basePath
   }
 
-  async add(id: string, fullName: string) {
+  async ensure(id: string, fullName: string) {
     const c = new Counterparty(id, fullName, [])
     this.counterparties.set(id, c)
     await c.saveToFile(path.join(this.basePath, `${id}.toml`))
     logger.info(`Added counterparty "${fullName}" with ID ${id}`)
+  }
+
+  has(id: string): boolean {
+    return this.counterparties.has(id)
+  }
+
+  get(id: string): Counterparty | undefined {
+    return this.counterparties.get(id)
+  }
+
+  async delete(id: string) {
+    const c = this.counterparties.get(id)
+    if (c) {
+      await unlinkAsync(path.join(this.basePath, `${id}.toml`))
+      this.counterparties.delete(id)
+      logger.info(`Deleted counterparty "${c.fullName}" with ID "${c.id}"`)
+    }
+  }
+
+  async clear() {
+    for (const id of this.counterparties.keys()) {
+      await this.delete(id)
+    }
   }
 
   /**
