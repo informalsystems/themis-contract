@@ -144,7 +144,6 @@ export default class SaveIdentity extends Command {
       identity.sigInitials = answers.sigInitials ? answers.sigInitials : identity.sigInitials
       identity.sigFull = answers.sigFull ? answers.sigFull : identity.sigFull
       await db.save(identity)
-      logger.info('Use the "save-sigimage" command to manage signatures for this identity.')
     })
   }
 }
