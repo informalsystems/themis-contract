@@ -1,17 +1,16 @@
 import { TomlReader } from '@sgarciac/bombadil'
 import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
-import { spawnSync } from 'child_process'
 import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE } from './constants'
 import { isGitURL } from './git-url'
-import { statAsync, readFileAsync, writeFileAsync } from './async-io'
+import { statAsync, readFileAsync, writeFileAsync, spawnAsync } from './async-io'
 import { DocumentCache } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
 import { extractTemplateVariables, templateVarsToObj } from './template-helpers'
 import { writeTOMLFileAsync } from './toml'
-import {TemplateError, ContractMissingFieldError, ContractFormatError} from './errors'
-import {Counterparty} from './counterparties'
+import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
+import { Counterparty } from './counterparties'
 
 /**
  * A contract template. Uses Mustache for template rendering.
@@ -140,7 +139,7 @@ export class Contract {
       logger.info('Generating PDF...')
       const pandocArgs = this.buildPandocArgs(tmpContract.name, outputFile, style)
       logger.debug(`Using pandoc args: ${pandocArgs}`)
-      const pandoc = spawnSync(
+      const pandoc = await spawnAsync(
         'pandoc',
         pandocArgs,
       )

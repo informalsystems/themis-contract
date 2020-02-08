@@ -19,6 +19,7 @@
     "cli-ux": "5.4.4",
     "handlebars": "4.7.3",
     "inquirer": "7.0.4",
+    "inquirer-fuzzy-path": "2.2.0",
     "moment": "2.24.0",
     "tmp": "0.1.0",
     "tslib": "^1",

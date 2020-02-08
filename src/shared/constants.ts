@@ -9,7 +9,8 @@ export const DEFAULT_PARAMS_FILENAME = 'params.toml'
 export const DEFAULT_PDF_FONT = 'Helvetica'
 export const DEFAULT_PDF_ENGINE = 'tectonic'
 
-export const DEFAULT_PROFILE_PATH = path.join(os.homedir(), '.neat', 'contract')
+export const HOMEDIR = os.homedir()
+export const DEFAULT_PROFILE_PATH = path.join(HOMEDIR, '.neat', 'contract')
 
 // We store cached templates in this folder, where the names of the files are
 // MD5 hashes (in hex) of their source paths. This allows us to track many
@@ -22,5 +23,11 @@ export const counterpartyDBPath = (profilePath: string): string => {
   return path.join(profilePath, 'counterparties')
 }
 
+export const identityDBPath = (profilePath: string): string => {
+  return path.join(profilePath, 'identities')
+}
+
 export const DEFAULT_TOML_INDENT = 2
 export const DEFAULT_TOML_INDENT_SECTIONS = false
+
+export const VALID_ID_FORMAT = /^[a-zA-Z](\w+)$/

@@ -1,17 +1,17 @@
 import { Command, flags } from '@oclif/command'
 import { DEFAULT_PROFILE_PATH, counterpartyDBPath } from '../shared/constants'
-import { cliWrap } from '../shared/cli-helpers'
+import { cliWrap, parseID, isValidID } from '../shared/cli-helpers'
 import * as inquirer from 'inquirer'
 import { CounterpartyDB, Signatory } from '../shared/counterparties'
 
-export default class EnsureSignatory extends Command {
-  static description = 'ensures a counterparty\'s signatory is cached in your profile for easy reference'
+export default class SaveSignatory extends Command {
+  static description = 'saves a counterparty\'s signatory in your profile'
 
-  static aliases = ['es']
+  static aliases = ['ss']
 
   static examples = [
-    '$ neat-contract ensure-signatory company_a --id manderson',
-    '$ neat-contract es company_a --id manderson',
+    '$ neat-contract save-signatory company_a --id manderson',
+    '$ neat-contract ss company_a --id manderson',
   ]
 
   static flags = {
@@ -19,7 +19,7 @@ export default class EnsureSignatory extends Command {
     profile: flags.string({ char: 'p', default: DEFAULT_PROFILE_PATH, description: 'your local profile path (for managing identities, templates, etc.)' }),
     verbose: flags.boolean({ char: 'v', default: false, description: 'increase output logging verbosity to DEBUG level' }),
     overwrite: flags.boolean({ default: false, description: 'overwrite the signatory if they exist' }),
-    id: flags.string({ description: 'the ID of the signatory to add (snake_case)' }),
+    id: flags.string({ description: 'the ID of the signatory to save (snake_case)', parse: parseID }),
     fullnames: flags.string({ description: 'the full names of the signatory' }),
     keybaseid: flags.string({ description: 'the Keybase ID of the signatory' }),
   }
@@ -29,7 +29,7 @@ export default class EnsureSignatory extends Command {
   ]
 
   async run() {
-    const { args, flags } = this.parse(EnsureSignatory)
+    const { args, flags } = this.parse(SaveSignatory)
     await cliWrap(this, flags.verbose, async () => {
       const db = await CounterpartyDB.init(counterpartyDBPath(flags.profile))
       const c = db.get(args.counterpartyid)
@@ -38,25 +38,35 @@ export default class EnsureSignatory extends Command {
         throw new Error(`No such counterparty with ID "${args.counterpartyid}"`)
       }
 
+      let sigID: string | undefined = flags.id
+
       const answers = await inquirer.prompt([
         {
           type: 'input',
           name: 'id',
           when: !flags.id,
           message: 'Enter the signatory\'s ID (snake_case):',
+          validate: id => {
+            if (!isValidID(id)) {
+              return `Invalid format for ID: ${id}`
+            }
+            sigID = id
+            return true
+          },
         },
         {
           type: 'confirm',
           name: 'overwrite',
-          when: answers => {
-            return !flags.overwrite && c.hasSignatory(answers.id)
+          when: () => {
+            return !flags.overwrite && sigID && c.hasSignatory(sigID)
           },
           message: 'Signatory already exists. Overwrite?',
           default: false,
-          validate: answers => {
-            if (!flags.overwrite && c.hasSignatory(answers.id) && !answers.overwrite) {
-              throw new Error('Cancelling signatory operation')
+          validate: overwrite => {
+            if (!flags.overwrite && !overwrite && sigID && c.hasSignatory(sigID)) {
+              throw new Error('Cancelling saving of signatory')
             }
+            return true
           },
         },
         {
@@ -74,18 +84,21 @@ export default class EnsureSignatory extends Command {
         {
           type: 'input',
           name: 'keybaseID',
-          when: answers => {
-            return !flags.keybaseid && answers.hasKeybaseID
+          when: a => {
+            return !flags.keybaseid && a.hasKeybaseID
           },
           message: 'What is their Keybase ID?',
         },
       ])
-      const id = flags.id ? flags.id : answers.id
+      if (!sigID) {
+        // this should never happen
+        throw new Error('Internal error: missing signature ID')
+      }
       const fullNames = flags.fullnames ? flags.fullnames : answers.fullNames
       const keybaseID = flags.keybaseid ? flags.keybaseid : answers.keybaseID
 
-      c.setSignatory(id, new Signatory(id, fullNames, keybaseID))
-      await db.update(c)
+      c.setSignatory(sigID, new Signatory(sigID, fullNames, keybaseID))
+      await db.save(c)
     })
   }
 }

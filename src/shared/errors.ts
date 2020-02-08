@@ -22,3 +22,5 @@ export class CounterpartyMissingFieldError extends ContractFormatError {
 export class TemplateError extends Error { }
 
 export class DBError extends Error { }
+
+export class KeybaseError extends Error { }

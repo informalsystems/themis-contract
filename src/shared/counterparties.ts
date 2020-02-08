@@ -160,11 +160,7 @@ export class CounterpartyDB {
     this.basePath = basePath
   }
 
-  async ensure(id: string, fullName: string) {
-    await this.update(new Counterparty(id, fullName))
-  }
-
-  async update(c: Counterparty) {
+  async save(c: Counterparty) {
     await c.saveToFile(path.join(this.basePath, `${c.id}.toml`))
     this.counterparties.set(c.id, c)
     logger.info(`Updated counterparty "${c.fullName}" with ID ${c.id}`)
