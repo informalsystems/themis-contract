@@ -14,3 +14,12 @@ export const cliWrap = async (cmd: Command, verbose: boolean, fn: Function) => {
     cmd.exit(1)
   }
 }
+
+export const longestFieldLength = (a: any[], fieldName: string): number => {
+  if (a.length === 0) {
+    return 0
+  }
+  return a.map(v => `${v[fieldName]}`.length).reduce((prev, cur) => {
+    return (cur > prev) ? cur : prev
+  }, 0)
+}

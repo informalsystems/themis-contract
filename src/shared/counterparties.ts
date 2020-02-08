@@ -74,6 +74,12 @@ export class Counterparty {
     return this.signatories.get(id)
   }
 
+  listSignatories(): Signatory[] {
+    const sigs: Signatory[] = []
+    this.signatories.forEach(sig => sigs.push(sig))
+    return sigs
+  }
+
   setSignatory(id: string, sig: Signatory) {
     this.signatories.set(id, sig)
   }

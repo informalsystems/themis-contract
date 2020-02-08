@@ -1,12 +1,12 @@
 import { Command, flags } from '@oclif/command'
 import { DEFAULT_PROFILE_PATH, counterpartyDBPath } from '../shared/constants'
-import { cliWrap } from '../shared/cli-helpers'
+import { cliWrap, longestFieldLength } from '../shared/cli-helpers'
 import { CounterpartyDB } from '../shared/counterparties'
 import {cli} from 'cli-ux'
 import { logger } from '../shared/logging'
 
 export default class ListCounterparties extends Command {
-  static description = 'prints a table of all counterparties and their IDs, for convenience'
+  static description = 'prints a table of all counterparties and their IDs'
 
   static aliases = ['cpls']
 
@@ -31,12 +31,8 @@ export default class ListCounterparties extends Command {
         logger.info('Empty counterparties database')
         return
       }
-      const longestID = sorted.map(c => c.id.length).reduce((prev, cur) => {
-        return (cur > prev) ? cur : prev
-      })
-      const longestName = sorted.map(c => c.fullName.length).reduce((prev, cur) => {
-        return (cur > prev) ? cur : prev
-      })
+      const longestID = longestFieldLength(sorted, 'id')
+      const longestName = longestFieldLength(sorted, 'fullName')
       cli.table(sorted, {
         id: {
           header: 'ID',
