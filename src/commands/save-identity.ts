@@ -25,19 +25,12 @@ export default class SaveIdentity extends Command {
     overwrite: flags.boolean({ default: false, description: 'overwrite the identity if it exists' }),
     id: flags.string({ description: 'a reference for identity to save (snake_case)', parse: parseID }),
     keybaseid: flags.string({ description: 'optionally specify this identity\'s keybase ID (can be used for multiple identities)' }),
-    skipsigs: flags.boolean({ default: false, description: 'skip addition of signatures for now' }),
-    sigpath: flags.string({ default: HOMEDIR, description: 'path to where to search for signature images' }),
-    fuzzysearchdepth: flags.integer({ default: 3, description: 'maximum recursive depth for fuzzy search (higher = exponentially slower)' }),
   }
 
   async run() {
     const { flags } = this.parse(SaveIdentity)
     await cliWrap(this, flags.verbose, async () => {
-      if (!await dirExistsAsync(flags.sigpath)) {
-        throw new Error(`Specified signature search path is not a directory: ${flags.sigpath}`)
-      }
-      inquirer.registerPrompt('fuzzypath', require('inquirer-fuzzy-path'))
-
+      logger.info('Querying local Keybase (whoami and key listing)...')
       const keybaseWhoamiResult = await keybaseWhoami()
       logger.debug(`Keybase whoami call resulted in ID: ${keybaseWhoamiResult}`)
       const keybaseKeys = await keybaseListKeys()
