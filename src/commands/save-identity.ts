@@ -1,10 +1,9 @@
 /* eslint-disable no-await-in-loop */
 import { Command, flags } from '@oclif/command'
-import { DEFAULT_PROFILE_PATH, identityDBPath, HOMEDIR } from '../shared/constants'
+import { DEFAULT_PROFILE_PATH, identityDBPath } from '../shared/constants'
 import { cliWrap, parseID, isValidID } from '../shared/cli-helpers'
 import * as inquirer from 'inquirer'
 import { IdentityDB, Identity, SignatureImage } from '../shared/identities'
-import { dirExistsAsync } from '../shared/async-io'
 import { logger } from '../shared/logging'
 import { keybaseWhoami, keybaseListKeys, keybaseKeyDesc } from '../shared/keybase-helpers'
 
