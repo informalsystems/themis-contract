@@ -121,7 +121,7 @@ export default class SaveIdentity extends Command {
         keybaseID,
         answers.customKeybaseKeyID ? answers.customKeybaseKeyID : answers.keybaseKeyID,
       ))
-      logger.info('Use the "save-signature" command to manage signatures for this identity.')
+      logger.info('Use the "save-sigimage" command to manage signatures for this identity.')
     })
   }
 }

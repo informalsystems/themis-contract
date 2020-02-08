@@ -6,9 +6,12 @@ import { ensurePath, readdirAsync, fileExistsAsync, unlinkAsync } from './async-
 import { logger } from './logging'
 
 export class SignatureImage {
+  id: string
+
   filename: string
 
-  constructor(filename: string) {
+  constructor(id: string, filename: string) {
+    this.id = id
     this.filename = filename
   }
 
@@ -16,8 +19,8 @@ export class SignatureImage {
     return this.filename
   }
 
-  static fromDB(a: any): SignatureImage {
-    return new SignatureImage(a)
+  static fromDB(id: string, a: any): SignatureImage {
+    return new SignatureImage(id, a)
   }
 }
 
@@ -71,7 +74,7 @@ export class Identity {
     }
     for (const sigID in a.signature_images) {
       if (Object.prototype.hasOwnProperty.call(a.signature_images, sigID)) {
-        result.signatureImages.set(sigID, SignatureImage.fromDB(a.signature_images[sigID]))
+        result.signatureImages.set(sigID, SignatureImage.fromDB(sigID, a.signature_images[sigID]))
       }
     }
     if ('keybase_id' in a) {
