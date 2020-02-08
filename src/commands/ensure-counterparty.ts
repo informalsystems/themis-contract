@@ -8,11 +8,11 @@ import { logger } from '../shared/logging'
 export default class EnsureCounterparty extends Command {
   static description = 'ensures a counterparty is cached in your profile for easy reference'
 
-  static aliases = ['cpe']
+  static aliases = ['ec']
 
   static examples = [
     '$ neat-contract ensure-counterparty --id company_a',
-    '$ neat-contract cpe --id company_a',
+    '$ neat-contract ec --id company_a',
   ]
 
   static flags = {

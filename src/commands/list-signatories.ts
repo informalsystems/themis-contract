@@ -8,11 +8,11 @@ import { logger } from '../shared/logging'
 export default class ListSignatories extends Command {
   static description = 'prints a table of all signatories for a specific counterparty and their IDs'
 
-  static aliases = ['sls']
+  static aliases = ['lss']
 
   static examples = [
     '$ neat-contract list-signatories',
-    '$ neat-contract sls',
+    '$ neat-contract lss',
   ]
 
   static flags = {

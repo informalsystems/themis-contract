@@ -7,11 +7,11 @@ import { CounterpartyDB, Signatory } from '../shared/counterparties'
 export default class EnsureSignatory extends Command {
   static description = 'ensures a counterparty\'s signatory is cached in your profile for easy reference'
 
-  static aliases = ['se']
+  static aliases = ['es']
 
   static examples = [
     '$ neat-contract ensure-signatory company_a --id manderson',
-    '$ neat-contract se company_a --id manderson',
+    '$ neat-contract es company_a --id manderson',
   ]
 
   static flags = {

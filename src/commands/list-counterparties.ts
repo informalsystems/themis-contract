@@ -8,11 +8,11 @@ import { logger } from '../shared/logging'
 export default class ListCounterparties extends Command {
   static description = 'prints a table of all counterparties and their IDs'
 
-  static aliases = ['cpls']
+  static aliases = ['lsc']
 
   static examples = [
     '$ neat-contract list-counterparties',
-    '$ neat-contract cpls',
+    '$ neat-contract lsc',
   ]
 
   static flags = {

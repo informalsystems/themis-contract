@@ -8,7 +8,7 @@ import * as inquirer from 'inquirer'
 export default class RemoveCounterparty extends Command {
   static description = 'remove a counterparty from your local profile'
 
-  static aliases = ['cprm']
+  static aliases = ['rmc']
 
   static examples = [
     '$ neat-contract rm-counterparty company_a',
