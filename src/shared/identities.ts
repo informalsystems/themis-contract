@@ -1,50 +1,24 @@
 /* eslint-disable no-await-in-loop */
 import * as path from 'path'
 import { readTOMLFileAsync, writeTOMLFileAsync } from './toml'
-import { DBError } from './errors'
 import { ensurePath, readdirAsync, fileExistsAsync, unlinkAsync } from './async-io'
 import { logger } from './logging'
-
-export class SignatureImage {
-  id: string
-
-  filename: string
-
-  constructor(id: string, filename: string) {
-    this.id = id
-    this.filename = filename
-  }
-
-  toDB(): any {
-    return this.filename
-  }
-
-  static fromDB(id: string, a: any): SignatureImage {
-    return new SignatureImage(id, a)
-  }
-}
 
 export class Identity {
   id: string
 
-  // Signature files mapped by way of their IDs (e.g. "initials", "full")
-  signatureImages = new Map<string, SignatureImage>()
+  /** The full path to the identity's partial signature image, for initialing. */
+  sigInitials: string | undefined
+
+  /** The full path to the identity's full signature image. */
+  sigFull: string | undefined
 
   keybaseID: string | undefined
 
   keybaseKeyID: string | undefined
 
-  constructor(id: string, signatureImages?: Map<string, SignatureImage>, keybaseID?: string, keybaseKeyID?: string) {
+  constructor(id: string) {
     this.id = id
-    if (signatureImages) {
-      this.signatureImages = signatureImages
-    }
-    if (keybaseID) {
-      this.keybaseID = keybaseID
-    }
-    if (keybaseKeyID) {
-      this.keybaseKeyID = keybaseKeyID
-    }
   }
 
   getFilename(): string {
@@ -52,12 +26,9 @@ export class Identity {
   }
 
   toDB(): any {
-    const sigImages: any = {}
-    this.signatureImages.forEach((sig, id) => {
-      sigImages[id] = sig.toDB()
-    })
     return {
-      signature_images: sigImages,
+      sig_initials: this.sigInitials,
+      sig_full: this.sigFull,
       keybase_id: this.keybaseID,
       keybase_key_id: this.keybaseKeyID,
     }
@@ -69,13 +40,11 @@ export class Identity {
 
   static fromDB(id: string, a: any): Identity {
     const result = new Identity(id)
-    if (!('signature_images' in a)) {
-      throw new DBError(`Missing field "signature_images" in identity DB entry for "${id}"`)
+    if ('sig_initials' in a) {
+      result.sigInitials = a.sig_initials
     }
-    for (const sigID in a.signature_images) {
-      if (Object.prototype.hasOwnProperty.call(a.signature_images, sigID)) {
-        result.signatureImages.set(sigID, SignatureImage.fromDB(sigID, a.signature_images[sigID]))
-      }
+    if ('sig_full' in a) {
+      result.sigFull = a.sig_full
     }
     if ('keybase_id' in a) {
       result.keybaseID = a.keybase_id
@@ -105,6 +74,11 @@ export class IdentityDB {
 
   get(id: string): Identity | undefined {
     return this.identities.get(id)
+  }
+
+  getOrDefault(id: string, defaultVal: () => Identity): Identity {
+    const stored = this.identities.get(id)
+    return stored ? stored : defaultVal()
   }
 
   has(id: string): boolean {

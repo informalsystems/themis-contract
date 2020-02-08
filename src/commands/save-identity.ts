@@ -1,11 +1,21 @@
 /* eslint-disable no-await-in-loop */
 import { Command, flags } from '@oclif/command'
-import { DEFAULT_PROFILE_PATH, identityDBPath } from '../shared/constants'
+import { DEFAULT_PROFILE_PATH, identityDBPath, HOMEDIR } from '../shared/constants'
 import { cliWrap, parseID, isValidID } from '../shared/cli-helpers'
 import * as inquirer from 'inquirer'
-import { IdentityDB, Identity, SignatureImage } from '../shared/identities'
+import { IdentityDB, Identity } from '../shared/identities'
 import { logger } from '../shared/logging'
 import { keybaseWhoami, keybaseListKeys, keybaseKeyDesc } from '../shared/keybase-helpers'
+import { fileExistsAsync, dirExistsAsync } from '../shared/async-io'
+
+const askToOverwrite = async (msg: string): Promise<boolean> => {
+  return (await inquirer.prompt([{
+    type: 'confirm',
+    name: 'overwrite',
+    message: msg,
+    default: false,
+  }])).overwrite
+}
 
 export default class SaveIdentity extends Command {
   static description = 'saves an identity in your profile for use with signing contracts'
@@ -24,72 +34,74 @@ export default class SaveIdentity extends Command {
     overwrite: flags.boolean({ default: false, description: 'overwrite the identity if it exists' }),
     id: flags.string({ description: 'a reference for identity to save (snake_case)', parse: parseID }),
     keybaseid: flags.string({ description: 'optionally specify this identity\'s keybase ID (can be used for multiple identities)' }),
+    keybasekeyid: flags.string({ description: 'optionally specify this identity\'s keybase key ID (can be used for multiple identities)' }),
+    siginitials: flags.string({ description: 'path to image to use for signing initials' }),
+    sigfull: flags.string({ description: 'path to image to use for a full signature' }),
+    fuzzypath: flags.string({ default: HOMEDIR, description: 'the path in which to start fuzzy searching for signatures' }),
+    fuzzydepth: flags.integer({ default: 3, description: 'the maximum depth to traverse for fuzzy search (more = exponentially slower)' }),
   }
 
   async run() {
     const { flags } = this.parse(SaveIdentity)
     await cliWrap(this, flags.verbose, async () => {
+      if (flags.siginitials) {
+        if (!(await fileExistsAsync(flags.siginitials))) {
+          throw new Error(`File specified for signing initials does not exist: ${flags.siginitials}`)
+        }
+      }
+      if (flags.sigfull) {
+        if (!(await fileExistsAsync(flags.sigfull))) {
+          throw new Error(`File specified for full signature does not exist: ${flags.sigfull}`)
+        }
+      }
+      if (!(await dirExistsAsync(flags.fuzzypath))) {
+        throw new Error(`Fuzzy search start path is not a directory: ${flags.fuzzypath}`)
+      }
+
+      inquirer.registerPrompt('fuzzypath', require('inquirer-fuzzy-path'))
+
       logger.info('Querying local Keybase (whoami and key listing)...')
       const keybaseWhoamiResult = await keybaseWhoami()
       logger.debug(`Keybase whoami call resulted in ID: ${keybaseWhoamiResult}`)
       const keybaseKeys = await keybaseListKeys()
       logger.debug(`Got ${keybaseKeys.length} key(s) from Keybase`)
 
+      const identityID = flags.id ? flags.id : (await inquirer.prompt([{
+        type: 'input',
+        name: 'id',
+        message: 'Enter an ID for the new identity (snake_case):',
+        validate: isValidID,
+      }])).id
+
       const db = await IdentityDB.load(identityDBPath(flags.profile))
+      const identityExists = db.has(identityID)
 
-      let identityID = flags.id
-      const existingIdentity = identityID ? db.get(identityID) : undefined
-      let keybaseID = flags.keybaseid
-      const signatures = existingIdentity ? existingIdentity.signatureImages : new Map<string, SignatureImage>()
-
-      if (existingIdentity && existingIdentity.keybaseID) {
-        keybaseID = existingIdentity.keybaseID
-      } else {
-        keybaseID = keybaseWhoamiResult
+      if (identityExists && !flags.overwrite) {
+        if (!(await askToOverwrite('Identity already exists. Overwrite?'))) {
+          logger.info('Not overwriting identity.')
+          return
+        }
       }
+
+      const identity = db.getOrDefault(identityID, () => new Identity(identityID))
+
+      identity.keybaseID = flags.keybaseid ? flags.keybaseid : identity.keybaseID
+      identity.keybaseKeyID = flags.keybasekeyid ? flags.keybasekeyid : identity.keybaseKeyID
+      identity.sigInitials = flags.siginitials ? flags.siginitials : identity.sigInitials
+      identity.sigFull = flags.sigfull ? flags.sigfull : identity.sigFull
 
       const answers = await inquirer.prompt([
         {
           type: 'input',
-          name: 'id',
-          when: !flags.id,
-          message: 'Enter an ID for the new identity (snake_case):',
-          validate: id => {
-            if (!isValidID(id)) {
-              return `Invalid format for ID: ${id}`
-            }
-            identityID = id
-            return true
-          },
-        },
-        {
-          type: 'confirm',
-          name: 'overwrite',
-          when: () => !flags.overwrite && existingIdentity,
-          message: 'Identity already exists. Overwrite?',
-          default: false,
-        },
-        {
-          type: 'confirm',
-          name: 'setKeybaseID',
-          when: a => !flags.keybaseid && (!existingIdentity || (existingIdentity && (flags.overwrite || a.overwrite))),
-          message: 'Would you like to add/update a Keybase ID for this identity? (can be used for multiple identities)',
-        },
-        {
-          type: 'input',
           name: 'keybaseID',
-          when: a => a.setKeybaseID && (!existingIdentity || (existingIdentity && (flags.overwrite || a.overwrite))),
+          when: !flags.keybaseid,
           message: 'Please enter the Keybase ID:',
-          default: keybaseID,
-          validate: kid => {
-            keybaseID = kid
-            return true
-          },
+          default: identity.keybaseID ? identity.keybaseID : keybaseWhoamiResult,
         },
         {
           type: 'list',
           name: 'keybaseKeyID',
-          when: () => keybaseID === keybaseWhoamiResult,
+          when: a => !flags.keybasekeyid && keybaseWhoamiResult in [flags.keybaseid, a.keybaseID, identity.keybaseID],
           choices: () => {
             return keybaseKeys.map(key => {
               return {
@@ -103,24 +115,35 @@ export default class SaveIdentity extends Command {
         {
           type: 'input',
           name: 'customKeybaseKeyID',
-          when: () => keybaseID && (keybaseID !== keybaseWhoamiResult),
+          when: a => !flags.keybasekeyid && (!a.keybaseKeyID || a.keybaseKeyID.length === 0),
           message: 'Please enter the 70-char hex key ID for the Keybase key you would like to use:',
           validate: kid => /^[0-9a-f]{70}$/.test(kid),
         },
+        {
+          type: 'fuzzypath',
+          name: 'sigInitials',
+          message: 'Which image file would you like to use for signature *initials*?',
+          when: !flags.siginitials,
+          itemType: 'file',
+          rootPath: flags.fuzzypath,
+          depthLimit: flags.fuzzydepth,
+        },
+        {
+          type: 'fuzzypath',
+          name: 'sigFull',
+          message: 'Which image file would you like to use for your *full* signature?',
+          when: !flags.sigfull,
+          itemType: 'file',
+          rootPath: flags.fuzzypath,
+          depthLimit: flags.fuzzydepth,
+        },
       ])
-      if (existingIdentity && !answers.overwrite) {
-        logger.info('Not overwriting identity')
-        return
-      }
-      if (!identityID) {
-        throw new Error('Internal error: missing identity ID')
-      }
-      await db.save(new Identity(
-        identityID,
-        signatures,
-        keybaseID,
-        answers.customKeybaseKeyID ? answers.customKeybaseKeyID : answers.keybaseKeyID,
-      ))
+      identity.keybaseID = answers.keybaseID ? answers.keybaseID : identity.keybaseID
+      identity.keybaseKeyID = answers.keybaseKeyID ? answers.keybaseKeyID : identity.keybaseKeyID
+      identity.keybaseKeyID = answers.customKeybaseKeyID ? answers.customKeybaseKeyID : identity.keybaseKeyID
+      identity.sigInitials = answers.sigInitials ? answers.sigInitials : identity.sigInitials
+      identity.sigFull = answers.sigFull ? answers.sigFull : identity.sigFull
+      await db.save(identity)
       logger.info('Use the "save-sigimage" command to manage signatures for this identity.')
     })
   }

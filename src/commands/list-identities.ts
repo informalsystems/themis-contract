@@ -38,10 +38,15 @@ export default class ListIdentities extends Command {
           header: 'ID',
           minWidth: longestID + 5,
         },
-        signatureImages: {
-          header: 'Signatures',
-          minWidth: 'Signatures'.length + 5,
-          get: row => row.signatureImages.size,
+        sigInitials: {
+          header: 'Initials',
+          minWidth: 'Initials'.length + 5,
+          get: row => row.sigInitials ? 'yes' : '',
+        },
+        sigFull: {
+          header: 'Signature',
+          minWidth: 'Signature'.length + 5,
+          get: row => row.sigFull ? 'yes' : '',
         },
         keybaseID: {
           header: 'Keybase ID',

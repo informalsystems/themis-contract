@@ -11,6 +11,7 @@ import { extractTemplateVariables, templateVarsToObj } from './template-helpers'
 import { writeTOMLFileAsync } from './toml'
 import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
 import { Counterparty } from './counterparties'
+// import { Identity } from './identities'
 
 /**
  * A contract template. Uses Mustache for template rendering.
@@ -114,16 +115,20 @@ export type ContractCreateOptions = {
  *   3. Parameters to use to fill in the contract template
  */
 export class Contract {
-  private template: Template
+  template: Template
 
-  private counterparties: Counterparty[]
+  counterparties = new Map<string, Counterparty>()
 
-  private params: any
+  params: any = {}
 
-  constructor(template: Template, counterparties: Counterparty[], params: any) {
+  constructor(template: Template, counterparties?: Map<string, Counterparty>, params?: any) {
     this.template = template
-    this.counterparties = counterparties
-    this.params = params
+    if (counterparties) {
+      this.counterparties = counterparties
+    }
+    if (params) {
+      this.params = params
+    }
   }
 
   async compile(outputFile: string, style: any) {
@@ -156,6 +161,8 @@ export class Contract {
     }
   }
 
+  // async sign(counterpartyID: string, signatoryID: string, identity: Identity)
+
   private buildPandocArgs(inputFile: string, outputFile: string, style: any): string[] {
     const font = 'font' in style ? style.font : DEFAULT_PDF_FONT
     const pdfEngine = 'pdf_engine' in style ? style.pdf_engine : DEFAULT_PDF_ENGINE
@@ -180,7 +187,14 @@ export class Contract {
       throw new ContractFormatError('Expected "counterparties" field to be an array')
     }
     const template = await Template.load(a.template, cache)
-    return new Contract(template, a.counterparties, a)
+    const counterparties = new Map<string, Counterparty>()
+    a.counterparties.forEach((cid: string) => {
+      if (!(cid in a)) {
+        throw new ContractMissingFieldError('cid')
+      }
+      counterparties.set(cid, Counterparty.fromDB(cid, a[cid]))
+    })
+    return new Contract(template, counterparties, a)
   }
 
   static async fromFile(filename: string, cache?: DocumentCache): Promise<Contract> {

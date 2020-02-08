@@ -28,7 +28,6 @@ export default class Compile extends Command {
 
   async run() {
     const { args, flags } = this.parse(Compile)
-    logger.level = flags.verbose ? 'debug' : 'info'
     await cliWrap(this, flags.verbose, async () => {
       let style: any = {}
       if (flags.style) {
