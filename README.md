@@ -54,8 +54,8 @@ will eventually
 # List current stored counterparties
 > neat-contract list-counterparties
 
-# Add a counterparty
-> neat-contract add-counterparty --id icf --fullname "Interchain Foundation"
+# Save a counterparty
+> neat-contract save-counterparty --id icf --fullname "Interchain Foundation"
 ```
 
 ## Contracts
