@@ -37,7 +37,7 @@ export default class Compile extends Command {
       // configure our template cache
       const cache = await DocumentCache.init(templateCachePath(flags.profile))
       const contract = await Contract.fromFile(args.path, cache)
-      await contract.compile(flags.output, style)
+      await contract.compile(args.path, flags.output, style)
     })
   }
 }

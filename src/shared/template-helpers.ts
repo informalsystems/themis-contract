@@ -47,3 +47,11 @@ export const templateVarsToObj = (vars: Map<string, any>): any => {
   })
   return obj
 }
+
+export const initialsImageName = (counterpartyID: string, signatoryID: string): string => {
+  return `${counterpartyID}__${signatoryID}__initials`
+}
+
+export const fullSigImageName = (counterpartyID: string, signatoryID: string): string => {
+  return `${counterpartyID}__${signatoryID}__full`
+}

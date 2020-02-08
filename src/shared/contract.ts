@@ -4,11 +4,11 @@ import * as tmp from 'tmp'
 import * as path from 'path'
 import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE } from './constants'
 import { isGitURL } from './git-url'
-import { statAsync, readFileAsync, writeFileAsync, spawnAsync, copyFileAsync } from './async-io'
+import { statAsync, readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync } from './async-io'
 import { DocumentCache } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
-import { extractTemplateVariables, templateVarsToObj } from './template-helpers'
+import { extractTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName } from './template-helpers'
 import { writeTOMLFileAsync } from './toml'
 import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
 import { Counterparty, Signatory } from './counterparties'
@@ -96,7 +96,16 @@ export class Template {
   }
 
   // Renders this template to a string using the specified parameters.
-  render(params: any): string {
+  render(params: any, signatureImages: Map<string, string>): string {
+    Handlebars.registerHelper('signature', (counterpartyID, signatoryID) => {
+      logger.debug(`Looking up image for ${counterpartyID}.${signatoryID}`)
+      const imgSrc = signatureImages.get(initialsImageName(counterpartyID, signatoryID))
+      return imgSrc ? `<img src="${imgSrc}">` : ''
+    })
+    Handlebars.registerHelper('initials', (counterpartyID, signatoryID) => {
+      const imgSrc = signatureImages.get(fullSigImageName(counterpartyID, signatoryID))
+      return imgSrc ? `<img src="${imgSrc}">` : ''
+    })
     return Handlebars.compile(this.content)(params)
   }
 }
@@ -146,15 +155,50 @@ export class Contract {
     })
   }
 
-  async compile(outputFile: string, style: any) {
+  private async lookupSignatureImages(basePath: string): Promise<Map<string, string>> {
+    const entries = await readdirAsync(basePath)
+    const images = new Map<string, string>()
+    for (const entry of entries) {
+      const fullPath = path.join(basePath, entry)
+      if (await fileExistsAsync(fullPath)) {
+        const parsedPath = path.parse(fullPath)
+        const nameParts = parsedPath.name.split('__')
+        if (nameParts.length !== 3) {
+          continue
+        }
+        const counterpartyID = nameParts[0]
+        const signatoryID = nameParts[1]
+        const sigType = nameParts[2]
+        const counterparty = this.counterparties.get(counterpartyID)
+        if (!counterparty) {
+          continue
+        }
+        const signatory = counterparty.signatories.get(signatoryID)
+        if (!signatory) {
+          continue
+        }
+        if (sigType === 'initials' || sigType === 'full') {
+          images.set(parsedPath.name, fullPath)
+          logger.debug(`Found signature image ${parsedPath.name} at: ${fullPath}`)
+        }
+      }
+    }
+    return images
+  }
+
+  async compile(inputFile: string, outputFile: string, style: any) {
+    const inputPathParsed = path.parse(inputFile)
     // render the template to a temporary directory
     const tmpContract = tmp.fileSync({ postfix: '.html' })
+    const sigImages = await this.lookupSignatureImages(path.resolve(inputPathParsed.dir))
     try {
+      const renderedTemplate = this.template.render(this.params, sigImages)
       await writeFileAsync(
         tmpContract.name,
-        this.template.render(this.params),
+        renderedTemplate,
       )
       logger.debug(`Wrote contract to temporary file: ${tmpContract.name}`)
+      logger.debug(`Wrote rendered template:\n${renderedTemplate}`)
 
       logger.info('Generating PDF...')
       const pandocArgs = this.buildPandocArgs(tmpContract.name, outputFile, style)
@@ -187,11 +231,11 @@ export class Contract {
     const parsedSigInitials = path.parse(identity.sigInitials)
     const parsedSigFull = path.parse(identity.sigFull)
 
-    const destSigInitials = path.join(parentPath, `${counterparty.id}__${signatory.id}__initials${parsedSigInitials.ext}`)
+    const destSigInitials = path.join(parentPath, `${initialsImageName(counterparty.id, signatory.id)}${parsedSigInitials.ext}`)
     await copyFileAsync(identity.sigInitials, destSigInitials)
     logger.debug(`Copied identity signature initials to: ${destSigInitials}`)
 
-    const destSigFull = path.join(parentPath, `${counterparty.id}__${signatory.id}__full${parsedSigFull.ext}`)
+    const destSigFull = path.join(parentPath, `${fullSigImageName(counterparty.id, signatory.id)}${parsedSigFull.ext}`)
     await copyFileAsync(identity.sigInitials, destSigFull)
     logger.debug(`Copied identity full signature to: ${destSigFull}`)
 
