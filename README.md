@@ -102,7 +102,6 @@ keybase_id = "ebuchman"
 ## Features Coming Soon
 
 * Fetching of contract templates from Git repositories
-* Identity management
 * Signing of contracts using local identity (simple image-based signature)
 * Cryptographic signing of contracts based on local identity
 * Automatic addition of selected counterparties/signatories to new contracts
