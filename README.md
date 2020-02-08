@@ -106,4 +106,3 @@ keybase_id = "ebuchman"
 * Cryptographic signing of contracts based on local identity
 * Automatic addition of selected counterparties/signatories to new contracts
   upon creation
-* Signatory management for stored counterparties
