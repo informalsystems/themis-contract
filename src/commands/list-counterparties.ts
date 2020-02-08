@@ -35,14 +35,15 @@ export default class ListCounterparties extends Command {
       const longestName = longestFieldLength(sorted, 'fullName')
       cli.table(sorted, {
         id: {
-          header: 'ID',
+          header: 'id',
           minWidth: longestID + 5,
         },
         fullName: {
-          header: 'Full Name',
+          header: 'full_name',
           minWidth: longestName + 5,
         },
         signatories: {
+          header: 'signatories',
           get: row => row.signatories.size,
         },
       }, {

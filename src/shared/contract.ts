@@ -1,17 +1,18 @@
 import { TomlReader } from '@sgarciac/bombadil'
 import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
+import * as path from 'path'
 import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE } from './constants'
 import { isGitURL } from './git-url'
-import { statAsync, readFileAsync, writeFileAsync, spawnAsync } from './async-io'
+import { statAsync, readFileAsync, writeFileAsync, spawnAsync, copyFileAsync } from './async-io'
 import { DocumentCache } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
 import { extractTemplateVariables, templateVarsToObj } from './template-helpers'
 import { writeTOMLFileAsync } from './toml'
 import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
-import { Counterparty } from './counterparties'
-// import { Identity } from './identities'
+import { Counterparty, Signatory } from './counterparties'
+import { Identity } from './identities'
 
 /**
  * A contract template. Uses Mustache for template rendering.
@@ -131,6 +132,20 @@ export class Contract {
     }
   }
 
+  sortedCounterparties(): Counterparty[] {
+    const result: Counterparty[] = []
+    this.counterparties.forEach(c => result.push(c))
+    return result.sort((a, b) => {
+      if (a.fullName < b.fullName) {
+        return -1
+      }
+      if (a.fullName > b.fullName) {
+        return 1
+      }
+      return 0
+    })
+  }
+
   async compile(outputFile: string, style: any) {
     // render the template to a temporary directory
     const tmpContract = tmp.fileSync({ postfix: '.html' })
@@ -161,7 +176,27 @@ export class Contract {
     }
   }
 
-  // async sign(counterpartyID: string, signatoryID: string, identity: Identity)
+  async sign(contractPath: string, counterparty: Counterparty, signatory: Signatory, identity: Identity) {
+    if (!identity.sigInitials) {
+      throw new Error('Identity does not have an initials signature file')
+    }
+    if (!identity.sigFull) {
+      throw new Error('Identity does not have a full signature file')
+    }
+    const parentPath = path.parse(contractPath).dir
+    const parsedSigInitials = path.parse(identity.sigInitials)
+    const parsedSigFull = path.parse(identity.sigFull)
+
+    const destSigInitials = path.join(parentPath, `${counterparty.id}__${signatory.id}__initials${parsedSigInitials.ext}`)
+    await copyFileAsync(identity.sigInitials, destSigInitials)
+    logger.debug(`Copied identity signature initials to: ${destSigInitials}`)
+
+    const destSigFull = path.join(parentPath, `${counterparty.id}__${signatory.id}__full${parsedSigFull.ext}`)
+    await copyFileAsync(identity.sigInitials, destSigFull)
+    logger.debug(`Copied identity full signature to: ${destSigFull}`)
+
+    logger.info(`Signed contract ${contractPath} as ${signatory.fullNames} on behalf of ${counterparty.fullName} using identity "${identity.id}"`)
+  }
 
   private buildPandocArgs(inputFile: string, outputFile: string, style: any): string[] {
     const font = 'font' in style ? style.font : DEFAULT_PDF_FONT
@@ -190,9 +225,9 @@ export class Contract {
     const counterparties = new Map<string, Counterparty>()
     a.counterparties.forEach((cid: string) => {
       if (!(cid in a)) {
-        throw new ContractMissingFieldError('cid')
+        throw new ContractMissingFieldError(cid)
       }
-      counterparties.set(cid, Counterparty.fromDB(cid, a[cid]))
+      counterparties.set(cid, Counterparty.fromContract(cid, a))
     })
     return new Contract(template, counterparties, a)
   }

@@ -45,15 +45,15 @@ export default class ListSignatories extends Command {
       const longestFullNames = longestFieldLength(sigs, 'fullNames')
       cli.table(sigs, {
         id: {
-          header: 'ID',
+          header: 'id',
           minWidth: longestID + 5,
         },
         fullNames: {
-          header: 'Full Names',
+          header: 'full_names',
           minWidth: longestFullNames + 5,
         },
         keybaseId: {
-          header: 'Keybase ID',
+          header: 'keybase_id',
           extended: true,
         },
       }, {

@@ -35,26 +35,31 @@ export default class ListIdentities extends Command {
       const longestKeybaseID = longestFieldLength(sorted, 'keybaseID')
       cli.table(sorted, {
         id: {
-          header: 'ID',
+          header: 'id',
           minWidth: longestID + 5,
         },
         sigInitials: {
-          header: 'Initials',
-          minWidth: 'Initials'.length + 5,
+          header: 'initials',
+          minWidth: 'initials'.length + 5,
           get: row => row.sigInitials ? 'yes' : '',
         },
         sigFull: {
-          header: 'Signature',
-          minWidth: 'Signature'.length + 5,
+          header: 'signature',
+          minWidth: 'signature'.length + 5,
           get: row => row.sigFull ? 'yes' : '',
         },
         keybaseID: {
-          header: 'Keybase ID',
+          header: 'keybase_id',
           minWidth: longestKeybaseID + 5,
           get: row => row.keybaseID ? row.keybaseID : '(none)',
         },
+        canSign: {
+          header: 'can_sign',
+          minWidth: 'can_sign'.length + 5,
+          get: row => row.canSign() ? 'yes' : '',
+        },
         keybaseKeyID: {
-          header: 'Keybase Key ID',
+          header: 'keybase_key_id',
           extended: true,
           get: row => row.keybaseKeyID ? row.keybaseKeyID : '(none)',
         },

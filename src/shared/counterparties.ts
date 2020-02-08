@@ -77,7 +77,15 @@ export class Counterparty {
   listSignatories(): Signatory[] {
     const sigs: Signatory[] = []
     this.signatories.forEach(sig => sigs.push(sig))
-    return sigs
+    return sigs.sort((a, b) => {
+      if (a.fullNames < b.fullNames) {
+        return -1
+      }
+      if (a.fullNames > b.fullNames) {
+        return 1
+      }
+      return 0
+    })
   }
 
   setSignatory(id: string, sig: Signatory) {
@@ -133,10 +141,12 @@ export class Counterparty {
     if (a[id].signatories.length === 0) {
       throw new ContractFormatError(`Expected at least one signatory for counterparty "${id}"`)
     }
+    const signatories = new Map<string, Signatory>()
+    a[id].signatories.forEach((sigID: string) => signatories.set(sigID, Signatory.fromContract(id, sigID, a)))
     return new Counterparty(
       id,
       a[id].full_name,
-      a[id].signatories.map((sigId: string) => Signatory.fromContract(id, sigId, a)),
+      signatories,
     )
   }
 
