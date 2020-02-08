@@ -1,6 +1,6 @@
 /* eslint-disable no-await-in-loop */
 import * as path from 'path'
-import {ContractFormatError, SignatoryMissingFieldError, CounterpartyMissingFieldError} from './errors'
+import {ContractFormatError, SignatoryMissingFieldError, CounterpartyMissingFieldError, DBError} from './errors'
 import { ensurePath, dirExistsAsync, readdirAsync, fileExistsAsync, unlinkAsync } from './async-io'
 import { logger } from './logging'
 import { writeTOMLFileAsync, readTOMLFileAsync } from './toml'
@@ -18,15 +18,22 @@ export class Signatory {
     this.keybaseId = keybaseId
   }
 
-  toAny(): any {
+  toDB(): any {
     return {
-      id: this.id,
       full_names: this.fullNames,
       keybase_id: this.keybaseId,
     }
   }
 
-  static fromAny(counterpartyId: string, signatoryId: string, a: any): Signatory {
+  static fromDB(id: string, a: any): Signatory {
+    return new Signatory(
+      id,
+      a.full_names,
+      'keybase_id' in a ? a.keybase_id : undefined,
+    )
+  }
+
+  static fromContract(counterpartyId: string, signatoryId: string, a: any): Signatory {
     if (!(signatoryId in a)) {
       throw new ContractFormatError(`Missing section for signatory "${signatoryId}" of counterparty "${counterpartyId}"`)
     }
@@ -49,28 +56,62 @@ export class Counterparty {
   fullName: string
 
   /** One or more signatories for this counterparty. */
-  signatories: Signatory[]
+  signatories = new Map<string, Signatory>()
 
-  constructor(id: string, fullName: string, signatories: Signatory[]) {
+  constructor(id: string, fullName: string, signatories?: Map<string, Signatory>) {
     this.id = id
     this.fullName = fullName
-    this.signatories = signatories
-  }
-
-  async saveToFile(filename: string) {
-    await writeTOMLFileAsync(filename, this.toAny())
-    logger.debug(`Wrote counterparty "${this.id}" to ${filename}`)
-  }
-
-  toAny(): any {
-    return {
-      id: this.id,
-      full_name: this.fullName,
-      signatories: this.signatories.forEach(s => s.toAny()),
+    if (signatories) {
+      this.signatories = signatories
     }
   }
 
-  static fromAny(id: string, a: any): Counterparty {
+  hasSignatory(id: string): boolean {
+    return this.signatories.has(id)
+  }
+
+  getSignatory(id: string): Signatory | undefined {
+    return this.signatories.get(id)
+  }
+
+  setSignatory(id: string, sig: Signatory) {
+    this.signatories.set(id, sig)
+  }
+
+  async saveToFile(filename: string) {
+    await writeTOMLFileAsync(filename, this.toDB())
+    logger.debug(`Wrote counterparty "${this.id}" to ${filename}`)
+  }
+
+  toDB(): any {
+    // we purposefully don't serialize the ID
+    const a: any = {
+      full_name: this.fullName,
+      signatories: new Array<string>(),
+    }
+    this.signatories.forEach(sig => {
+      a.signatories.push(sig.id)
+      // add each signatory as a sub-object within the counterparty
+      a[sig.id] = sig.toDB()
+    })
+    return a
+  }
+
+  static fromDB(id: string, a: any): Counterparty {
+    const signatories = new Map<string, Signatory>()
+    if ('signatories' in a && Array.isArray(a.signatories)) {
+      a.signatories.forEach((sid: string) => {
+        if (sid in a) {
+          signatories.set(sid, Signatory.fromDB(sid, a[sid]))
+        } else {
+          throw new DBError(`Missing details for signatory with ID "${sid}" in counterparty "${id}"`)
+        }
+      })
+    }
+    return new Counterparty(id, a.full_name, signatories)
+  }
+
+  static fromContract(id: string, a: any): Counterparty {
     if (!(id in a)) {
       throw new ContractFormatError(`Missing section for counterparty "${id}"`)
     }
@@ -89,18 +130,16 @@ export class Counterparty {
     return new Counterparty(
       id,
       a[id].full_name,
-      a[id].signatories.map((sigId: string) => Signatory.fromAny(id, sigId, a)),
+      a[id].signatories.map((sigId: string) => Signatory.fromContract(id, sigId, a)),
     )
   }
 
   static async loadFromFile(filename: string): Promise<Counterparty> {
-    logger.debug(`Attempting to load counterparty from file: ${filename}`)
+    const parsed = path.parse(filename)
+    const id = parsed.name
+    logger.debug(`Attempting to load counterparty (ID: "${id}") from file: ${filename}`)
     const v = await readTOMLFileAsync(filename)
-    return new Counterparty(
-      v.id,
-      v.full_name,
-      v.signatories ? v.signatories.forEach((sig: any) => new Signatory(sig.id, sig.full_names, sig.keybase_id)) : [],
-    )
+    return Counterparty.fromDB(id, v)
   }
 }
 
@@ -116,10 +155,13 @@ export class CounterpartyDB {
   }
 
   async ensure(id: string, fullName: string) {
-    const c = new Counterparty(id, fullName, [])
-    this.counterparties.set(id, c)
-    await c.saveToFile(path.join(this.basePath, `${id}.toml`))
-    logger.info(`Added counterparty "${fullName}" with ID ${id}`)
+    await this.update(new Counterparty(id, fullName))
+  }
+
+  async update(c: Counterparty) {
+    await c.saveToFile(path.join(this.basePath, `${c.id}.toml`))
+    this.counterparties.set(c.id, c)
+    logger.info(`Updated counterparty "${c.fullName}" with ID ${c.id}`)
   }
 
   has(id: string): boolean {

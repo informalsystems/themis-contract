@@ -47,7 +47,7 @@ export default class ListCounterparties extends Command {
           minWidth: longestName + 5,
         },
         signatories: {
-          get: row => row.signatories.length,
+          get: row => row.signatories.size,
         },
       }, {
         printLine: this.log,

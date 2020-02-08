@@ -91,6 +91,9 @@ export class TOML {
   }
 
   private static serializeArray(a: any[], pad: string, indent: number, inline: boolean): string {
+    if (a.length === 0) {
+      return '[]'
+    }
     const i = inline ? '' : pad + ''.padEnd(indent, ' ')
     const inner: string[] = []
     for (const v of a) {
