@@ -1,4 +1,5 @@
 import * as Handlebars from 'handlebars'
+import { logger } from './logging'
 
 const trackVariable = (tracker: Map<string, any>, path: string[], varName: string) => {
   let trackerChild = tracker
@@ -13,10 +14,14 @@ const trackVariable = (tracker: Map<string, any>, path: string[], varName: strin
 const makeVariableTrackerProxy = (parentObj: object, parents: string[], trackedVars: Map<string, any>): object => {
   return new Proxy(parentObj, {
     get: (target, name) => {
+      if (typeof name === 'symbol') {
+        return ''
+      }
       if (name === 'toHTML') {
         return (): string => ''
       }
       const varName = String(name)
+      logger.debug(`Found potential template variable: ${varName}`)
       trackVariable(trackedVars, parents, varName)
       return makeVariableTrackerProxy(target, [...parents, varName], trackedVars)
     },
