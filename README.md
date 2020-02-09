@@ -31,7 +31,67 @@ Once you have the requirements installed, simply:
 
 ## Usage
 
+### Identities
+In order to sign anything, you need to set up one or more **identities** for
+yourself. This is a way of organizing your written (image-based) signatures and
+(in future) your cryptographic identities.
+
+```bash
+# Will ask you interactively for all the relevant fields
+> neat-contract save-identity
+2020-02-08 18:51:32 info Querying local Keybase (whoami and key listing)...
+? Enter an ID for the new identity (snake_case): manderson
+? Please enter the Keybase ID: manderson
+? Please enter the 70-char hex key ID for the Keybase key you would like to use: 0123401234012345...
+? Which image file would you like to use for signature *initials*? /Users/manderson/Documents/initials.png
+? Which image file would you like to use for your *full* signature? /Users/manderson/Documents/fullsignature.png
+2020-02-08 18:52:06 info Updated identity "manderson"
+
+# List identities you've saved
+> neat-contract list-identities
+id            initials     signature     keybase_id       can_sign
+manderson     yes          yes           manderson        yes
+```
+
+Now you can sign contracts using the identity 
+
 ### Contracts
+
+In order to generate a contract, we first need a template. Take a look at the
+following contrived HTML-based template:
+
+```hbs
+<h1>New Contract</h1>
+<p>Created on {{date}}. Start adding your contract content here.</p>
+
+<p>&nbsp;</p>
+
+<p>Signed by {{icf.full_name}} signatories:</p>
+
+<!-- Here we loop through all the signatories in the "icf" counterparty -->
+{{#each icf.signatories}}
+  <!-- Note the three curly braces - that's to prevent escaping of symbols to
+       allow the "signature" helper to generate HTML -->
+  <p>{{{signature "icf" this}}}</p>
+  <!-- Also, "this" above refers to the ID of the signatory -->
+{{/each}}
+
+<p>&nbsp;</p>
+
+<p>Signed by {{company_a.full_name}} signatories:</p>
+
+<!-- Here we loop through all the signatories in the "icf" counterparty -->
+{{#each company_a.signatories}}
+  <!-- Note the three curly braces - that's to prevent escaping of symbols to
+       allow the "signature" helper to generate HTML -->
+  <p>{{{signature "company_a" this}}}</p>
+  <!-- Also, "this" above refers to the ID of the signatory -->
+{{/each}}
+```
+
+Now you can use this template to generate a contract with empty variables.
+`neat-contract` will do its best to extract what it thinks are the variables
+from the specified template.
 
 ```bash
 # Extract all variables from a Handlebars template and use these to generate a
@@ -46,9 +106,25 @@ Once you have the requirements installed, simply:
 > neat-contract compile -o contract.pdf ./contract.toml
 ```
 
+You'll notice at this point there are no signatures in the contract. You need to
+sign it!
+
+```bash
+# Will ask you for all of the relevant information
+> neat-contract sign ./contract.toml
+? On behalf of which counterparty will you be signing the contract? Company A Consulting
+? As which signatory will you be signing on behalf of the counterparty? Michael Anderson
+? Which identity do you want to use to sign? manderson
+2020-02-08 18:57:38 info Signed contract /Users/manderson/Documents/contract.toml as Michael Anderson on behalf of Company A Consulting using identity "manderson"
+2020-02-08 18:57:38 info Now compile the contract and you should see the signatures in the relevant places
+
+# Compile again and you should see your signature come up in the contract
+> neat-contract compile -o contract.pdf ./contract.toml
+```
+
 ### Counterparties
-To speed things up, you can define counterparties in your local profile that
-will eventually 
+To speed things up when creating contracts, you can define counterparties in
+your local profile.
 
 ```bash
 # List current stored counterparties
@@ -96,7 +172,13 @@ full_names = "Ethan Buchman"
 keybase_id = "ebuchman"
 
 [company_a]
-# ... similar to icf above
+full_name = "Company A Consulting"
+signatories = [
+  "manderson",
+]
+
+[manderson]
+full_names = "Michael Anderson"
 ```
 
 ## Features Coming Soon
