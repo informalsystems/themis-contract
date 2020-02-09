@@ -26,7 +26,7 @@ export const longestFieldLength = (a: any[], fieldName: string): number => {
 }
 
 export const isValidID = (id: string): boolean => {
-  return VALID_ID_FORMAT.test(id)
+  return VALID_ID_FORMAT.test(id) && id.indexOf('__') === -1
 }
 
 export const parseID = (id: string): string => {
