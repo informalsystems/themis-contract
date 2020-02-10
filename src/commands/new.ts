@@ -4,6 +4,7 @@ import { DEFAULT_PROFILE_PATH, templateCachePath } from '../shared/constants'
 import { DocumentCache } from '../shared/document-cache'
 import inquirer = require('inquirer')
 import { cliWrap } from '../shared/cli-helpers'
+import * as openEditor from 'open-editor'
 
 export default class New extends Command {
   static description = 'create a new contract'
@@ -20,6 +21,7 @@ export default class New extends Command {
     template: flags.string({ char: 't', description: 'automatically prepopulate the new contract with variables from this template' }),
     noprompt: flags.boolean({ description: 'do not prompt for more information (use defaults)' }),
     verbose: flags.boolean({ char: 'v', default: false, description: 'increase output logging verbosity to DEBUG level' }),
+    noedit: flags.boolean({ default: false, description: 'do not open your $EDITOR after creating the contract' }),
   }
 
   static args = [
@@ -51,6 +53,10 @@ export default class New extends Command {
         cache: cache,
         force: flags.force,
       })
+
+      if (!flags.noedit) {
+        openEditor([args.output])
+      }
     })
   }
 }

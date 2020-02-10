@@ -4,7 +4,7 @@ import * as tmp from 'tmp'
 import * as path from 'path'
 import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE } from './constants'
 import { isGitURL } from './git-url'
-import { statAsync, readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync } from './async-io'
+import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync } from './async-io'
 import { DocumentCache } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
@@ -50,15 +50,10 @@ export class Template {
    * @returns {Template} A template, if one can be successfully loaded.
    */
   static async load(src: string, cache?: DocumentCache): Promise<Template> {
-    try {
-      if ((await statAsync(src)).isFile()) {
-        return Template.loadFromFile(src)
-      }
-    } catch (error) {
-      // ignore any errors, just try load from a remote
+    if (src.indexOf('://') > -1) {
+      return Template.loadFromRemote(src, cache)
     }
-    // try to load it as a remote
-    return Template.loadFromRemote(src, cache)
+    return Template.loadFromFile(src)
   }
 
   static async loadFromFile(filename: string, encoding?: string): Promise<Template> {
