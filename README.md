@@ -108,8 +108,8 @@ from the specified template.
 # base contract. Reads `template.html` and writes to `./contract.toml`.
 > neat-contract new --template template.html ./contract.toml
 
-# Open up your favourite editor to change `contract.toml`'s parameters
-# accordingly.
+# `neat-contract` tries to open up your favourite editor to change
+# `contract.toml`'s parameters accordingly.
 
 # Then, when you want to compile your contract. Reads `contract.toml` and
 # generates `contract.pdf` using pandoc and tectonic.
