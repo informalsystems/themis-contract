@@ -1,6 +1,8 @@
 import { TomlReader } from '@sgarciac/bombadil'
 import { readFileAsync, writeFileAsync } from './async-io'
 import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_TOML_INDENT, DEFAULT_TOML_INDENT_SECTIONS } from './constants'
+import { logger } from './logging'
+import { inspect } from 'util'
 
 export class TOMLParserError extends Error {}
 
@@ -19,6 +21,7 @@ export class TOML {
    */
   static stringify(data: any, opts?: TOMLStringifyOptions): string {
     if (Array.isArray(data) || typeof data !== 'object') {
+      logger.debug(`Got data: ${inspect(data)}`)
       throw new TypeError('TOML.stringify() can only be called on objects')
     }
     const indent = opts ? (opts.indent ? opts.indent : DEFAULT_TOML_INDENT) : DEFAULT_TOML_INDENT

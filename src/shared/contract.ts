@@ -177,6 +177,7 @@ export class Contract {
     const inputPathParsed = path.parse(inputFile)
     const sigImages = await this.lookupSignatureImages(path.resolve(inputPathParsed.dir))
 
+    // ensure counterparties are populated fully
     this.params.counterparties = {}
     this.counterparties.forEach(counterparty => {
       this.params.counterparties[counterparty.id] = counterparty.toTemplateVar(sigImages)

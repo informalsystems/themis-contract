@@ -1,10 +1,30 @@
 /* eslint-disable no-await-in-loop */
 import * as path from 'path'
-import {ContractFormatError, SignatoryMissingFieldError, CounterpartyMissingFieldError, DBError} from './errors'
+import { ContractFormatError, SignatoryMissingFieldError, CounterpartyMissingFieldError, DBError } from './errors'
 import { ensurePath, dirExistsAsync, readdirAsync, fileExistsAsync, unlinkAsync } from './async-io'
 import { logger } from './logging'
 import { writeTOMLFileAsync, readTOMLFileAsync } from './toml'
 import { fullSigImageName, initialsImageName } from './template-helpers'
+
+const extractParams = (a: any, skipFields?: string[]): any => {
+  const additionalParams: any = {}
+  for (const fieldName in a) {
+    if (Object.prototype.hasOwnProperty.call(a, fieldName)) {
+      if (!skipFields || skipFields.indexOf(fieldName) === -1) {
+        additionalParams[fieldName] = a[fieldName]
+      }
+    }
+  }
+}
+
+const mergeParams = (a: any, b: any): any => {
+  for (const fieldName in b) {
+    if (Object.prototype.hasOwnProperty.call(b, fieldName)) {
+      a[fieldName] = b[fieldName]
+    }
+  }
+  return a
+}
 
 export class Signatory {
   id: string
@@ -13,30 +33,33 @@ export class Signatory {
 
   keybaseId?: string
 
-  constructor(id: string, fullNames: string, keybaseId?: string) {
+  additionalParams: any = {}
+
+  constructor(id: string, fullNames: string, keybaseId?: string, additionalParams?: any) {
     this.id = id
     this.fullNames = fullNames
     this.keybaseId = keybaseId
+    this.additionalParams = additionalParams ? additionalParams : this.additionalParams
   }
 
   toDB(): any {
-    return {
+    return mergeParams({
       full_names: this.fullNames,
       keybase_id: this.keybaseId,
-    }
+    }, this.additionalParams)
   }
 
   toTemplateVar(counterparty: Counterparty, sigImages: Map<string, string>): any {
     const sigImage = sigImages.get(fullSigImageName(counterparty.id, this.id))
     const initialsImage = sigImages.get(initialsImageName(counterparty.id, this.id))
-    return {
+    return mergeParams({
       counterparty_id: counterparty.id,
       id: this.id,
       full_names: this.fullNames,
       keybase_id: this.keybaseId ? this.keybaseId : null,
       signature_image: sigImage ? sigImage : null,
       initials_image: initialsImage ? initialsImage : null,
-    }
+    }, this.additionalParams)
   }
 
   static fromDB(id: string, a: any): Signatory {
@@ -44,6 +67,7 @@ export class Signatory {
       id,
       a.full_names,
       'keybase_id' in a ? a.keybase_id : undefined,
+      extractParams(a, ['id', 'full_names', 'keybase_id'])
     )
   }
 
@@ -58,7 +82,12 @@ export class Signatory {
     if ('keybase_id' in a[signatoryId]) {
       keybaseId = a[signatoryId].keybase_id
     }
-    return new Signatory(signatoryId, a[signatoryId].full_names, keybaseId)
+    return new Signatory(
+      signatoryId,
+      a[signatoryId].full_names,
+      keybaseId,
+      extractParams(a[signatoryId], ['id', 'full_names', 'keybase_id']),
+    )
   }
 }
 
@@ -72,11 +101,17 @@ export class Counterparty {
   /** One or more signatories for this counterparty. */
   signatories = new Map<string, Signatory>()
 
-  constructor(id: string, fullName: string, signatories?: Map<string, Signatory>) {
+  /** Any additional parameters added in the contract for this counterparty. */
+  additionalParams: any = {}
+
+  constructor(id: string, fullName: string, signatories?: Map<string, Signatory>, additionalParams?: any) {
     this.id = id
     this.fullName = fullName
     if (signatories) {
       this.signatories = signatories
+    }
+    if (additionalParams) {
+      this.additionalParams = additionalParams
     }
   }
 
@@ -122,7 +157,7 @@ export class Counterparty {
       // add each signatory as a sub-object within the counterparty
       a[sig.id] = sig.toDB()
     })
-    return a
+    return mergeParams(a, this.additionalParams)
   }
 
   toTemplateVar(sigImages: Map<string, string>): any {
@@ -130,11 +165,11 @@ export class Counterparty {
     this.signatories.forEach(sig => {
       signatories[sig.id] = sig.toTemplateVar(this, sigImages)
     })
-    return {
+    return mergeParams({
       id: this.id,
       full_name: this.fullName,
       signatories: signatories,
-    }
+    }, this.additionalParams)
   }
 
   static fromDB(id: string, a: any): Counterparty {
@@ -148,7 +183,12 @@ export class Counterparty {
         }
       })
     }
-    return new Counterparty(id, a.full_name, signatories)
+    return new Counterparty(
+      id,
+      a.full_name,
+      signatories,
+      extractParams(a, ['id', 'full_name', 'signatories'])
+    )
   }
 
   static fromContract(id: string, a: any): Counterparty {
@@ -173,6 +213,7 @@ export class Counterparty {
       id,
       a[id].full_name,
       signatories,
+      extractParams(a[id], ['id', 'full_name', 'signatories']),
     )
   }
 
