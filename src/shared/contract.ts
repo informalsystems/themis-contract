@@ -47,13 +47,15 @@ export class Template {
    * @param {string} src The source from which to load a template.
    * @param {DocumentCache} cache For remote templates, optionally cache them
    *   here.
+   * @param {string} basePath If `src` is a relative path, resolve it relative
+   *   to this base path.
    * @returns {Template} A template, if one can be successfully loaded.
    */
-  static async load(src: string, cache?: DocumentCache): Promise<Template> {
+  static async load(src: string, cache?: DocumentCache, basePath?: string): Promise<Template> {
     if (src.indexOf('://') > -1) {
       return Template.loadFromRemote(src, cache)
     }
-    return Template.loadFromFile(path.resolve(src))
+    return Template.loadFromFile((basePath && !path.isAbsolute(src)) ? path.resolve(basePath, src) : path.resolve(src))
   }
 
   static async loadFromFile(filename: string, encoding?: string): Promise<Template> {
