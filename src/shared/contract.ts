@@ -8,7 +8,7 @@ import { statAsync, readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, re
 import { DocumentCache } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
-import { extractTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName } from './template-helpers'
+import { extractTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName, hasSignedMustacheHelper } from './template-helpers'
 import { writeTOMLFileAsync } from './toml'
 import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
 import { Counterparty, Signatory } from './counterparties'
@@ -96,16 +96,8 @@ export class Template {
   }
 
   // Renders this template to a string using the specified parameters.
-  render(params: any, signatureImages: Map<string, string>): string {
-    Handlebars.registerHelper('signature', (counterpartyID, signatoryID) => {
-      logger.debug(`Looking up image for ${counterpartyID}.${signatoryID}`)
-      const imgSrc = signatureImages.get(initialsImageName(counterpartyID, signatoryID))
-      return imgSrc ? `<img src="${imgSrc}">` : ''
-    })
-    Handlebars.registerHelper('initials', (counterpartyID, signatoryID) => {
-      const imgSrc = signatureImages.get(fullSigImageName(counterpartyID, signatoryID))
-      return imgSrc ? `<img src="${imgSrc}">` : ''
-    })
+  render(params: any): string {
+    Handlebars.registerHelper('has_signed', hasSignedMustacheHelper)
     return Handlebars.compile(this.content)(params)
   }
 }
@@ -186,13 +178,26 @@ export class Contract {
     return images
   }
 
-  async compile(inputFile: string, outputFile: string, style: any) {
+  private async prepareTemplateParams(inputFile: string) {
     const inputPathParsed = path.parse(inputFile)
+    const sigImages = await this.lookupSignatureImages(path.resolve(inputPathParsed.dir))
+
+    this.params.counterparties = {}
+    this.counterparties.forEach(counterparty => {
+      this.params.counterparties[counterparty.id] = counterparty.toTemplateVar(sigImages)
+      if (counterparty.id in this.params) {
+        this.params[counterparty.id] = this.params.counterparties[counterparty.id]
+      }
+    })
+  }
+
+  async compile(inputFile: string, outputFile: string, style: any) {
+    await this.prepareTemplateParams(inputFile)
+    logger.debug(`Using template params: ${JSON.stringify(this.params, null, 2)}`)
     // render the template to a temporary directory
     const tmpContract = tmp.fileSync({ postfix: '.html' })
-    const sigImages = await this.lookupSignatureImages(path.resolve(inputPathParsed.dir))
     try {
-      const renderedTemplate = this.template.render(this.params, sigImages)
+      const renderedTemplate = this.template.render(this.params)
       await writeFileAsync(
         tmpContract.name,
         renderedTemplate,

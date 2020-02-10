@@ -58,7 +58,9 @@ Now you can sign contracts using the identity
 ### Contracts
 
 In order to generate a contract, we first need a template. Take a look at the
-following contrived HTML-based template:
+following contrived HTML-based template. We know up-front that our contract will
+take place between the Interchain Foundation (`icf`) and an external contractor
+(`contractor`).
 
 ```hbs
 <h1>New Contract</h1>
@@ -66,26 +68,34 @@ following contrived HTML-based template:
 
 <p>&nbsp;</p>
 
-<p>Signed by {{icf.full_name}} signatories:</p>
+<p>Signed by {{icf.full_name}}:</p>
 
 <!-- Here we loop through all the signatories in the "icf" counterparty -->
 {{#each icf.signatories}}
-  <!-- Note the three curly braces - that's to prevent escaping of symbols to
-       allow the "signature" helper to generate HTML -->
-  <p>{{{signature "icf" this}}}</p>
-  <!-- Also, "this" above refers to the ID of the signatory -->
+  <p>
+    {{#has_signed this}}
+      <img src="{{this.signature_image}}">
+    {{else}}
+      <i>Still to be signed</i>
+    {{/has_signed}}
+  </p>
+  <p>{{this.full_names}}</p>
 {{/each}}
 
 <p>&nbsp;</p>
 
-<p>Signed by {{company_a.full_name}} signatories:</p>
+<p>Signed by {{contractor.full_name}}:</p>
 
-<!-- Here we loop through all the signatories in the "icf" counterparty -->
-{{#each company_a.signatories}}
-  <!-- Note the three curly braces - that's to prevent escaping of symbols to
-       allow the "signature" helper to generate HTML -->
-  <p>{{{signature "company_a" this}}}</p>
-  <!-- Also, "this" above refers to the ID of the signatory -->
+<!-- Here we loop through all the signatories in the "contractor" counterparty -->
+{{#each contractor.signatories}}
+  <p>
+    {{#has_signed this}}
+      <img src="{{this.signature_image}}">
+    {{else}}
+      <i>Still to be signed</i>
+    {{/has_signed}}
+  </p>
+  <p>{{this.full_names}}</p>
 {{/each}}
 ```
 
@@ -152,7 +162,7 @@ template = "template.html"
 # where each will have signatories that must sign the contract.
 counterparties = [
   "icf",
-  "company_a"
+  "contractor"
 ]
 
 [icf]
@@ -171,7 +181,7 @@ keybase_id = "aflemming"
 full_names = "Ethan Buchman"
 keybase_id = "ebuchman"
 
-[company_a]
+[contractor]
 full_name = "Company A Consulting"
 signatories = [
   "manderson",
@@ -185,5 +195,5 @@ full_names = "Michael Anderson"
 
 * Fetching of contract templates from Git repositories
 * Cryptographic signing of contracts based on local identity
-* Automatic addition of selected counterparties/signatories to new contracts
+* Automatic population of selected counterparties/signatories to new contracts
   upon creation

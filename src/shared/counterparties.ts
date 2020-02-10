@@ -4,6 +4,7 @@ import {ContractFormatError, SignatoryMissingFieldError, CounterpartyMissingFiel
 import { ensurePath, dirExistsAsync, readdirAsync, fileExistsAsync, unlinkAsync } from './async-io'
 import { logger } from './logging'
 import { writeTOMLFileAsync, readTOMLFileAsync } from './toml'
+import { fullSigImageName, initialsImageName } from './template-helpers'
 
 export class Signatory {
   id: string
@@ -22,6 +23,19 @@ export class Signatory {
     return {
       full_names: this.fullNames,
       keybase_id: this.keybaseId,
+    }
+  }
+
+  toTemplateVar(counterparty: Counterparty, sigImages: Map<string, string>): any {
+    const sigImage = sigImages.get(fullSigImageName(counterparty.id, this.id))
+    const initialsImage = sigImages.get(initialsImageName(counterparty.id, this.id))
+    return {
+      counterparty_id: counterparty.id,
+      id: this.id,
+      full_names: this.fullNames,
+      keybase_id: this.keybaseId ? this.keybaseId : null,
+      signature_image: sigImage ? sigImage : null,
+      initials_image: initialsImage ? initialsImage : null,
     }
   }
 
@@ -109,6 +123,18 @@ export class Counterparty {
       a[sig.id] = sig.toDB()
     })
     return a
+  }
+
+  toTemplateVar(sigImages: Map<string, string>): any {
+    const signatories: any = {}
+    this.signatories.forEach(sig => {
+      signatories[sig.id] = sig.toTemplateVar(this, sigImages)
+    })
+    return {
+      id: this.id,
+      full_name: this.fullName,
+      signatories: signatories,
+    }
   }
 
   static fromDB(id: string, a: any): Counterparty {

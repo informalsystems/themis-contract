@@ -1,5 +1,6 @@
 import * as Handlebars from 'handlebars'
 import { logger } from './logging'
+import { TemplateError } from './errors'
 
 const trackVariable = (tracker: Map<string, any>, path: string[], varName: string) => {
   let trackerChild = tracker
@@ -59,4 +60,27 @@ export const initialsImageName = (counterpartyID: string, signatoryID: string): 
 
 export const fullSigImageName = (counterpartyID: string, signatoryID: string): string => {
   return `${counterpartyID}__${signatoryID}__full`
+}
+
+export const validateTemplateSignatory = (a: any) => {
+  const expectedProps = ['full_names', 'counterparty_id', 'signature_image', 'initials_image']
+  for (const prop in a) {
+    if (Object.prototype.hasOwnProperty.call(a, prop)) {
+      const pos = expectedProps.indexOf(prop)
+      if (pos > -1) {
+        expectedProps.splice(pos, 1)
+      }
+    }
+  }
+  if (expectedProps.length > 0) {
+    throw new TemplateError(`Signatory is missing fields: ${expectedProps.join(', ')}`)
+  }
+}
+
+export const hasSignedMustacheHelper = (signatory: any, opts: Handlebars.HelperOptions): any => {
+  validateTemplateSignatory(signatory)
+  if (signatory.signature_image !== null && signatory.initials_image !== null) {
+    return opts.fn(signatory)
+  }
+  return opts.inverse(signatory)
 }
