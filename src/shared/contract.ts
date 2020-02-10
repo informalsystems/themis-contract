@@ -19,22 +19,14 @@ import { Identity } from './identities'
  */
 export class Template {
   // This template's source
-  private src: string
+  src: string
 
   // The raw Mustache content of the template
-  private content: string
+  content: string
 
   constructor(src: string, content?: string) {
     this.src = src
     this.content = content ? content : ''
-  }
-
-  getSource(): string {
-    return this.src
-  }
-
-  getContent(): string {
-    return this.content
   }
 
   getVariables(): Map<string, any> {
@@ -87,7 +79,7 @@ export class Template {
     }
     const template = new Template(url, res.data)
     if (cache) {
-      await cache.add(url, template.getContent())
+      await cache.add(url, template.content)
     }
     return template
   }
@@ -298,7 +290,7 @@ export class Contract {
         const template = await Template.load(opts.template, opts.cache)
         // extract the variables from the template
         vars = template.getVariables()
-        vars.set('template', template.getSource())
+        vars.set('template', template.src)
       }
     }
     // ensure we've got our counterparties and template variable
