@@ -53,7 +53,7 @@ export class Template {
     if (src.indexOf('://') > -1) {
       return Template.loadFromRemote(src, cache)
     }
-    return Template.loadFromFile(src)
+    return Template.loadFromFile(path.resolve(src))
   }
 
   static async loadFromFile(filename: string, encoding?: string): Promise<Template> {
@@ -294,7 +294,7 @@ export class Contract {
         const template = await Template.load(opts.template, opts.cache)
         // extract the variables from the template
         vars = template.getVariables()
-        vars.set('template', opts.template)
+        vars.set('template', template.getSource())
       }
     }
     // ensure we've got our counterparties and template variable
