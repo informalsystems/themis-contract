@@ -258,7 +258,7 @@ export class Contract {
     ]
   }
 
-  static async fromAny(a: any, cache?: DocumentCache): Promise<Contract> {
+  static async fromAny(basePath: string, a: any, cache?: DocumentCache): Promise<Contract> {
     if (!('template' in a)) {
       throw new ContractMissingFieldError('template')
     }
@@ -268,7 +268,7 @@ export class Contract {
     if (!Array.isArray(a.counterparties)) {
       throw new ContractFormatError('Expected "counterparties" field to be an array')
     }
-    const template = await Template.load(a.template, cache)
+    const template = await Template.load(a.template, cache, basePath)
     const counterparties = new Map<string, Counterparty>()
     a.counterparties.forEach((cid: string) => {
       if (!(cid in a)) {
@@ -280,10 +280,11 @@ export class Contract {
   }
 
   static async fromFile(filename: string, cache?: DocumentCache): Promise<Contract> {
+    const parsedPath = path.parse(filename)
     const content = await readFileAsync(filename, { encoding: DEFAULT_TEXT_FILE_ENCODING })
     const reader = new TomlReader()
     reader.readToml(content)
-    return Contract.fromAny(reader.result, cache)
+    return Contract.fromAny(parsedPath.dir, reader.result, cache)
   }
 
   static async createNew(filename: string, opts?: ContractCreateOptions) {
