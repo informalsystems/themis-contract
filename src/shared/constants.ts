@@ -31,6 +31,7 @@ export const identityDBPath = (profilePath: string): string => {
 export const gitRepoCachePath = (profilePath: string): string => {
   return path.join(profilePath, 'cached-repos')
 }
+export const DEFAULT_GIT_REPO_CACHE_PATH = gitRepoCachePath(DEFAULT_PROFILE_PATH)
 
 export const DEFAULT_TOML_INDENT = 2
 export const DEFAULT_TOML_INDENT_SECTIONS = false

@@ -69,7 +69,7 @@ export class Signatory {
       id,
       a.full_names,
       'keybase_id' in a ? a.keybase_id : undefined,
-      extractParams(a, ['id', 'full_names', 'keybase_id'])
+      extractParams(a, ['id', 'full_names', 'keybase_id']),
     )
   }
 
@@ -191,7 +191,7 @@ export class Counterparty {
       id,
       a.full_name,
       signatories,
-      extractParams(a, ['id', 'full_name', 'signatories'])
+      extractParams(a, ['id', 'full_name', 'signatories']),
     )
   }
 

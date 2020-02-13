@@ -59,18 +59,22 @@ export type SpawnAsyncResult = {
   stderr: string;
 }
 
-export const spawnAsync = async (command: string, args?: ReadonlyArray<string>, options?: SpawnOptions): Promise<SpawnAsyncResult> => {
-  const child = spawn(command, args, options)
+export const spawnAsync = async (command: string, args: ReadonlyArray<string>, options?: SpawnOptions): Promise<SpawnAsyncResult> => {
+  const child = spawn(command, args, options ? options : {})
 
   let stdout = ''
   let stderr = ''
 
-  for await (const chunk of child.stdout) {
-    stdout += chunk
+  if (child.stdout) {
+    for await (const chunk of child.stdout) {
+      stdout += chunk
+    }
   }
 
-  for await (const chunk of child.stderr) {
-    stderr += chunk
+  if (child.stderr) {
+    for await (const chunk of child.stderr) {
+      stderr += chunk
+    }
   }
 
   return new Promise(resolve => {

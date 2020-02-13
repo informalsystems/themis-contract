@@ -57,7 +57,7 @@ export class DocumentCache {
       return
     }
     this.index = JSON.parse(
-      await readFileAsync(indexPath, { encoding: DEFAULT_TEXT_FILE_ENCODING })
+      await readFileAsync(indexPath, { encoding: DEFAULT_TEXT_FILE_ENCODING }),
     )
     logger.debug(`Loaded ${Object.keys(this.index).length} items into document cache index`)
   }

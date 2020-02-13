@@ -48,10 +48,11 @@ export default class New extends Command {
     }
     await cliWrap(this, flags.verbose, async () => {
       const cache = await DocumentCache.init(templateCachePath(flags.profile))
-      await Contract.createNew(args.output, gitRepoCachePath(flags.profile), {
+      await Contract.createNew(args.output, {
         template: template,
         cache: cache,
         force: flags.force,
+        gitRepoCachePath: gitRepoCachePath(flags.profile),
       })
 
       if (!flags.noedit) {

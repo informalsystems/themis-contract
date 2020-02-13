@@ -6,6 +6,7 @@ import { cliWrap } from '../shared/cli-helpers'
 import * as inquirer from 'inquirer'
 import { IdentityDB } from '../shared/identities'
 import { logger } from '../shared/logging'
+import { Signatory } from '../shared/counterparties'
 
 export default class Sign extends Command {
   static description = 'sign a contract'
@@ -21,6 +22,7 @@ export default class Sign extends Command {
     counterparty: flags.string({ char: 'c', description: 'the ID of the counterparty (in the contract) on behalf of whom you are signing' }),
     signatory: flags.string({ char: 's', description: 'the ID of the signatory (in the contract) as whom you are signing' }),
     identity: flags.string({ char: 'i', description: 'the ID of the local identity to use to sign' }),
+    usekeybase: flags.boolean({ char: 'k', description: 'use Keybase to generate cryptographic signatures' }),
   }
 
   static args = [
@@ -32,7 +34,10 @@ export default class Sign extends Command {
     await cliWrap(this, flags.verbose, async () => {
       const cache = await DocumentCache.init(templateCachePath(flags.profile))
       const identityDB = await IdentityDB.load(identityDBPath(flags.profile))
-      const contract = await Contract.fromFile(args.path, gitRepoCachePath(flags.profile), cache)
+      const contract = await Contract.fromFile(args.path, {
+        gitRepoCachePath: gitRepoCachePath(flags.profile),
+        cache: cache,
+      })
 
       const counterpartyID = flags.counterparty ? flags.counterparty : (await inquirer.prompt([{
         type: 'list',
@@ -54,7 +59,7 @@ export default class Sign extends Command {
         type: 'list',
         name: 'id',
         message: 'As which signatory will you be signing on behalf of the counterparty?',
-        choices: counterparty.listSignatories().map(s => {
+        choices: counterparty.listSignatories().map((s: Signatory) => {
           return {
             name: s.fullNames,
             value: s.id,
@@ -85,7 +90,12 @@ export default class Sign extends Command {
         throw new Error(`Identity is missing information and cannot be used to sign: "${identityID}" (see "list-identities" for more information)`)
       }
 
-      await contract.sign(args.path, counterparty, signatory, identity)
+      await contract.sign({
+        counterparty: counterparty,
+        signatory: signatory,
+        identity: identity,
+        useKeybase: flags.usekeybase,
+      })
       logger.info('Now compile the contract and you should see the signatures in the relevant places')
     })
   }

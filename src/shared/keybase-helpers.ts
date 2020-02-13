@@ -1,6 +1,9 @@
 
 import { KeybaseError } from './errors'
 import { spawnAsync } from './async-io'
+import { logger } from './logging'
+import * as path from 'path'
+import { Counterparty, Signatory } from './counterparties'
 
 export const keybaseWhoami = async (): Promise<string> => {
   const keybase = await spawnAsync('keybase', ['whoami'])
@@ -66,4 +69,29 @@ export const keybaseListKeys = async (): Promise<KeybaseKeyInfo[]> => {
     }
   }
   return result
+}
+
+export const keybaseSign = async (inputFile: string, outputFile: string, key?: string) => {
+  const params = [
+    'pgp',
+    'sign',
+    '-d',
+    '-i',
+    inputFile,
+    '-o',
+    outputFile,
+  ]
+  if (key) {
+    params.push('-k', key)
+  }
+  const keybase = await spawnAsync('keybase', params)
+  logger.debug(`keybase stdout:\n${keybase.stdout}`)
+  logger.debug(`keybase stderr:\n${keybase.stderr}`)
+  if (keybase.status !== 0) {
+    throw new Error(`keybase call failed with exit code ${keybase.status}`)
+  }
+}
+
+export const keybaseSigFilename = (basePath: string, counterparty: Counterparty, signatory: Signatory): string => {
+  return path.join(basePath, `${counterparty.id}__${signatory.id}.sig`)
 }

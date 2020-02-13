@@ -36,8 +36,11 @@ export default class Compile extends Command {
       }
       // configure our template cache
       const cache = await DocumentCache.init(templateCachePath(flags.profile))
-      const contract = await Contract.fromFile(args.path, gitRepoCachePath(flags.profile), cache)
-      await contract.compile(args.path, flags.output, style)
+      const contract = await Contract.fromFile(args.path, {
+        gitRepoCachePath: gitRepoCachePath(flags.profile),
+        cache: cache,
+      })
+      await contract.compile(flags.output, style)
     })
   }
 }

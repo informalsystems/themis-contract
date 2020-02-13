@@ -2,7 +2,7 @@ import { TomlReader } from '@sgarciac/bombadil'
 import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
 import * as path from 'path'
-import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT } from './constants'
+import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH } from './constants'
 import { isGitURL } from './git-url'
 import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync } from './async-io'
 import { DocumentCache } from './document-cache'
@@ -16,6 +16,13 @@ import { Identity } from './identities'
 // import * as Git from 'nodegit'
 import * as mime from 'mime-types'
 import { URL } from 'url'
+import { keybaseSign, keybaseSigFilename } from './keybase-helpers'
+
+export type TemplateLoadOptions = {
+  contractFilename: string;
+  gitRepoCachePath: string;
+  cache?: DocumentCache;
+}
 
 /**
  * A contract template. Uses Mustache for template rendering.
@@ -45,20 +52,24 @@ export class Template {
   /**
    * Automatically determines the nature of the given source and tries to load a
    * template from there.
-   * @param {string} src The source from which to load a template.
-   * @param {string} gitRepoCachePath The path in which we need to cache
-   *   downloaded Git repositories.
-   * @param {DocumentCache} cache For remote templates, optionally cache them
-   *   here.
-   * @param {string} basePath If `src` is a relative path, resolve it relative
-   *   to this base path.
+   * @param {string} src The source from which to load a template. Must be an
+   *   absolute path.
+   * @param {TemplateLoadOptions} opts Options for loading the template.
    * @returns {Template} A template, if one can be successfully loaded.
    */
-  static async load(src: string, gitRepoCachePath: string, cache?: DocumentCache, basePath?: string): Promise<Template> {
+  static async load(src: string, opts?: TemplateLoadOptions): Promise<Template> {
     if (src.indexOf('://') > -1) {
-      return Template.loadFromRemote(src, gitRepoCachePath, cache)
+      return Template.loadFromRemote(src, opts)
     }
-    return Template.loadFromFile((basePath && !path.isAbsolute(src)) ? path.resolve(basePath, src) : path.resolve(src))
+    let filename = src
+    if (!path.isAbsolute(filename)) {
+      if (opts) {
+        filename = path.resolve(path.parse(opts.contractFilename).dir, filename)
+      } else {
+        throw new Error('If template path is relative, the full contract filename must be supplied')
+      }
+    }
+    return Template.loadFromFile(filename)
   }
 
   static async loadFromFile(filename: string, encoding?: string): Promise<Template> {
@@ -68,7 +79,9 @@ export class Template {
     return new Template(filename, content, parsedFilename.ext)
   }
 
-  static async loadFromRemote(url: string, gitRepoCachePath: string, cache?: DocumentCache): Promise<Template> {
+  static async loadFromRemote(url: string, opts?: TemplateLoadOptions): Promise<Template> {
+    const gitRepoCachePath = opts ? opts.gitRepoCachePath : DEFAULT_GIT_REPO_CACHE_PATH
+    const cache = opts ? opts.cache : undefined
     if (isGitURL(url)) {
       // return Template.loadFromGit(url, gitRepoCachePath, cache)
       throw new Error(`Git repository remotes are not yet supported (${gitRepoCachePath})`)
@@ -137,10 +150,23 @@ export class Template {
 }
 
 export type ContractCreateOptions = {
+  gitRepoCachePath: string;
   template?: string;
   force?: boolean;
   cache?: DocumentCache;
   counterparties?: string[];
+}
+
+export type ContractLoadOptions = {
+  gitRepoCachePath: string;
+  cache?: DocumentCache;
+}
+
+export type ContractSignOptions = {
+  counterparty: Counterparty;
+  signatory: Signatory;
+  identity: Identity;
+  useKeybase: boolean;
 }
 
 /**
@@ -151,21 +177,20 @@ export type ContractCreateOptions = {
  *   3. Parameters to use to fill in the contract template
  */
 export class Contract {
-  template: Template
+  /** The full path to the contract */
+  filename?: string
 
+  /** The raw text content of the contract file. */
+  raw?: string
+
+  /** The template associated with this contract. */
+  template?: Template
+
+  /** Counterparty and signatory data we've extracted from the contract. */
   counterparties = new Map<string, Counterparty>()
 
+  /** Additional parameters we've extracted from the contract. */
   params: any = {}
-
-  constructor(template: Template, counterparties?: Map<string, Counterparty>, params?: any) {
-    this.template = template
-    if (counterparties) {
-      this.counterparties = counterparties
-    }
-    if (params) {
-      this.params = params
-    }
-  }
 
   sortedCounterparties(): Counterparty[] {
     const result: Counterparty[] = []
@@ -226,8 +251,14 @@ export class Contract {
     })
   }
 
-  async compile(inputFile: string, outputFile: string, style: any) {
-    await this.prepareTemplateParams(inputFile)
+  async compile(outputFile: string, style: any) {
+    if (!this.filename) {
+      throw new Error('Missing filename for contract')
+    }
+    if (!this.template) {
+      throw new Error('Missing template for contract')
+    }
+    await this.prepareTemplateParams(this.filename)
     logger.debug(`Using template params: ${JSON.stringify(this.params, null, 2)}`)
     // render the template to a temporary directory
     const templateExt = this.template.ext ? this.template.ext : DEFAULT_TEMPLATE_EXT
@@ -254,26 +285,56 @@ export class Contract {
     }
   }
 
-  async sign(contractPath: string, counterparty: Counterparty, signatory: Signatory, identity: Identity) {
-    if (!identity.sigInitials) {
+  async sign(opts: ContractSignOptions) {
+    if (!opts.identity.sigInitials) {
       throw new Error('Identity does not have an initials signature file')
     }
-    if (!identity.sigFull) {
+    if (!opts.identity.sigFull) {
       throw new Error('Identity does not have a full signature file')
     }
-    const parentPath = path.parse(contractPath).dir
-    const parsedSigInitials = path.parse(identity.sigInitials)
-    const parsedSigFull = path.parse(identity.sigFull)
+    if (opts.useKeybase) {
+      await this.signWithKeybase(opts)
+    } else {
+      await this.signWithoutKeybase(opts)
+    }
+  }
 
-    const destSigInitials = path.join(parentPath, `${initialsImageName(counterparty.id, signatory.id)}${parsedSigInitials.ext}`)
-    await copyFileAsync(identity.sigInitials, destSigInitials)
+  private async signWithKeybase(opts: ContractSignOptions) {
+    if (!opts.identity.sigFull || !opts.identity.sigInitials || !this.filename || !this.template) {
+      return
+    }
+    const parentPath = path.parse(this.filename).dir
+    const concatFile = tmp.fileSync()
+    const concat = this.raw + this.template.content
+    try {
+      await writeFileAsync(concatFile.name, concat)
+      logger.debug(`Wrote contract + template to file: ${concatFile.name}`)
+      const keybaseSigFile = keybaseSigFilename(parentPath, opts.counterparty, opts.signatory)
+      logger.info('Using Keybase to sign contract + template...')
+      await keybaseSign(concatFile.name, keybaseSigFile)
+      logger.info(`Generated signature file: ${keybaseSigFile}`)
+    } finally {
+      concatFile.removeCallback()
+    }
+  }
+
+  private async signWithoutKeybase(opts: ContractSignOptions) {
+    if (!opts.identity.sigFull || !opts.identity.sigInitials || !this.filename) {
+      return
+    }
+    const parentPath = path.parse(this.filename).dir
+    const parsedSigInitials = path.parse(opts.identity.sigInitials)
+    const parsedSigFull = path.parse(opts.identity.sigFull)
+
+    const destSigInitials = path.join(parentPath, `${initialsImageName(opts.counterparty.id, opts.signatory.id)}${parsedSigInitials.ext}`)
+    await copyFileAsync(opts.identity.sigInitials, destSigInitials)
     logger.debug(`Copied identity signature initials to: ${destSigInitials}`)
 
-    const destSigFull = path.join(parentPath, `${fullSigImageName(counterparty.id, signatory.id)}${parsedSigFull.ext}`)
-    await copyFileAsync(identity.sigInitials, destSigFull)
+    const destSigFull = path.join(parentPath, `${fullSigImageName(opts.counterparty.id, opts.signatory.id)}${parsedSigFull.ext}`)
+    await copyFileAsync(opts.identity.sigInitials, destSigFull)
     logger.debug(`Copied identity full signature to: ${destSigFull}`)
 
-    logger.info(`Signed contract ${contractPath} as ${signatory.fullNames} on behalf of ${counterparty.fullName} using identity "${identity.id}"`)
+    logger.info(`Signed contract ${this.filename} as ${opts.signatory.fullNames} on behalf of ${opts.counterparty.fullName} using identity "${opts.identity.id}"`)
   }
 
   private async compileWithPandoc(inputFile: string, outputFile: string, style: any) {
@@ -283,6 +344,7 @@ export class Contract {
     const pandoc = await spawnAsync(
       'pandoc',
       pandocArgs,
+      {},
     )
     logger.debug(`pandoc stdout:\n${pandoc.stdout}`)
     logger.debug(`pandoc stderr:\n${pandoc.stderr}`)
@@ -311,6 +373,7 @@ export class Contract {
       const tectonic = await spawnAsync(
         'tectonic',
         [inputFile, '-o', tmpOutDir.name],
+        {},
       )
       logger.debug(`tectonic stdout:\n${tectonic.stdout}`)
       logger.debug(`tectonic stderr:\n${tectonic.stderr}`)
@@ -325,7 +388,7 @@ export class Contract {
     }
   }
 
-  static async fromAny(basePath: string, a: any, gitRepoCachePath: string, cache?: DocumentCache): Promise<Contract> {
+  static async fromAny(filename: string, raw: string, a: any, opts?: ContractLoadOptions): Promise<Contract> {
     if (!('template' in a)) {
       throw new ContractMissingFieldError('template')
     }
@@ -335,26 +398,32 @@ export class Contract {
     if (!Array.isArray(a.counterparties)) {
       throw new ContractFormatError('Expected "counterparties" field to be an array')
     }
-    const template = await Template.load(a.template, gitRepoCachePath, cache, basePath)
-    const counterparties = new Map<string, Counterparty>()
+    const contract = new Contract()
+    contract.filename = filename
+    contract.raw = raw
+    contract.template = await Template.load(a.template, {
+      contractFilename: filename,
+      gitRepoCachePath: opts ? opts.gitRepoCachePath : DEFAULT_GIT_REPO_CACHE_PATH,
+      cache: opts ? opts.cache : undefined,
+    })
     a.counterparties.forEach((cid: string) => {
       if (!(cid in a)) {
         throw new ContractMissingFieldError(cid)
       }
-      counterparties.set(cid, Counterparty.fromContract(cid, a))
+      contract.counterparties.set(cid, Counterparty.fromContract(cid, a))
     })
-    return new Contract(template, counterparties, a)
+    contract.params = a
+    return contract
   }
 
-  static async fromFile(filename: string, gitRepoCachePath: string, cache?: DocumentCache): Promise<Contract> {
-    const parsedPath = path.parse(filename)
+  static async fromFile(filename: string, opts?: ContractLoadOptions): Promise<Contract> {
     const content = await readFileAsync(filename, { encoding: DEFAULT_TEXT_FILE_ENCODING })
     const reader = new TomlReader()
     reader.readToml(content)
-    return Contract.fromAny(parsedPath.dir, reader.result, gitRepoCachePath, cache)
+    return Contract.fromAny(filename, content, reader.result, opts)
   }
 
-  static async createNew(filename: string, gitRepoCachePath: string, opts?: ContractCreateOptions) {
+  static async createNew(filename: string, opts: ContractCreateOptions) {
     let vars = new Map<string, any>()
     let counterparties: string[] = []
     if (opts) {
@@ -362,7 +431,11 @@ export class Contract {
         counterparties = opts.counterparties
       }
       if (opts.template) {
-        const template = await Template.load(opts.template, gitRepoCachePath, opts.cache)
+        const template = await Template.load(opts.template, {
+          contractFilename: filename,
+          gitRepoCachePath: opts.gitRepoCachePath,
+          cache: opts.cache,
+        })
         // extract the variables from the template
         vars = template.getVariables()
         vars.set('template', template.src)
