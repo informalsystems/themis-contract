@@ -53,6 +53,9 @@ describe('Contract', () => {
       const contract = await Contract.fromFile(tmpContract)
       tmpDir.removeCallback()
 
+      if (!contract.template) {
+        throw new Error('Contract template is undefined')
+      }
       assert.strictEqual(contract.template.src, tmpTemplate)
       assert.strictEqual(contract.counterparties.size, 2)
       const client = contract.counterparties.get('client')
