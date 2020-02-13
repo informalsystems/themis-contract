@@ -1,6 +1,6 @@
 import { Command, flags } from '@oclif/command'
 import { Contract } from '../shared/contract'
-import { DEFAULT_PROFILE_PATH, templateCachePath } from '../shared/constants'
+import { DEFAULT_PROFILE_PATH, templateCachePath, gitRepoCachePath } from '../shared/constants'
 import { DocumentCache } from '../shared/document-cache'
 import inquirer = require('inquirer')
 import { cliWrap } from '../shared/cli-helpers'
@@ -48,7 +48,7 @@ export default class New extends Command {
     }
     await cliWrap(this, flags.verbose, async () => {
       const cache = await DocumentCache.init(templateCachePath(flags.profile))
-      await Contract.createNew(args.output, {
+      await Contract.createNew(args.output, gitRepoCachePath(flags.profile), {
         template: template,
         cache: cache,
         force: flags.force,

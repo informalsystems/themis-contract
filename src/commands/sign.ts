@@ -1,6 +1,6 @@
 import { Command, flags } from '@oclif/command'
 import { Contract } from '../shared/contract'
-import { templateCachePath, DEFAULT_PROFILE_PATH, identityDBPath } from '../shared/constants'
+import { templateCachePath, DEFAULT_PROFILE_PATH, identityDBPath, gitRepoCachePath } from '../shared/constants'
 import { DocumentCache } from '../shared/document-cache'
 import { cliWrap } from '../shared/cli-helpers'
 import * as inquirer from 'inquirer'
@@ -32,7 +32,7 @@ export default class Sign extends Command {
     await cliWrap(this, flags.verbose, async () => {
       const cache = await DocumentCache.init(templateCachePath(flags.profile))
       const identityDB = await IdentityDB.load(identityDBPath(flags.profile))
-      const contract = await Contract.fromFile(args.path, cache)
+      const contract = await Contract.fromFile(args.path, gitRepoCachePath(flags.profile), cache)
 
       const counterpartyID = flags.counterparty ? flags.counterparty : (await inquirer.prompt([{
         type: 'list',

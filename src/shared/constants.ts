@@ -8,6 +8,7 @@ export const DEFAULT_CONTRACT_TEMPLATE = `<h1>New Contract</h1>
 export const DEFAULT_PARAMS_FILENAME = 'params.toml'
 export const DEFAULT_PDF_FONT = 'Helvetica'
 export const DEFAULT_PDF_ENGINE = 'tectonic'
+export const DEFAULT_TEMPLATE_EXT = '.md'
 
 export const HOMEDIR = os.homedir()
 export const DEFAULT_PROFILE_PATH = path.join(HOMEDIR, '.neat', 'contract')
@@ -25,6 +26,10 @@ export const counterpartyDBPath = (profilePath: string): string => {
 
 export const identityDBPath = (profilePath: string): string => {
   return path.join(profilePath, 'identities')
+}
+
+export const gitRepoCachePath = (profilePath: string): string => {
+  return path.join(profilePath, 'cached-repos')
 }
 
 export const DEFAULT_TOML_INDENT = 2

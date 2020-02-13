@@ -2,7 +2,7 @@ import { Command, flags } from '@oclif/command'
 import { Contract } from '../shared/contract'
 import { logger } from '../shared/logging'
 import { readFileAsync } from '../shared/async-io'
-import { DEFAULT_TEXT_FILE_ENCODING, templateCachePath, DEFAULT_PROFILE_PATH } from '../shared/constants'
+import { DEFAULT_TEXT_FILE_ENCODING, templateCachePath, DEFAULT_PROFILE_PATH, gitRepoCachePath } from '../shared/constants'
 import { DocumentCache } from '../shared/document-cache'
 import { cliWrap } from '../shared/cli-helpers'
 
@@ -36,7 +36,7 @@ export default class Compile extends Command {
       }
       // configure our template cache
       const cache = await DocumentCache.init(templateCachePath(flags.profile))
-      const contract = await Contract.fromFile(args.path, cache)
+      const contract = await Contract.fromFile(args.path, gitRepoCachePath(flags.profile), cache)
       await contract.compile(args.path, flags.output, style)
     })
   }

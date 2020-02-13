@@ -15,6 +15,7 @@ const extractParams = (a: any, skipFields?: string[]): any => {
       }
     }
   }
+  return additionalParams
 }
 
 const mergeParams = (a: any, b: any): any => {
@@ -52,6 +53,7 @@ export class Signatory {
   toTemplateVar(counterparty: Counterparty, sigImages: Map<string, string>): any {
     const sigImage = sigImages.get(fullSigImageName(counterparty.id, this.id))
     const initialsImage = sigImages.get(initialsImageName(counterparty.id, this.id))
+    logger.debug(`Signatory additional params:\n${JSON.stringify(this.additionalParams, null, 2)}`)
     return mergeParams({
       counterparty_id: counterparty.id,
       id: this.id,
@@ -165,11 +167,13 @@ export class Counterparty {
     this.signatories.forEach(sig => {
       signatories[sig.id] = sig.toTemplateVar(this, sigImages)
     })
-    return mergeParams({
+    const tv = mergeParams({
       id: this.id,
       full_name: this.fullName,
       signatories: signatories,
     }, this.additionalParams)
+    logger.debug(`Rendered counterparty to template var:\n${JSON.stringify(tv, null, 2)}`)
+    return tv
   }
 
   static fromDB(id: string, a: any): Counterparty {
