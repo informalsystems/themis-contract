@@ -1,5 +1,9 @@
 # Neat Contracts 🖋
 
+**PROTOTYPE**: Note that `neat-contract` is a prototype right now. All code on
+this branch is to be considered highly experimental. No versioning convention is
+applied yet.
+
 ## Overview
 `neat-contract` is a prototype tool to allow for parameterized contracting. It's
 currently built using TypeScript on top of [oclif](https://oclif.io/) to speed
@@ -8,10 +12,15 @@ up development of the CLI tool.
 ## Requirements
 To run this application, you will need:
 
-* One of the latest [NodeJS](https://nodejs.org/en/) LTS editions
-* [Yarn](https://classic.yarnpkg.com/lang/en/) (`npm i -g yarn`)
-* [pandoc](https://pandoc.org/)
-* [tectonic](https://tectonic-typesetting.github.io/en-US/)
+* One of the latest [NodeJS](https://nodejs.org/en/) LTS editions (ideally
+  v12.15+)
+* [pandoc](https://pandoc.org/) (for transforming Markdown and HTML files to
+  LaTeX)
+* [tectonic](https://tectonic-typesetting.github.io/en-US/) (for compiling LaTeX
+  files to PDF)
+* [Keybase CLI](https://keybase.io/) (for cryptographically signing contracts)
+* [GraphicsMagick](http://www.graphicsmagick.org/) (for manipulating signature
+  images)
 
 ## Installation
 Once you have the requirements installed, simply:
@@ -27,6 +36,16 @@ Once you have the requirements installed, simply:
 
 # Run it!
 > neat-contract help
+```
+
+### Upgrading
+Since you've probably installed `neat-contract` directly from the repository,
+make sure you uninstall it first and reinstall it to upgrade it (until such time
+that distinct versions are released).
+
+```bash
+> npm uninstall -g neat-contract
+> npm i -g
 ```
 
 ## Usage
