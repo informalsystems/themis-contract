@@ -61,6 +61,7 @@ export class Signatory {
       keybase_id: this.keybaseId ? this.keybaseId : null,
       signature_image: sigImage ? sigImage : null,
       initials_image: initialsImage ? initialsImage : null,
+      has_signed: (initialsImage !== undefined && sigImage !== undefined),
     }, this.additionalParams)
   }
 
@@ -164,13 +165,17 @@ export class Counterparty {
 
   toTemplateVar(sigImages: Map<string, string>): any {
     const signatories: any = {}
+    const signatoriesList: any = []
     this.signatories.forEach(sig => {
-      signatories[sig.id] = sig.toTemplateVar(this, sigImages)
+      const svar = sig.toTemplateVar(this, sigImages)
+      signatories[sig.id] = svar
+      signatoriesList.push(svar)
     })
     const tv = mergeParams({
       id: this.id,
       full_name: this.fullName,
       signatories: signatories,
+      signatories_list: signatoriesList,
     }, this.additionalParams)
     logger.debug(`Rendered counterparty to template var:\n${JSON.stringify(tv, null, 2)}`)
     return tv

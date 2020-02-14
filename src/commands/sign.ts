@@ -66,7 +66,6 @@ export default class Sign extends Command {
           }
         }),
       }])).id
-      logger.debug(`counterparty.signatories = ${counterparty.signatories}`)
       const signatory = counterparty.signatories.get(signatoryID)
       if (!signatory) {
         throw new Error(`No such signatory with ID "${signatoryID}"`)

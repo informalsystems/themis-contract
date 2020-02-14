@@ -4,11 +4,11 @@ import * as tmp from 'tmp'
 import * as path from 'path'
 import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH } from './constants'
 import { isGitURL } from './git-url'
-import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync } from './async-io'
+import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync } from './async-io'
 import { DocumentCache } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
-import { extractTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName, hasSignedMustacheHelper } from './template-helpers'
+import { extractTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName } from './template-helpers'
 import { writeTOMLFileAsync } from './toml'
 import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
 import { Counterparty, Signatory } from './counterparties'
@@ -17,15 +17,65 @@ import { Identity } from './identities'
 import * as mime from 'mime-types'
 import { URL } from 'url'
 import { keybaseSign, keybaseSigFilename } from './keybase-helpers'
+import * as crypto from 'crypto'
+import * as gm from 'gm'
+import * as Mustache from 'mustache'
+
+/**
+ * We allow for either Handlebars.js or Mustache.js templating at present.
+ */
+export enum TemplateFormat {
+  Handlebars,
+  Mustache,
+}
+
+export const templateFormatFromString = (s: string): TemplateFormat => {
+  switch (s) {
+  case 'handlebars':
+    return TemplateFormat.Handlebars
+  case 'mustache':
+    return TemplateFormat.Mustache
+  }
+  throw new ContractFormatError(`Unrecognized template format in contract: ${s} (should either be "handlebars" or "mustache")`)
+}
+
+const templateFormatToString = (f: TemplateFormat): string => {
+  switch (f) {
+  case TemplateFormat.Handlebars:
+    return 'handlebars'
+  case TemplateFormat.Mustache:
+    return 'mustache'
+  }
+}
+
+const templateDelimeters = (a: any): string[] => {
+  if (!Array.isArray(a)) {
+    throw new ContractFormatError('Expected template.delimiters parameter to be an array')
+  }
+  const result: string[] = []
+  for (const s of a) {
+    if (!(typeof s === 'string')) {
+      throw new ContractFormatError('Expected each element in template.delimeters to be a string')
+    }
+    result.push(s)
+  }
+  if (result.length !== 2) {
+    throw new ContractFormatError(`Expected precisely 2 string elements in template.delimieters, but got ${result.length}`)
+  }
+  return result
+}
 
 export type TemplateLoadOptions = {
   contractFilename: string;
   gitRepoCachePath: string;
+  format?: TemplateFormat;
+  customDelimiters?: string[];
   cache?: DocumentCache;
+  encoding?: string;
 }
 
 /**
- * A contract template. Uses Mustache for template rendering.
+ * A contract template.
  */
 export class Template {
   /** This template's source. */
@@ -37,12 +87,15 @@ export class Template {
   /** The file extension to use for this template. */
   ext?: string
 
-  constructor(src: string, content?: string, ext?: string) {
+  /** Which template engine should we use? */
+  format = TemplateFormat.Handlebars
+
+  /** Custom delimiters (for Mustache templates only). */
+  customDelimiters?: string[]
+
+  constructor(src: string, content: string) {
     this.src = src
-    this.content = content ? content : ''
-    if (ext) {
-      this.ext = ext
-    }
+    this.content = content
   }
 
   getVariables(): Map<string, any> {
@@ -69,24 +122,27 @@ export class Template {
         throw new Error('If template path is relative, the full contract filename must be supplied')
       }
     }
-    return Template.loadFromFile(filename)
+    return Template.loadFromFile(filename, opts)
   }
 
-  static async loadFromFile(filename: string, encoding?: string): Promise<Template> {
+  static async loadFromFile(filename: string, opts?: TemplateLoadOptions): Promise<Template> {
     logger.debug(`Attempting to load template as file: ${filename}`)
-    const content = await readFileAsync(filename, { encoding: encoding ? encoding : DEFAULT_TEXT_FILE_ENCODING })
+    const content = await readFileAsync(filename, { encoding: (opts && opts.encoding) ? opts.encoding : DEFAULT_TEXT_FILE_ENCODING })
     const parsedFilename = path.parse(filename)
-    return new Template(filename, content, parsedFilename.ext)
+    const template = new Template(filename, content)
+    template.ext = parsedFilename.ext
+    template.format = (opts && opts.format) ? opts.format : template.format
+    template.customDelimiters = (opts && opts.customDelimiters) ? opts.customDelimiters : template.customDelimiters
+    return template
   }
 
   static async loadFromRemote(url: string, opts?: TemplateLoadOptions): Promise<Template> {
     const gitRepoCachePath = opts ? opts.gitRepoCachePath : DEFAULT_GIT_REPO_CACHE_PATH
-    const cache = opts ? opts.cache : undefined
     if (isGitURL(url)) {
       // return Template.loadFromGit(url, gitRepoCachePath, cache)
       throw new Error(`Git repository remotes are not yet supported (${gitRepoCachePath})`)
     }
-    return Template.loadFromURL(url, cache)
+    return Template.loadFromURL(url, opts)
   }
 
   // static async loadFromGit(url: string, gitRepoCachePath: string, cache?: DocumentCache): Promise<Template> {
@@ -104,11 +160,11 @@ export class Template {
   //   const localRepoPath = path.join(gitRepoCachePath, )
   // }
 
-  static async loadFromURL(url: string, cache?: DocumentCache): Promise<Template> {
+  static async loadFromURL(url: string, opts?: TemplateLoadOptions): Promise<Template> {
     logger.debug(`Attempting to load template from remote URL: ${url}`)
-    if (cache) {
+    if (opts && opts.cache) {
       // check if we can load the document from cache
-      const cachedContent = await cache.getContent(url)
+      const cachedContent = await opts.cache.getContent(url)
       if (cachedContent !== null) {
         logger.debug(`Found template in cache: ${url}`)
         return new Template(url, cachedContent)
@@ -135,23 +191,38 @@ export class Template {
         logger.debug(`Extracted extension from URL: "${ext}"`)
       }
     }
-    const template = new Template(url, res.data, ext)
-    if (cache) {
-      await cache.add(url, template.content)
+    const template = new Template(url, res.data)
+    template.ext = ext
+    template.format = (opts && opts.format) ? opts.format : template.format
+    template.customDelimiters = (opts && opts.customDelimiters) ? opts.customDelimiters : template.customDelimiters
+    if (opts && opts.cache) {
+      await opts.cache.add(url, template.content)
     }
     return template
   }
 
   // Renders this template to a string using the specified parameters.
   render(params: any): string {
-    Handlebars.registerHelper('has_signed', hasSignedMustacheHelper)
-    return Handlebars.compile(this.content)(params)
+    switch (this.format) {
+    case TemplateFormat.Handlebars:
+      logger.debug('Rendering template using Handlebars')
+      return Handlebars.compile(this.content)(params)
+    case TemplateFormat.Mustache:
+      logger.debug(`Rendering template using Mustache (customDelimiters = ${this.customDelimiters})`)
+      return Mustache.render(
+        this.content,
+        params,
+        {},
+        this.customDelimiters ? [this.customDelimiters[0], this.customDelimiters[1]] : undefined,
+      )
+    }
   }
 }
 
 export type ContractCreateOptions = {
   gitRepoCachePath: string;
   template?: string;
+  templateFormat?: TemplateFormat;
   force?: boolean;
   cache?: DocumentCache;
   counterparties?: string[];
@@ -191,6 +262,9 @@ export class Contract {
 
   /** Additional parameters we've extracted from the contract. */
   params: any = {}
+
+  /** Hex digest containing the hash of the contract + template. */
+  hash?: string
 
   sortedCounterparties(): Counterparty[] {
     const result: Counterparty[] = []
@@ -238,17 +312,26 @@ export class Contract {
   }
 
   private async prepareTemplateParams(inputFile: string) {
+    if (!this.hash) {
+      throw new Error('Internal error: no hash of contract + template')
+    }
     const inputPathParsed = path.parse(inputFile)
     const sigImages = await this.lookupSignatureImages(path.resolve(inputPathParsed.dir))
 
+    this.params.hash = this.hash
     // ensure counterparties are populated fully
     this.params.counterparties = {}
+    this.params.counterparties_list = []
     this.counterparties.forEach(counterparty => {
-      this.params.counterparties[counterparty.id] = counterparty.toTemplateVar(sigImages)
+      const cvar = counterparty.toTemplateVar(sigImages)
+      this.params.counterparties[counterparty.id] = cvar
+      this.params.counterparties_list.push(cvar)
       if (counterparty.id in this.params) {
-        this.params[counterparty.id] = this.params.counterparties[counterparty.id]
+        this.params[counterparty.id] = cvar
       }
     })
+    // additional useful parameters
+    this.params.contract_path = inputPathParsed.dir
   }
 
   async compile(outputFile: string, style: any) {
@@ -258,6 +341,7 @@ export class Contract {
     if (!this.template) {
       throw new Error('Missing template for contract')
     }
+    this.computeHash()
     await this.prepareTemplateParams(this.filename)
     logger.debug(`Using template params: ${JSON.stringify(this.params, null, 2)}`)
     // render the template to a temporary directory
@@ -292,11 +376,23 @@ export class Contract {
     if (!opts.identity.sigFull) {
       throw new Error('Identity does not have a full signature file')
     }
+    this.computeHash()
     if (opts.useKeybase) {
       await this.signWithKeybase(opts)
     } else {
       await this.signWithoutKeybase(opts)
     }
+  }
+
+  private computeHash() {
+    if (!this.raw || !this.template) {
+      throw new Error('Internal error: missing fields in contract to be able to compute hash')
+    }
+    const hash = crypto.createHash('sha256')
+    hash.update(this.raw)
+    hash.update(this.template.content)
+    this.hash = hash.digest('hex').toLowerCase()
+    logger.info(`SHA256 hash of contract + template: ${this.hash}`)
   }
 
   private async signWithKeybase(opts: ContractSignOptions) {
@@ -319,22 +415,52 @@ export class Contract {
   }
 
   private async signWithoutKeybase(opts: ContractSignOptions) {
-    if (!opts.identity.sigFull || !opts.identity.sigInitials || !this.filename) {
+    if (!opts.identity.sigFull || !opts.identity.sigInitials || !this.filename || !this.raw || !this.template) {
       return
     }
+    if (!this.hash) {
+      throw new Error('Internal error: missing contract + template hash')
+    }
+    const initialsHash = `${this.hash.substr(0, this.hash.length / 4)}...`
+    const sigHash = `${this.hash.substr(0, this.hash.length / 2)}...`
+
     const parentPath = path.parse(this.filename).dir
     const parsedSigInitials = path.parse(opts.identity.sigInitials)
     const parsedSigFull = path.parse(opts.identity.sigFull)
 
-    const destSigInitials = path.join(parentPath, `${initialsImageName(opts.counterparty.id, opts.signatory.id)}${parsedSigInitials.ext}`)
-    await copyFileAsync(opts.identity.sigInitials, destSigInitials)
-    logger.debug(`Copied identity signature initials to: ${destSigInitials}`)
+    const tmpDir = tmp.dirSync()
 
-    const destSigFull = path.join(parentPath, `${fullSigImageName(opts.counterparty.id, opts.signatory.id)}${parsedSigFull.ext}`)
-    await copyFileAsync(opts.identity.sigInitials, destSigFull)
-    logger.debug(`Copied identity full signature to: ${destSigFull}`)
+    try {
+      const initialsHashImage = path.join(tmpDir.name, 'initials-hash.png')
+      const sigHashImage = path.join(tmpDir.name, 'sig-hash.png')
 
-    logger.info(`Signed contract ${this.filename} as ${opts.signatory.fullNames} on behalf of ${opts.counterparty.fullName} using identity "${opts.identity.id}"`)
+      await writeGMAsync(
+        initialsHashImage,
+        gm(200, 50, '#ffffff').stroke('#000000').fontSize(18).drawText(10, 30, initialsHash),
+      )
+      await writeGMAsync(
+        sigHashImage,
+        gm(400, 50, '#ffffff').stroke('#000000').fontSize(20).drawText(10, 30, sigHash),
+      )
+
+      const destSigInitials = path.join(parentPath, `${initialsImageName(opts.counterparty.id, opts.signatory.id)}${parsedSigInitials.ext}`)
+      await writeGMAsync(
+        destSigInitials,
+        gm(opts.identity.sigInitials).resize(200).append(initialsHashImage),
+      )
+      logger.debug(`Wrote identity signature initials to: ${destSigInitials}`)
+
+      const destSigFull = path.join(parentPath, `${fullSigImageName(opts.counterparty.id, opts.signatory.id)}${parsedSigFull.ext}`)
+      await writeGMAsync(
+        destSigFull,
+        gm(opts.identity.sigInitials).resize(400).append(sigHashImage),
+      )
+      logger.debug(`Wrote identity full signature to: ${destSigFull}`)
+
+      logger.info(`Signed contract ${this.filename} as ${opts.signatory.fullNames} on behalf of ${opts.counterparty.fullName} using identity "${opts.identity.id}"`)
+    } finally {
+      tmpDir.removeCallback()
+    }
   }
 
   private async compileWithPandoc(inputFile: string, outputFile: string, style: any) {
@@ -388,9 +514,17 @@ export class Contract {
     }
   }
 
-  static async fromAny(filename: string, raw: string, a: any, opts?: ContractLoadOptions): Promise<Contract> {
+  static async fromFile(filename: string, opts?: ContractLoadOptions): Promise<Contract> {
+    const content = await readFileAsync(filename, { encoding: DEFAULT_TEXT_FILE_ENCODING })
+    const reader = new TomlReader()
+    reader.readToml(content)
+
+    const a = reader.result
     if (!('template' in a)) {
       throw new ContractMissingFieldError('template')
+    }
+    if (!('source' in a.template)) {
+      throw new ContractMissingFieldError('template.source')
     }
     if (!('counterparties' in a)) {
       throw new ContractMissingFieldError('counterparties')
@@ -398,14 +532,17 @@ export class Contract {
     if (!Array.isArray(a.counterparties)) {
       throw new ContractFormatError('Expected "counterparties" field to be an array')
     }
-    const contract = new Contract()
-    contract.filename = filename
-    contract.raw = raw
-    contract.template = await Template.load(a.template, {
+    const templateOpts: TemplateLoadOptions = {
       contractFilename: filename,
       gitRepoCachePath: opts ? opts.gitRepoCachePath : DEFAULT_GIT_REPO_CACHE_PATH,
+      format: 'format' in a.template ? templateFormatFromString(a.template.format) : undefined,
+      customDelimiters: 'delimiters' in a.template ? templateDelimeters(a.template.delimiters) : undefined,
       cache: opts ? opts.cache : undefined,
-    })
+    }
+    const contract = new Contract()
+    contract.filename = filename
+    contract.raw = content
+    contract.template = await Template.load(a.template.source, templateOpts)
     a.counterparties.forEach((cid: string) => {
       if (!(cid in a)) {
         throw new ContractMissingFieldError(cid)
@@ -414,13 +551,6 @@ export class Contract {
     })
     contract.params = a
     return contract
-  }
-
-  static async fromFile(filename: string, opts?: ContractLoadOptions): Promise<Contract> {
-    const content = await readFileAsync(filename, { encoding: DEFAULT_TEXT_FILE_ENCODING })
-    const reader = new TomlReader()
-    reader.readToml(content)
-    return Contract.fromAny(filename, content, reader.result, opts)
   }
 
   static async createNew(filename: string, opts: ContractCreateOptions) {
@@ -436,6 +566,11 @@ export class Contract {
           gitRepoCachePath: opts.gitRepoCachePath,
           cache: opts.cache,
         })
+        const templateVars = new Map<string, any>()
+        templateVars.set('source', opts.template)
+        if (opts.templateFormat) {
+          templateVars.set('format', templateFormatToString(opts.templateFormat))
+        }
         // extract the variables from the template
         vars = template.getVariables()
         vars.set('template', template.src)

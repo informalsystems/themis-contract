@@ -1,6 +1,7 @@
 import { promisify } from 'util'
 import * as fs from 'fs'
 import { SpawnOptions, spawn } from 'child_process'
+import * as gm from 'gm'
 
 export const statAsync = promisify(fs.stat)
 export const readFileAsync = promisify(fs.readFile)
@@ -83,5 +84,17 @@ export const spawnAsync = async (command: string, args: ReadonlyArray<string>, o
       stdout: stdout,
       stderr: stderr,
     }))
+  })
+}
+
+export const writeGMAsync = async (filename: string, state: gm.State) => {
+  await new Promise((resolve, reject) => {
+    state.write(filename, err => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve()
+      }
+    })
   })
 }

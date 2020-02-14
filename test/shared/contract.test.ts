@@ -1,5 +1,5 @@
 import * as assert from 'assert'
-import { Contract } from '../../src/shared/contract'
+import { Contract, TemplateFormat } from '../../src/shared/contract'
 import * as tmp from 'tmp'
 import * as path from 'path'
 import { writeFileAsync } from '../../src/shared/async-io'
@@ -17,11 +17,14 @@ const TEST_TEMPLATE_CORRECT = `<h1>Correct Contract</h1>
 `
 
 const TEST_CONTRACT_CORRECT = `date = "1 January 2020"
-template = "./contract.html"
 counterparties = [
   "client",
   "supplier"
 ]
+
+[template]
+source = "./contract.html"
+format = "mustache"
 
 [client]
 full_name = "Company XYZ"
@@ -57,6 +60,7 @@ describe('Contract', () => {
         throw new Error('Contract template is undefined')
       }
       assert.strictEqual(contract.template.src, tmpTemplate)
+      assert.strictEqual(contract.template.format, TemplateFormat.Mustache)
       assert.strictEqual(contract.counterparties.size, 2)
       const client = contract.counterparties.get('client')
       if (!client) {

@@ -76,11 +76,3 @@ export const validateTemplateSignatory = (a: any) => {
     throw new TemplateError(`Signatory is missing fields: ${expectedProps.join(', ')}`)
   }
 }
-
-export const hasSignedMustacheHelper = (signatory: any, opts: Handlebars.HelperOptions): any => {
-  validateTemplateSignatory(signatory)
-  if (signatory.signature_image !== null && signatory.initials_image !== null) {
-    return opts.fn(signatory)
-  }
-  return opts.inverse(signatory)
-}

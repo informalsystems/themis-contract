@@ -1,5 +1,5 @@
 import { Command, flags } from '@oclif/command'
-import { Contract } from '../shared/contract'
+import { Contract, templateFormatFromString } from '../shared/contract'
 import { DEFAULT_PROFILE_PATH, templateCachePath, gitRepoCachePath } from '../shared/constants'
 import { DocumentCache } from '../shared/document-cache'
 import inquirer = require('inquirer')
@@ -19,6 +19,7 @@ export default class New extends Command {
     help: flags.help({ char: 'h' }),
     profile: flags.string({ char: 'p', default: DEFAULT_PROFILE_PATH, description: 'your local profile path (for managing identities, templates, etc.)' }),
     template: flags.string({ char: 't', description: 'automatically prepopulate the new contract with variables from this template' }),
+    templateformat: flags.string({ default: 'handlebars', description: 'the template format to use', options: ['mustache', 'handlebars'] }),
     noprompt: flags.boolean({ description: 'do not prompt for more information (use defaults)' }),
     verbose: flags.boolean({ char: 'v', default: false, description: 'increase output logging verbosity to DEBUG level' }),
     noedit: flags.boolean({ default: false, description: 'do not open your $EDITOR after creating the contract' }),
@@ -39,17 +40,20 @@ export default class New extends Command {
         default: false,
       }])
       if (a1.useTemplate) {
-        template = (await inquirer.prompt([{
-          type: 'input',
-          name: 'template',
-          message: 'Where is the template located? (Git/HTTPS URL or file path)',
-        }])).template
+        template = (await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'template',
+            message: 'Where is the template located? (Git/HTTPS URL or file path)',
+          },
+        ])).template
       }
     }
     await cliWrap(this, flags.verbose, async () => {
       const cache = await DocumentCache.init(templateCachePath(flags.profile))
       await Contract.createNew(args.output, {
         template: template,
+        templateFormat: templateFormatFromString(flags.templateformat),
         cache: cache,
         force: flags.force,
         gitRepoCachePath: gitRepoCachePath(flags.profile),
