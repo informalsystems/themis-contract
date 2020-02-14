@@ -2,7 +2,7 @@ import { TomlReader } from '@sgarciac/bombadil'
 import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
 import * as path from 'path'
-import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH } from './constants'
+import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS } from './constants'
 import { isGitURL } from './git-url'
 import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync } from './async-io'
 import { DocumentCache } from './document-cache'
@@ -63,6 +63,13 @@ const templateDelimeters = (a: any): string[] => {
     throw new ContractFormatError(`Expected precisely 2 string elements in template.delimieters, but got ${result.length}`)
   }
   return result
+}
+
+const stripReservedTemplateVars = (vars: Map<string, any>): Map<string, any> => {
+  for (const v of RESERVED_TEMPLATE_VARS) {
+    vars.delete(v)
+  }
+  return vars
 }
 
 export type TemplateLoadOptions = {
@@ -587,7 +594,7 @@ export class Contract {
     }
     // ensure we've got our counterparties and template variable
     vars.set('counterparties', counterparties)
-    const varsObj = templateVarsToObj(vars)
+    const varsObj = templateVarsToObj(stripReservedTemplateVars(vars))
     logger.debug(`Extracted template variables: ${JSON.stringify(varsObj, null, 2)}`)
     await writeTOMLFileAsync(filename, varsObj)
     logger.info(`Created new contract: ${filename}`)

@@ -37,3 +37,9 @@ export const DEFAULT_TOML_INDENT = 2
 export const DEFAULT_TOML_INDENT_SECTIONS = false
 
 export const VALID_ID_FORMAT = /^[a-zA-Z](\w+)$/
+
+export const RESERVED_TEMPLATE_VARS = [
+  'contract_path',
+  'counterparties_list',
+  'hash',
+]
