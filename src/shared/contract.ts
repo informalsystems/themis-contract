@@ -230,6 +230,7 @@ export type ContractCreateOptions = {
   templateFormat?: TemplateFormat;
   force?: boolean;
   cache?: DocumentCache;
+  customDelimiters?: string[];
   counterparties?: string[];
 }
 
@@ -566,15 +567,18 @@ export class Contract {
         counterparties = opts.counterparties
       }
       if (opts.template) {
+        const templateFormat = opts.templateFormat ? opts.templateFormat : undefined
         const template = await Template.load(opts.template, {
           contractFilename: filename,
           gitRepoCachePath: opts.gitRepoCachePath,
+          format: templateFormat,
+          customDelimiters: opts.customDelimiters,
           cache: opts.cache,
         })
         const templateVars = new Map<string, any>()
         templateVars.set('source', path.resolve(opts.template))
-        if (opts.templateFormat) {
-          templateVars.set('format', templateFormatToString(opts.templateFormat))
+        if (templateFormat) {
+          templateVars.set('format', templateFormatToString(templateFormat))
         }
         // extract the variables from the template
         vars = template.getVariables()
@@ -583,7 +587,9 @@ export class Contract {
     }
     // ensure we've got our counterparties and template variable
     vars.set('counterparties', counterparties)
-    await writeTOMLFileAsync(filename, templateVarsToObj(vars))
+    const varsObj = templateVarsToObj(vars)
+    logger.debug(`Extracted template variables: ${JSON.stringify(varsObj, null, 2)}`)
+    await writeTOMLFileAsync(filename, varsObj)
     logger.info(`Created new contract: ${filename}`)
   }
 }
