@@ -178,19 +178,28 @@ highly recommended that you keep all aspects of your contract under version
 control.
 
 ```toml
-# Where to find the contract template
-template = "template.html"
-# You could also specify an HTTP or Git URL for the template
-# template = "https://informal.systems/contracts/service-agreement.html"
-# (Git support coming soon)
-# template = "git+ssh://git@github.com:informalsystems/neat-contracts/service-agreement.html#v0.1.0"
-
 # Counterparties are the various entities involved in a particular contract,
 # where each will have signatories that must sign the contract.
 counterparties = [
   "icf",
   "contractor"
 ]
+
+[template]
+# Where to find the contract template
+source = "template.html"
+# You could also specify an HTTP or Git URL for the template
+# source = "https://informal.systems/contracts/service-agreement.html"
+# (Git support coming soon)
+# source = "git+ssh://git@github.com:informalsystems/neat-contracts/service-agreement.html#v0.1.0"
+
+# Optionally specify the format of the template.
+# Right now we support both "handlebars" and "mustache" (default is "handlebars")
+# format = "mustache"
+
+# For "mustache" templates only, override the default "{{" and "}}" delimiters.
+# This is useful in the context of LaTeX templates.
+# delimiters = ["<<", ">>"]
 
 [icf]
 full_name = "Interchain Foundation"
