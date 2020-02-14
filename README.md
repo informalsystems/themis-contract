@@ -21,6 +21,14 @@ To run this application, you will need:
 * [Keybase CLI](https://keybase.io/) (for cryptographically signing contracts)
 * [GraphicsMagick](http://www.graphicsmagick.org/) (for manipulating signature
   images)
+* [Ghostscript](https://www.ghostscript.com/) (for image manipulation)
+
+Installing most of the above (except for Keybase, which must be downloaded from
+their web site) on macOS:
+
+```bash
+brew install node@12 pandoc tectonic graphicsmagick ghostscript
+```
 
 ## Installation
 Once you have the requirements installed, simply:
