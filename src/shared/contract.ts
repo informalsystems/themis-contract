@@ -8,7 +8,7 @@ import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync,
 import { DocumentCache } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
-import { extractTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName } from './template-helpers'
+import { extractHandlebarsTemplateVariables, extractMustacheTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName } from './template-helpers'
 import { writeTOMLFileAsync } from './toml'
 import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
 import { Counterparty, Signatory } from './counterparties'
@@ -99,7 +99,12 @@ export class Template {
   }
 
   getVariables(): Map<string, any> {
-    return extractTemplateVariables(this.content)
+    switch (this.format) {
+    case TemplateFormat.Handlebars:
+      return extractHandlebarsTemplateVariables(this.content)
+    case TemplateFormat.Mustache:
+      return extractMustacheTemplateVariables(this.content, this.customDelimiters)
+    }
   }
 
   /**

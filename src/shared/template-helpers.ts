@@ -1,6 +1,7 @@
 import * as Handlebars from 'handlebars'
 import { logger } from './logging'
 import { TemplateError } from './errors'
+import * as Mustache from 'mustache'
 
 const trackVariable = (tracker: Map<string, any>, path: string[], varName: string) => {
   let trackerChild = tracker
@@ -29,10 +30,16 @@ const makeVariableTrackerProxy = (parentObj: object, parents: string[], trackedV
   })
 }
 
-export const extractTemplateVariables = (templateSrc: string): Map<string, any> => {
+export const extractHandlebarsTemplateVariables = (templateSrc: string): Map<string, any> => {
   const template = Handlebars.compile(templateSrc)
   const vars = new Map<string, any>()
   template(makeVariableTrackerProxy({}, [], vars), {allowProtoPropertiesByDefault: true})
+  return vars
+}
+
+export const extractMustacheTemplateVariables = (templateSrc: string, customDelimiters?: string[]): Map<string, any> => {
+  const vars = new Map<string, any>()
+  Mustache.render(templateSrc, makeVariableTrackerProxy({}, [], vars), {}, customDelimiters ? [customDelimiters[0], customDelimiters[1]] : undefined)
   return vars
 }
 
