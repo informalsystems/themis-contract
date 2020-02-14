@@ -567,13 +567,13 @@ export class Contract {
           cache: opts.cache,
         })
         const templateVars = new Map<string, any>()
-        templateVars.set('source', opts.template)
+        templateVars.set('source', path.resolve(opts.template))
         if (opts.templateFormat) {
           templateVars.set('format', templateFormatToString(opts.templateFormat))
         }
         // extract the variables from the template
         vars = template.getVariables()
-        vars.set('template', template.src)
+        vars.set('template', templateVars)
       }
     }
     // ensure we've got our counterparties and template variable
