@@ -11,7 +11,7 @@ import axios from 'axios'
 import { extractHandlebarsTemplateVariables, extractMustacheTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName } from './template-helpers'
 import { writeTOMLFileAsync } from './toml'
 import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
-import { Counterparty, Signatory } from './counterparties'
+import { Counterparty, Signatory, mergeParams } from './counterparties'
 import { Identity } from './identities'
 import * as mime from 'mime-types'
 import { URL } from 'url'
@@ -292,7 +292,7 @@ export type ContractCreateOptions = {
   force?: boolean;
   cache?: DocumentCache;
   customDelimiters?: string[];
-  counterparties?: string[];
+  counterparties?: Map<string, Counterparty>;
 }
 
 export type ContractLoadOptions = {
@@ -626,10 +626,14 @@ export class Contract {
 
   static async createNew(filename: string, opts: ContractCreateOptions) {
     let vars = new Map<string, any>()
-    let counterparties: string[] = []
+    const counterparties = new Map<string, Counterparty>()
+    const counterpartyIDs: string[] = []
     if (opts) {
       if (opts.counterparties) {
-        counterparties = opts.counterparties
+        opts.counterparties.forEach((c, id) => {
+          counterparties.set(id, c)
+          counterpartyIDs.push(id)
+        })
       }
       if (opts.template) {
         const templateFormat = opts.templateFormat ? opts.templateFormat : undefined
@@ -650,7 +654,25 @@ export class Contract {
       }
     }
     // ensure we've got our counterparties and template variable
-    vars.set('counterparties', counterparties)
+    vars.set('counterparties', counterpartyIDs)
+    counterparties.forEach((c, id) => {
+      vars.set(id, {
+        full_name: c.fullName,
+        signatories: c.listSignatories().map(sig => sig.id),
+      })
+      c.signatories.forEach(s => {
+        let st: any = {
+          full_names: s.fullNames,
+        }
+        if (s.keybaseId) {
+          st.keybase_id = s.keybaseId
+        }
+        if (s.additionalParams) {
+          st = mergeParams(st, s.additionalParams)
+        }
+        vars.set(s.id, st)
+      })
+    })
     const varsObj = templateVarsToObj(stripReservedTemplateVars(vars))
     logger.debug(`Extracted template variables: ${JSON.stringify(varsObj, null, 2)}`)
     await writeTOMLFileAsync(filename, varsObj)

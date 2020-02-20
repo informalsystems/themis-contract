@@ -1,10 +1,12 @@
 import { Command, flags } from '@oclif/command'
 import { Contract, templateFormatFromString } from '../shared/contract'
-import { DEFAULT_PROFILE_PATH, templateCachePath, gitRepoCachePath } from '../shared/constants'
+import { DEFAULT_PROFILE_PATH, templateCachePath, gitRepoCachePath, counterpartyDBPath } from '../shared/constants'
 import { DocumentCache } from '../shared/document-cache'
 import inquirer = require('inquirer')
 import { cliWrap } from '../shared/cli-helpers'
 import * as openEditor from 'open-editor'
+import { CounterpartyDB, Counterparty, Signatory } from '../shared/counterparties'
+import { dirExistsAsync } from '../shared/async-io'
 
 export default class New extends Command {
   static description = 'create a new contract'
@@ -49,6 +51,50 @@ export default class New extends Command {
         ])).template
       }
     }
+    const cdbPath = counterpartyDBPath(flags.profile)
+    const counterparties = new Map<string, Counterparty>()
+    if (await dirExistsAsync(cdbPath)) {
+      const counterpartyDB = await CounterpartyDB.load(cdbPath)
+      const selectedCounterparties: Counterparty[] = (await inquirer.prompt([{
+        type: 'checkbox',
+        name: 'counterparties',
+        message: 'Select from predefined counterparties',
+        choices: counterpartyDB.all().map(c => {
+          return { name: c.fullName, value: c }
+        }),
+      }])).counterparties
+
+      for (const cp of selectedCounterparties) {
+        const availSigs: Signatory[] = []
+        cp.signatories.forEach(sig => availSigs.push(sig))
+        const answers = await inquirer.prompt([
+          {
+            type: 'input',
+            name: 'templateID',
+            default: cp.id,
+            message: `What ID would you like to use in the template to refer to counterparty "${cp.id}?"`,
+          },
+          {
+            type: 'checkbox',
+            name: 'signatories',
+            message: `Select signatories for counterparty "${cp.id}"`,
+            choices: availSigs.map(s => {
+              return { name: s.fullNames, value: s }
+            }),
+            validate: signatories => {
+              if (signatories.length === 0) {
+                return 'At least one signatory needs to be selected for a given counterparty'
+              }
+              return true
+            },
+          },
+        ])
+        cp.signatories.clear()
+        answers.signatories.forEach((s: Signatory) => cp.signatories.set(s.id, s))
+        counterparties.set(answers.templateID, cp)
+      }
+    }
+
     await cliWrap(this, flags.verbose, async () => {
       const cache = await DocumentCache.init(templateCachePath(flags.profile))
       await Contract.createNew(args.output, {
@@ -57,6 +103,7 @@ export default class New extends Command {
         cache: cache,
         force: flags.force,
         gitRepoCachePath: gitRepoCachePath(flags.profile),
+        counterparties: counterparties,
       })
 
       if (!flags.noedit) {

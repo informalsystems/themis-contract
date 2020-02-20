@@ -18,7 +18,13 @@ const extractParams = (a: any, skipFields?: string[]): any => {
   return additionalParams
 }
 
-const mergeParams = (a: any, b: any): any => {
+/**
+ * Merges `b` into `a`, returning the merged result.
+ * @param {any} a The destination object.
+ * @param {any} b The source object.
+ * @returns {any} The merged object.
+ */
+export const mergeParams = (a: any, b: any): any => {
   for (const fieldName in b) {
     if (Object.prototype.hasOwnProperty.call(b, fieldName)) {
       a[fieldName] = b[fieldName]
