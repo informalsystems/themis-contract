@@ -1,5 +1,7 @@
 # Neat Contracts 🖋
 
+![Node.js CI](https://github.com/informalsystems/neat-contract/workflows/Node.js%20CI/badge.svg?branch=master)
+
 **PROTOTYPE**: Note that `neat-contract` is a prototype right now. All code on
 this branch is to be considered highly experimental. No versioning convention is
 applied yet.
