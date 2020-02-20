@@ -51,6 +51,23 @@ describe('GitURL', () => {
         assert.strictEqual(url.host, 'github.com')
         assert.strictEqual(url.port, '2222')
         assert.strictEqual(url.path, 'informalsystems/neat-contract.git')
+        assert.strictEqual(url.basePath(), 'informalsystems/neat-contract.git')
+        assert.strictEqual(url.innerPath(), '')
+        assert.strictEqual(url.hash, 'v0.1.0')
+      })
+    })
+
+    describe('git+ssh://git@github.com:2222:informalsystems/neat-contract.git/path/to/file#v0.1.0', () => {
+      it('should parse correctly', () => {
+        const url = GitURL.parse('git+ssh://git@github.com:2222:informalsystems/neat-contract.git/path/to/file#v0.1.0')
+        assert.deepStrictEqual(url.protocols, ['git', 'ssh'])
+        assert.strictEqual(url.username, 'git')
+        assert.strictEqual(url.password, '')
+        assert.strictEqual(url.host, 'github.com')
+        assert.strictEqual(url.port, '2222')
+        assert.strictEqual(url.path, 'informalsystems/neat-contract.git/path/to/file')
+        assert.strictEqual(url.basePath(), 'informalsystems/neat-contract.git')
+        assert.strictEqual(url.innerPath(), 'path/to/file')
         assert.strictEqual(url.hash, 'v0.1.0')
       })
     })

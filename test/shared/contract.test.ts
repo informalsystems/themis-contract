@@ -3,6 +3,7 @@ import { Contract, TemplateFormat } from '../../src/shared/contract'
 import * as tmp from 'tmp'
 import * as path from 'path'
 import { writeFileAsync } from '../../src/shared/async-io'
+import { computeContentHash } from '../../src/shared/document-cache'
 
 const TEST_TEMPLATE_CORRECT = `<h1>Correct Contract</h1>
 <p>Effective {{date}}</p>
@@ -25,6 +26,7 @@ counterparties = [
 [template]
 source = "./contract.html"
 format = "mustache"
+hash = "${computeContentHash(TEST_TEMPLATE_CORRECT)}"
 
 [client]
 full_name = "Company XYZ"

@@ -8,13 +8,13 @@ const INDEX_FILENAME = 'index.json'
 
 // Allows us to generate relatively unique filenames for potentially long source
 // URLs with characters that cannot be accommodated in the filesystem.
-const computeCacheFilename = (src: string): string => {
+export const computeCacheFilename = (src: string): string => {
   const hash = crypto.createHash('md5')
   hash.update(src)
   return hash.digest('hex')
 }
 
-const computeContentHash = (content: string): string => {
+export const computeContentHash = (content: string): string => {
   const hash = crypto.createHash('sha256')
   hash.update(content)
   return hash.digest('hex')
@@ -63,16 +63,21 @@ export class DocumentCache {
   }
 
   async saveIndex() {
-    await writeFileAsync(this.indexPath(), JSON.stringify(this.index))
+    await writeFileAsync(this.indexPath(), JSON.stringify(this.index, null, 2))
   }
 
-  async add(src: string, content: string) {
+  async add(src: string, content: string, additionalParams: any) {
     const filename = computeCacheFilename(src)
     await writeFileAsync(path.join(this.basePath, filename), content)
     this.index[src] = {
       filename: filename,
       lastUpdated: Date.now(),
       hash: computeContentHash(content),
+    }
+    for (const param in additionalParams) {
+      if (Object.prototype.hasOwnProperty.call(additionalParams, param)) {
+        this.index[src][param] = additionalParams[param]
+      }
     }
     await this.saveIndex()
     logger.debug(`Added cached document from source: ${src} (SHA256 hash: ${this.index[src].hash})`)

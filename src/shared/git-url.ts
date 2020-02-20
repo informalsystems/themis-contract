@@ -86,6 +86,47 @@ export class GitURL {
     const hash = this.hash.length > 0 ? `#${this.hash}` : ''
     return `${protocols}://${auth}${host}:${this.path}${hash}`
   }
+
+  basePath(): string {
+    const pathParts = this.path.split('/')
+    let basePath = ''
+    let partCount = 0
+    for (const pathPart of pathParts) {
+      if (partCount > 0) {
+        basePath += '/'
+      }
+      basePath += pathPart
+      partCount++
+      if (pathPart.endsWith('.git') || partCount >= 2) {
+        break
+      }
+    }
+    return basePath
+  }
+
+  innerPath(): string {
+    const innerPath = this.path.replace(this.basePath(), '')
+    if (innerPath.startsWith('/')) {
+      return innerPath.substr(1)
+    }
+    return innerPath
+  }
+
+  protocol(): string {
+    for (const proto of this.protocols) {
+      if (proto !== 'git') {
+        return proto
+      }
+    }
+    return 'ssh'
+  }
+
+  /**
+   * @returns {string} The URL of the base repository (no path or hash).
+   */
+  repository(): string {
+    return `${this.username}@${this.host}${this.port.length > 0 ? ':' + this.port : ''}:${this.basePath()}`
+  }
 }
 
 export const isGitURL = (url: string): boolean => {

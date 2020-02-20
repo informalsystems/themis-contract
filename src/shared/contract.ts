@@ -3,9 +3,9 @@ import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
 import * as path from 'path'
 import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS } from './constants'
-import { isGitURL } from './git-url'
-import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync } from './async-io'
-import { DocumentCache } from './document-cache'
+import { isGitURL, GitURL } from './git-url'
+import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync, dirExistsAsync } from './async-io'
+import { DocumentCache, computeCacheFilename, computeContentHash } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
 import { extractHandlebarsTemplateVariables, extractMustacheTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName } from './template-helpers'
@@ -13,13 +13,13 @@ import { writeTOMLFileAsync } from './toml'
 import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
 import { Counterparty, Signatory } from './counterparties'
 import { Identity } from './identities'
-// import * as Git from 'nodegit'
 import * as mime from 'mime-types'
 import { URL } from 'url'
 import { keybaseSign, keybaseSigFilename } from './keybase-helpers'
 import * as crypto from 'crypto'
 import * as gm from 'gm'
 import * as Mustache from 'mustache'
+import { gitPullAll, gitClone, gitCheckout } from './git-helpers'
 
 /**
  * We allow for either Handlebars.js or Mustache.js templating at present.
@@ -79,6 +79,7 @@ export type TemplateLoadOptions = {
   customDelimiters?: string[];
   cache?: DocumentCache;
   encoding?: string;
+  expectedContentHash?: string;
 }
 
 /**
@@ -88,8 +89,11 @@ export class Template {
   /** This template's source. */
   src: string
 
-  /** The raw Mustache content of the template. */
+  /** The raw Mustache/Handlebars content of the template. */
   content: string
+
+  /** Cryptographic hash of the content (SHA256 in our case). */
+  contentHash: string
 
   /** The file extension to use for this template. */
   ext?: string
@@ -103,6 +107,13 @@ export class Template {
   constructor(src: string, content: string) {
     this.src = src
     this.content = content
+    this.contentHash = computeContentHash(content)
+  }
+
+  validateContentHash(expectedHash: string) {
+    if (this.contentHash !== expectedHash) {
+      throw new Error(`Template hash mismatch. Expected ${expectedHash}, but got ${this.contentHash}`)
+    }
   }
 
   getVariables(): Map<string, any> {
@@ -123,65 +134,108 @@ export class Template {
    * @returns {Template} A template, if one can be successfully loaded.
    */
   static async load(src: string, opts?: TemplateLoadOptions): Promise<Template> {
+    let template: Template
     if (src.indexOf('://') > -1) {
-      return Template.loadFromRemote(src, opts)
-    }
-    let filename = src
-    if (!path.isAbsolute(filename)) {
-      if (opts) {
-        filename = path.resolve(path.parse(opts.contractFilename).dir, filename)
-      } else {
-        throw new Error('If template path is relative, the full contract filename must be supplied')
+      template = await Template.loadFromRemote(src, opts)
+    } else {
+      let filename = src
+      if (!path.isAbsolute(filename)) {
+        if (opts) {
+          filename = path.resolve(path.parse(opts.contractFilename).dir, filename)
+        } else {
+          throw new Error('If template path is relative, the full contract filename must be supplied')
+        }
       }
+      template = await Template.loadFromFile(filename, opts)
     }
-    return Template.loadFromFile(filename, opts)
+    if (opts && opts.expectedContentHash) {
+      template.validateContentHash(opts.expectedContentHash)
+    }
+    return template
   }
 
-  static async loadFromFile(filename: string, opts?: TemplateLoadOptions): Promise<Template> {
-    logger.debug(`Attempting to load template as file: ${filename}`)
-    const content = await readFileAsync(filename, { encoding: (opts && opts.encoding) ? opts.encoding : DEFAULT_TEXT_FILE_ENCODING })
-    const parsedFilename = path.parse(filename)
-    const template = new Template(filename, content)
+  private static async loadFromFile(filename: string, opts?: TemplateLoadOptions): Promise<Template> {
+    const resolvedFilename = path.resolve(filename)
+    logger.debug(`Attempting to load template as file: ${resolvedFilename}`)
+    const content = await readFileAsync(resolvedFilename, { encoding: (opts && opts.encoding) ? opts.encoding : DEFAULT_TEXT_FILE_ENCODING })
+    const parsedFilename = path.parse(resolvedFilename)
+    const template = new Template(resolvedFilename, content)
     template.ext = parsedFilename.ext
     template.format = (opts && opts.format) ? opts.format : template.format
     template.customDelimiters = (opts && opts.customDelimiters) ? opts.customDelimiters : template.customDelimiters
     return template
   }
 
-  static async loadFromRemote(url: string, opts?: TemplateLoadOptions): Promise<Template> {
-    const gitRepoCachePath = opts ? opts.gitRepoCachePath : DEFAULT_GIT_REPO_CACHE_PATH
+  private static async loadFromRemote(url: string, opts?: TemplateLoadOptions): Promise<Template> {
+    if (opts && opts.cache) {
+      const cachedMeta = opts.cache.getMeta(url)
+      if (cachedMeta !== null) {
+        const format = templateFormatFromString(cachedMeta.format)
+        const ext: string = cachedMeta.ext
+        // check if we can load the document from cache
+        const cachedContent = await opts.cache.getContent(url)
+        if (cachedContent !== null) {
+          logger.debug(`Found template in cache: ${url}`)
+          const template = new Template(url, cachedContent)
+          template.format = format
+          template.ext = ext
+          return template
+        }
+        throw new Error(`Cached template had metadata, but could not load it from the filesystem: ${url}`)
+      }
+    }
     if (isGitURL(url)) {
-      // return Template.loadFromGit(url, gitRepoCachePath, cache)
-      throw new Error(`Git repository remotes are not yet supported (${gitRepoCachePath})`)
+      return Template.loadFromGit(url, opts)
     }
     return Template.loadFromURL(url, opts)
   }
 
-  // static async loadFromGit(url: string, gitRepoCachePath: string, cache?: DocumentCache): Promise<Template> {
-  //   logger.debug(`Attempting to load template from Git repository: ${url}`)
-  //   if (cache) {
-  //     // check if we can load the document from cache
-  //     const cachedContent = await cache.getContent(url)
-  //     if (cachedContent !== null) {
-  //       logger.debug(`Found template in cache: ${url}`)
-  //       return new Template(url, cachedContent)
-  //     }
-  //   }
-  //   const gitURL = GitURL.parse(url)
-  //   const parsedPath = path.parse(gitURL.path)
-  //   const localRepoPath = path.join(gitRepoCachePath, )
-  // }
-
-  static async loadFromURL(url: string, opts?: TemplateLoadOptions): Promise<Template> {
-    logger.debug(`Attempting to load template from remote URL: ${url}`)
-    if (opts && opts.cache) {
-      // check if we can load the document from cache
-      const cachedContent = await opts.cache.getContent(url)
-      if (cachedContent !== null) {
-        logger.debug(`Found template in cache: ${url}`)
-        return new Template(url, cachedContent)
-      }
+  private static async loadFromGit(url: string, opts?: TemplateLoadOptions): Promise<Template> {
+    logger.info(`Attempting to load template from Git repository: ${url}`)
+    const gitRepoCachePath = opts ? opts.gitRepoCachePath : DEFAULT_GIT_REPO_CACHE_PATH
+    const gitURL = GitURL.parse(url)
+    if (gitURL.innerPath() === '') {
+      throw new Error(`Missing file path in Git repository URL: ${url}`)
     }
+
+    const repoIDHash = computeCacheFilename(gitURL.repository())
+    const repoLocalPath = path.join(gitRepoCachePath, repoIDHash)
+    logger.debug(`Parsed Git repository as: ${gitURL.repository()}`)
+    logger.debug(`Using local repository path: ${repoLocalPath}`)
+
+    // if we've cloned this repo before
+    if (await dirExistsAsync(repoLocalPath)) {
+      logger.debug('Local repository exists. Updating...')
+      await gitPullAll(repoLocalPath)
+    } else {
+      logger.debug('Local repository does not exist. Cloning...')
+      await gitClone(gitURL.repository(), repoLocalPath)
+    }
+    const ref = gitURL.hash.length > 0 ? gitURL.hash : 'master'
+    logger.debug(`Checking out ref: ${ref}`)
+    await gitCheckout(repoLocalPath, ref)
+
+    const templatePath = path.join(repoLocalPath, ...gitURL.innerPath().split('/'))
+    if (!(await fileExistsAsync(templatePath))) {
+      throw new Error(`Cannot find template in Git repository: ${templatePath}`)
+    }
+    const templateContent = await readFileAsync(
+      templatePath,
+      { encoding: (opts && opts.encoding) ? opts.encoding : DEFAULT_TEXT_FILE_ENCODING },
+    )
+    const parsedTemplatePath = path.parse(templatePath)
+    const template = new Template(url, templateContent)
+    template.ext = parsedTemplatePath.ext
+    template.format = (opts && opts.format) ? opts.format : template.format
+    template.customDelimiters = (opts && opts.customDelimiters) ? opts.customDelimiters : template.customDelimiters
+    if (opts && opts.cache) {
+      await opts.cache.add(url, template.content, {format: templateFormatToString(template.format), ext: template.ext})
+    }
+    return template
+  }
+
+  private static async loadFromURL(url: string, opts?: TemplateLoadOptions): Promise<Template> {
+    logger.info(`Attempting to load template from remote URL: ${url}`)
     const res = await axios.get(url)
     if (res.status >= 300) {
       throw new TemplateError(`GET request to ${url} resulted in status code ${res.status}`)
@@ -208,7 +262,7 @@ export class Template {
     template.format = (opts && opts.format) ? opts.format : template.format
     template.customDelimiters = (opts && opts.customDelimiters) ? opts.customDelimiters : template.customDelimiters
     if (opts && opts.cache) {
-      await opts.cache.add(url, template.content)
+      await opts.cache.add(url, template.content, {format: templateFormatToString(template.format), ext: template.ext})
     }
     return template
   }
@@ -536,6 +590,9 @@ export class Contract {
     if (!('template' in a)) {
       throw new ContractMissingFieldError('template')
     }
+    if (!('hash' in a.template)) {
+      throw new ContractMissingFieldError('template.hash')
+    }
     if (!('source' in a.template)) {
       throw new ContractMissingFieldError('template.source')
     }
@@ -551,6 +608,7 @@ export class Contract {
       format: 'format' in a.template ? templateFormatFromString(a.template.format) : undefined,
       customDelimiters: 'delimiters' in a.template ? templateDelimeters(a.template.delimiters) : undefined,
       cache: opts ? opts.cache : undefined,
+      expectedContentHash: 'hash' in a.template ? a.template.hash : undefined,
     }
     const contract = new Contract()
     contract.filename = filename
@@ -583,10 +641,9 @@ export class Contract {
           cache: opts.cache,
         })
         const templateVars = new Map<string, any>()
-        templateVars.set('source', path.resolve(opts.template))
-        if (templateFormat) {
-          templateVars.set('format', templateFormatToString(templateFormat))
-        }
+        templateVars.set('source', template.src)
+        templateVars.set('format', templateFormatToString(template.format))
+        templateVars.set('hash', template.contentHash)
         // extract the variables from the template
         vars = template.getVariables()
         vars.set('template', templateVars)
