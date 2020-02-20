@@ -72,41 +72,56 @@ describe('GitURL', () => {
       })
     })
 
-    describe('git+https://user:pass@somewhere.com:8000/some/path#hash', () => {
+    describe('git+ssh://git@gitlab.com:informalsystems/some-subgroup/neat-contract.git/path/to/file#v0.1.0', () => {
       it('should parse correctly', () => {
-        const url = GitURL.parse('git+https://user:pass@somewhere.com:8000/some/path#hash')
+        const url = GitURL.parse('git+ssh://git@gitlab.com:informalsystems/some-subgroup/neat-contract.git/path/to/file#v0.1.0')
+        assert.deepStrictEqual(url.protocols, ['git', 'ssh'])
+        assert.strictEqual(url.username, 'git')
+        assert.strictEqual(url.password, '')
+        assert.strictEqual(url.host, 'gitlab.com')
+        assert.strictEqual(url.port, '')
+        assert.strictEqual(url.path, 'informalsystems/some-subgroup/neat-contract.git/path/to/file')
+        assert.strictEqual(url.basePath(), 'informalsystems/some-subgroup/neat-contract.git')
+        assert.strictEqual(url.innerPath(), 'path/to/file')
+        assert.strictEqual(url.hash, 'v0.1.0')
+      })
+    })
+
+    describe('git+https://user:pass@somewhere.com:8000/some/path.git#hash', () => {
+      it('should parse correctly', () => {
+        const url = GitURL.parse('git+https://user:pass@somewhere.com:8000/some/path.git#hash')
         assert.deepStrictEqual(url.protocols, ['git', 'https'])
         assert.strictEqual(url.username, 'user')
         assert.strictEqual(url.password, 'pass')
         assert.strictEqual(url.host, 'somewhere.com')
         assert.strictEqual(url.port, '8000')
-        assert.strictEqual(url.path, '/some/path')
+        assert.strictEqual(url.path, '/some/path.git')
         assert.strictEqual(url.hash, 'hash')
       })
     })
 
-    describe('git+https://user:pass@somewhere.com:8000/some/path', () => {
+    describe('git+https://user:pass@somewhere.com:8000/some/path.git', () => {
       it('should parse correctly', () => {
-        const url = GitURL.parse('git+https://user:pass@somewhere.com:8000/some/path')
+        const url = GitURL.parse('git+https://user:pass@somewhere.com:8000/some/path.git')
         assert.deepStrictEqual(url.protocols, ['git', 'https'])
         assert.strictEqual(url.username, 'user')
         assert.strictEqual(url.password, 'pass')
         assert.strictEqual(url.host, 'somewhere.com')
         assert.strictEqual(url.port, '8000')
-        assert.strictEqual(url.path, '/some/path')
+        assert.strictEqual(url.path, '/some/path.git')
         assert.strictEqual(url.hash, '')
       })
     })
 
-    describe('git+https://somewhere.com/some/path', () => {
+    describe('git+https://somewhere.com/some/path.git', () => {
       it('should parse correctly', () => {
-        const url = GitURL.parse('git+https://somewhere.com/some/path')
+        const url = GitURL.parse('git+https://somewhere.com/some/path.git')
         assert.deepStrictEqual(url.protocols, ['git', 'https'])
         assert.strictEqual(url.username, '')
         assert.strictEqual(url.password, '')
         assert.strictEqual(url.host, 'somewhere.com')
         assert.strictEqual(url.port, '')
-        assert.strictEqual(url.path, '/some/path')
+        assert.strictEqual(url.path, '/some/path.git')
         assert.strictEqual(url.hash, '')
       })
     })

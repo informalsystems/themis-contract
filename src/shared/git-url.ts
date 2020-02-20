@@ -21,6 +21,9 @@ export class GitURL {
   hash = ''
 
   static parse(url: string): GitURL {
+    if (url.indexOf('.git') === -1) {
+      throw new ParserError(`Missing ".git" in path component of URL: ${url}`)
+    }
     const result = new GitURL()
 
     const protoURLSplit = url.split('://', 2)
@@ -97,7 +100,7 @@ export class GitURL {
       }
       basePath += pathPart
       partCount++
-      if (pathPart.endsWith('.git') || partCount >= 2) {
+      if (pathPart.endsWith('.git')) {
         break
       }
     }
