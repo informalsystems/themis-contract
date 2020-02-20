@@ -22,3 +22,4 @@ jobs:
     - run: yarn test
       env:
         CI: true
+    - run: yarn audit --non-interactive --level low
