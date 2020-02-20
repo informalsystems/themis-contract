@@ -4,7 +4,7 @@ import { ContractFormatError, SignatoryMissingFieldError, CounterpartyMissingFie
 import { ensurePath, dirExistsAsync, readdirAsync, fileExistsAsync, unlinkAsync } from './async-io'
 import { logger } from './logging'
 import { writeTOMLFileAsync, readTOMLFileAsync } from './toml'
-import { fullSigImageName, initialsImageName } from './template-helpers'
+import { initialsImageName, fullSigImageName, sigFileName } from './template-helpers'
 
 const extractParams = (a: any, skipFields?: string[]): any => {
   const additionalParams: any = {}
@@ -49,6 +49,10 @@ export class Signatory {
     this.additionalParams = additionalParams ? additionalParams : this.additionalParams
   }
 
+  initials(): string {
+    return this.fullNames.split(' ').filter(s => s.length > 0).map(s => s.charAt(0)).join('')
+  }
+
   toDB(): any {
     return mergeParams({
       full_names: this.fullNames,
@@ -56,9 +60,10 @@ export class Signatory {
     }, this.additionalParams)
   }
 
-  toTemplateVar(counterparty: Counterparty, sigImages: Map<string, string>): any {
-    const sigImage = sigImages.get(fullSigImageName(counterparty.id, this.id))
-    const initialsImage = sigImages.get(initialsImageName(counterparty.id, this.id))
+  toTemplateVar(counterparty: Counterparty, sigProps: Map<string, string>): Promise<any> {
+    const initialsImage = sigProps.get(initialsImageName(counterparty.id, this.id))
+    const sigImage = sigProps.get(fullSigImageName(counterparty.id, this.id))
+    const signedDate = sigProps.get(`${sigFileName(counterparty.id, this.id)}__signed_date`)
     logger.debug(`Signatory additional params:\n${JSON.stringify(this.additionalParams, null, 2)}`)
     return mergeParams({
       counterparty_id: counterparty.id,
@@ -68,6 +73,7 @@ export class Signatory {
       signature_image: sigImage ? sigImage : null,
       initials_image: initialsImage ? initialsImage : null,
       has_signed: (initialsImage !== undefined && sigImage !== undefined),
+      signed_date: signedDate ? signedDate : null,
     }, this.additionalParams)
   }
 
@@ -169,11 +175,11 @@ export class Counterparty {
     return mergeParams(a, this.additionalParams)
   }
 
-  toTemplateVar(sigImages: Map<string, string>): any {
+  toTemplateVar(sigProps: Map<string, string>): Promise<any> {
     const signatories: any = {}
     const signatoriesList: any = []
     this.signatories.forEach(sig => {
-      const svar = sig.toTemplateVar(this, sigImages)
+      const svar = sig.toTemplateVar(this, sigProps)
       signatories[sig.id] = svar
       signatoriesList.push(svar)
     })

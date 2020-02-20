@@ -2,9 +2,9 @@ import { TomlReader } from '@sgarciac/bombadil'
 import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
 import * as path from 'path'
-import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS } from './constants'
+import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS, DEFAULT_SIGNATURE_FONT, DEFAULT_SIGNATURE_HASH_FONT } from './constants'
 import { isGitURL, GitURL } from './git-url'
-import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync, dirExistsAsync } from './async-io'
+import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync, dirExistsAsync, getImageSize } from './async-io'
 import { DocumentCache, computeCacheFilename, computeContentHash } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
@@ -15,11 +15,14 @@ import { Counterparty, Signatory, mergeParams } from './counterparties'
 import { Identity } from './identities'
 import * as mime from 'mime-types'
 import { URL } from 'url'
-import { keybaseSign, keybaseSigFilename } from './keybase-helpers'
+import { keybaseSign, keybaseSigFilename, readKeybaseSig } from './keybase-helpers'
 import * as crypto from 'crypto'
 import * as gm from 'gm'
 import * as Mustache from 'mustache'
 import { gitPullAll, gitClone, gitCheckout } from './git-helpers'
+import { generatePDF417File } from './barcode-helpers'
+import { findFontFile } from './font-helpers'
+import { getSignatureTimestamp } from './crypto-helpers'
 
 /**
  * We allow for either Handlebars.js or Mustache.js templating at present.
@@ -305,6 +308,7 @@ export type ContractSignOptions = {
   signatory: Signatory;
   identity: Identity;
   useKeybase: boolean;
+  signatureFont?: string;
 }
 
 /**
@@ -330,7 +334,7 @@ export class Contract {
   /** Additional parameters we've extracted from the contract. */
   params: any = {}
 
-  /** Hex digest containing the hash of the contract + template. */
+  /** Hex digest containing the hash of the contract. */
   hash?: string
 
   sortedCounterparties(): Counterparty[] {
@@ -347,20 +351,19 @@ export class Contract {
     })
   }
 
-  private async lookupSignatureImages(basePath: string): Promise<Map<string, string>> {
+  private async lookupSignatureProperties(basePath: string): Promise<Map<string, string>> {
     const entries = await readdirAsync(basePath)
-    const images = new Map<string, string>()
+    const files = new Map<string, string>()
     for (const entry of entries) {
       const fullPath = path.join(basePath, entry)
-      if (await fileExistsAsync(fullPath)) {
+      if (await fileExistsAsync(fullPath, true)) {
         const parsedPath = path.parse(fullPath)
         const nameParts = parsedPath.name.split('__')
-        if (nameParts.length !== 3) {
+        if (nameParts.length < 2 || nameParts.length > 3) {
           continue
         }
         const counterpartyID = nameParts[0]
         const signatoryID = nameParts[1]
-        const sigType = nameParts[2]
         const counterparty = this.counterparties.get(counterpartyID)
         if (!counterparty) {
           continue
@@ -369,28 +372,37 @@ export class Contract {
         if (!signatory) {
           continue
         }
+        // if this is potentially a signature
+        if (nameParts.length === 2) {
+          if (parsedPath.ext !== '.sig') {
+            continue
+          }
+          files.set(`${parsedPath.name}__signed_date`, (await getSignatureTimestamp(fullPath)).format('Do MMMM YYYY'))
+          logger.debug(`Found cryptographic signature ${parsedPath.name} at: ${fullPath}`)
+        }
+        const sigType = nameParts[2]
         if (sigType === 'initials' || sigType === 'full') {
-          images.set(parsedPath.name, fullPath)
+          files.set(parsedPath.name, fullPath)
           logger.debug(`Found signature image ${parsedPath.name} at: ${fullPath}`)
         }
       }
     }
-    return images
+    return files
   }
 
   private async prepareTemplateParams(inputFile: string) {
     if (!this.hash) {
-      throw new Error('Internal error: no hash of contract + template')
+      throw new Error('Internal error: no hash of contract')
     }
     const inputPathParsed = path.parse(inputFile)
-    const sigImages = await this.lookupSignatureImages(path.resolve(inputPathParsed.dir))
+    const sigFiles = await this.lookupSignatureProperties(path.resolve(inputPathParsed.dir))
 
     this.params.hash = this.hash
     // ensure counterparties are populated fully
     this.params.counterparties = {}
     this.params.counterparties_list = []
     this.counterparties.forEach(counterparty => {
-      const cvar = counterparty.toTemplateVar(sigImages)
+      const cvar = counterparty.toTemplateVar(sigFiles)
       this.params.counterparties[counterparty.id] = cvar
       this.params.counterparties_list.push(cvar)
       if (counterparty.id in this.params) {
@@ -456,28 +468,64 @@ export class Contract {
       throw new Error('Internal error: missing fields in contract to be able to compute hash')
     }
     const hash = crypto.createHash('sha256')
+    // we only compute the hash from the raw contract data, since the hash of
+    // the template should be embedded in the raw contract data
     hash.update(this.raw)
-    hash.update(this.template.content)
     this.hash = hash.digest('hex').toLowerCase()
-    logger.info(`SHA256 hash of contract + template: ${this.hash}`)
+    logger.info(`SHA256 hash of contract: ${this.hash}`)
   }
 
   private async signWithKeybase(opts: ContractSignOptions) {
-    if (!opts.identity.sigFull || !opts.identity.sigInitials || !this.filename || !this.template) {
+    if (!opts.identity.sigFull || !opts.identity.sigInitials || !this.filename || !this.template || !this.hash) {
       return
     }
     const parentPath = path.parse(this.filename).dir
-    const concatFile = tmp.fileSync()
-    const concat = this.raw + this.template.content
+    const hashFont = await findFontFile(DEFAULT_SIGNATURE_HASH_FONT)
+    const sigFont = await findFontFile(opts.signatureFont ? opts.signatureFont : DEFAULT_SIGNATURE_FONT)
+
+    const tmpDir = tmp.dirSync()
+    const initialsHash = `${this.hash.substr(0, this.hash.length / 4)}...`
+    const sigHash = `${this.hash.substr(0, this.hash.length / 2)}...`
+
     try {
-      await writeFileAsync(concatFile.name, concat)
-      logger.debug(`Wrote contract + template to file: ${concatFile.name}`)
+      const tmpContract = path.join(tmpDir.name, 'contract.toml')
+      await writeFileAsync(tmpContract, this.raw)
+      logger.debug(`Wrote contract to file: ${tmpContract}`)
       const keybaseSigFile = keybaseSigFilename(parentPath, opts.counterparty, opts.signatory)
-      logger.info('Using Keybase to sign contract + template...')
-      await keybaseSign(concatFile.name, keybaseSigFile)
+      logger.info('Using Keybase to sign contract...')
+      await keybaseSign(tmpContract, keybaseSigFile)
       logger.info(`Generated signature file: ${keybaseSigFile}`)
+      const sig = await readKeybaseSig(keybaseSigFile)
+
+      const tmpBarcode = path.join(tmpDir.name, 'pdf417.png')
+      logger.info('Generating PDF417 barcode image for signature...')
+      await generatePDF417File(sig, tmpBarcode)
+      const barcodeSize = await getImageSize(tmpBarcode)
+      logger.debug(`Barcode dimensions: ${barcodeSize.width} x ${barcodeSize.height}`)
+
+      logger.info('Generating signature images...')
+      const tmpSigFull = path.join(tmpDir.name, 'sig.png')
+      const destSigInitials = path.join(parentPath, `${initialsImageName(opts.counterparty.id, opts.signatory.id)}.png`)
+      const destSigFull = path.join(parentPath, `${fullSigImageName(opts.counterparty.id, opts.signatory.id)}.png`)
+
+      await writeGMAsync(
+        destSigInitials,
+        gm(200, 150, '#ffffff').stroke('#000000').font(hashFont, 18).drawText(10, 130, initialsHash)
+        .font(sigFont, 50).drawText(40, 70, opts.signatory.initials()),
+      )
+
+      await writeGMAsync(
+        tmpSigFull,
+        gm(800, 200, '#ffffff').stroke('#000000').font(hashFont, 30).drawText(20, 170, sigHash)
+        .font(sigFont, 70).drawText(30, 80, opts.signatory.fullNames),
+      )
+
+      await writeGMAsync(
+        destSigFull,
+        gm(tmpSigFull).background('#ffffff').resize(barcodeSize.width).append(tmpBarcode),
+      )
     } finally {
-      concatFile.removeCallback()
+      tmpDir.removeCallback()
     }
   }
 
@@ -486,7 +534,7 @@ export class Contract {
       return
     }
     if (!this.hash) {
-      throw new Error('Internal error: missing contract + template hash')
+      throw new Error('Internal error: missing contract hash')
     }
     const initialsHash = `${this.hash.substr(0, this.hash.length / 4)}...`
     const sigHash = `${this.hash.substr(0, this.hash.length / 2)}...`
@@ -520,7 +568,7 @@ export class Contract {
       const destSigFull = path.join(parentPath, `${fullSigImageName(opts.counterparty.id, opts.signatory.id)}${parsedSigFull.ext}`)
       await writeGMAsync(
         destSigFull,
-        gm(opts.identity.sigInitials).resize(400).append(sigHashImage),
+        gm(opts.identity.sigFull).resize(400).append(sigHashImage),
       )
       logger.debug(`Wrote identity full signature to: ${destSigFull}`)
 

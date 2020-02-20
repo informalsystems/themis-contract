@@ -39,10 +39,13 @@ export const ensurePath = async (path: string) => {
   }
 }
 
-export const fileExistsAsync = async (path: string): Promise<boolean> => {
+export const fileExistsAsync = async (path: string, returnOnNotFile?: boolean): Promise<boolean> => {
   try {
     const stat = await statAsync(path)
     if (!stat.isFile()) {
+      if (returnOnNotFile) {
+        return false
+      }
       throw new IOError(`Path exists but is not a file: ${path}`)
     }
     return true
@@ -94,6 +97,18 @@ export const writeGMAsync = async (filename: string, state: gm.State) => {
         reject(err)
       } else {
         resolve()
+      }
+    })
+  })
+}
+
+export const getImageSize = async (filename: string): Promise<gm.Dimensions> => {
+  return new Promise((resolve, reject) => {
+    gm(filename).size((err, dims) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve(dims)
       }
     })
   })

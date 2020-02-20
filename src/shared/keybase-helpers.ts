@@ -1,9 +1,10 @@
 
 import { KeybaseError } from './errors'
-import { spawnAsync } from './async-io'
+import { spawnAsync, readFileAsync } from './async-io'
 import { logger } from './logging'
 import * as path from 'path'
 import { Counterparty, Signatory } from './counterparties'
+import { DEFAULT_TEXT_FILE_ENCODING } from './constants'
 
 export const keybaseWhoami = async (): Promise<string> => {
   const keybase = await spawnAsync('keybase', ['whoami'])
@@ -94,4 +95,17 @@ export const keybaseSign = async (inputFile: string, outputFile: string, key?: s
 
 export const keybaseSigFilename = (basePath: string, counterparty: Counterparty, signatory: Signatory): string => {
   return path.join(basePath, `${counterparty.id}__${signatory.id}.sig`)
+}
+
+export const readKeybaseSig = async (filename: string): Promise<string> => {
+  const content = await readFileAsync(filename, { encoding: DEFAULT_TEXT_FILE_ENCODING })
+  let sig = ''
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim()
+    if (trimmed.length === 0 || trimmed.startsWith('-----')) {
+      continue
+    }
+    sig += trimmed
+  }
+  return sig
 }

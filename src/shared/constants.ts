@@ -43,3 +43,8 @@ export const RESERVED_TEMPLATE_VARS = [
   'counterparties_list',
   'hash',
 ]
+
+export const DEFAULT_SIGNATURE_HASH_FONT = 'Helvetica'
+
+// Available from https://fonts.google.com/specimen/Sacramento
+export const DEFAULT_SIGNATURE_FONT = 'Sacramento:style=Regular'
