@@ -3,8 +3,9 @@
 ![Node.js CI](https://github.com/informalsystems/neat-contract/workflows/Node.js%20CI/badge.svg?branch=master)
 
 **PROTOTYPE**: Note that `neat-contract` is a prototype right now. All code on
-this branch is to be considered highly experimental. No versioning convention is
-applied yet.
+this branch is to be considered highly experimental. No semantic versioning will
+be used just yet: at present, a `v0.1.x` series is being released. Major version
+releases can come out at any time.
 
 ## Overview
 `neat-contract` is a prototype tool to allow for parameterized contracting. It's
@@ -46,16 +47,6 @@ Once you have the requirements installed, simply:
 
 # Run it!
 > neat-contract help
-```
-
-### Upgrading
-Since you've probably installed `neat-contract` directly from the repository,
-make sure you uninstall it first and reinstall it to upgrade it (until such time
-that distinct versions are released).
-
-```bash
-> npm uninstall -g neat-contract
-> npm i -g
 ```
 
 ## Usage
