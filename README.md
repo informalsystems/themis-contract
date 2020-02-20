@@ -229,7 +229,4 @@ full_names = "Michael Anderson"
 
 ## Features Coming Soon
 
-* Fetching of contract templates from Git repositories
 * Cryptographic signing of contracts based on local identity
-* Automatic population of selected counterparties/signatories to new contracts
-  upon creation
