@@ -230,3 +230,4 @@ full_names = "Michael Anderson"
 ## Features Coming Soon
 
 * Cryptographic signing of contracts based on local identity
+* [DocuSign API](https://developers.docusign.com/esign-rest-api/guides/concepts/overview) integration
