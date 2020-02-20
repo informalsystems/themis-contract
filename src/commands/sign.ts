@@ -23,6 +23,7 @@ export default class Sign extends Command {
     signatory: flags.string({ char: 's', description: 'the ID of the signatory (in the contract) as whom you are signing' }),
     identity: flags.string({ char: 'i', description: 'the ID of the local identity to use to sign' }),
     usekeybase: flags.boolean({ char: 'k', description: 'use Keybase to generate cryptographic signatures' }),
+    font: flags.string({ description: 'specify a font spec to search for to select a font for your signature' }),
   }
 
   static args = [
@@ -94,6 +95,7 @@ export default class Sign extends Command {
         signatory: signatory,
         identity: identity,
         useKeybase: flags.usekeybase,
+        signatureFont: flags.font,
       })
       logger.info('Now compile the contract and you should see the signatures in the relevant places')
     })
