@@ -1,4 +1,4 @@
-/* eslint-disable no-await-in-loop */
+/* eslint-disable no-await-in-loop, require-atomic-updates */
 import { Command, flags } from '@oclif/command'
 import { DEFAULT_PROFILE_PATH, identityDBPath, HOMEDIR } from '../shared/constants'
 import { cliWrap, parseID, isValidID } from '../shared/cli-helpers'

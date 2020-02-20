@@ -1,3 +1,4 @@
+/* eslint-disable require-atomic-updates */
 import { Command, flags } from '@oclif/command'
 import { Contract, templateFormatFromString } from '../shared/contract'
 import { DEFAULT_PROFILE_PATH, templateCachePath, gitRepoCachePath, counterpartyDBPath } from '../shared/constants'
