@@ -3,6 +3,7 @@
 ## v0.1.1 (in progress)
 
 * Allow users to specify font spec for signature when signing using Keybase
+* Add support for Keybase-based signing and verification
 
 ## v0.1.0
 First prototype release with basic functionality:
