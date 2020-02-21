@@ -142,14 +142,35 @@ sign it!
 ```bash
 # Will ask you for all of the relevant information
 > neat-contract sign ./contract.toml
-? On behalf of which counterparty will you be signing the contract? Company A Consulting
-? As which signatory will you be signing on behalf of the counterparty? Michael Anderson
-? Which identity do you want to use to sign? manderson
-2020-02-08 18:57:38 info Signed contract /Users/manderson/Documents/contract.toml as Michael Anderson on behalf of Company A Consulting using identity "manderson"
-2020-02-08 18:57:38 info Now compile the contract and you should see the signatures in the relevant places
+# ...
 
 # Compile again and you should see your signature come up in the contract
 > neat-contract compile -o contract.pdf ./contract.toml
+# ...
+```
+
+### Using Keybase to Sign and Verify
+For an additional level of security, `neat-contract` can use Keybase under the
+hood to cryptographically sign a contract.
+
+```bash
+# Use the "-k" flag to indicate you want to use Keybase to sign the contract
+> neat-contract sign -k contract.toml
+# ...
+```
+
+To verify a cryptographically signed contract:
+
+```bash
+> neat-contract verify -k contract.toml
+# ...
+```
+
+To verify a cryptographically signed contract prior to compiling:
+
+```bash
+> neat-contract compile --verify -o contract.pdf contract.toml
+# ...
 ```
 
 ### Counterparties
