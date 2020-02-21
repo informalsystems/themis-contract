@@ -25,6 +25,8 @@ To run this application, you will need:
 * [GraphicsMagick](http://www.graphicsmagick.org/) (for manipulating signature
   images)
 * [Ghostscript](https://www.ghostscript.com/) (for image manipulation)
+* [Sacramento Font](https://fonts.google.com/specimen/Sacramento) (for
+  handwriting-style signatures)
 
 Installing most of the above (except for Keybase, which must be downloaded from
 their web site) on macOS:
