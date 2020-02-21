@@ -42,7 +42,6 @@ Once you have the requirements installed, simply:
 # Clone this repository
 > git clone git@github.com:informalsystems/neat-contract.git
 > cd neat-contract
-> git checkout prototype
 
 # Install the application
 > npm i -g
