@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.1 (in progress)
+## v0.1.1
 
 * Allow users to specify font spec for signature when signing using Keybase
 * Add support for Keybase-based signing and verification
