@@ -17,7 +17,7 @@ install_for_macos() {
   fi
 
   echo "Installing requirements through Homebrew..."
-  brew install node@12 pandoc tectonic graphicsmagick ghostscript || true
+  brew install git node@12 pandoc tectonic graphicsmagick ghostscript || true
   # Update NPM and install Yarn
   npm i -g npm yarn
 
