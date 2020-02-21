@@ -9,6 +9,7 @@ export default class Verify extends Command {
 
   static examples = [
     '$ neat-contract verify ./contract/contract.toml',
+    '$ neat-contract verify -k ./contract/contract.toml',
   ]
 
   static flags = {
