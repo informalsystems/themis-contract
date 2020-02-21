@@ -303,6 +303,11 @@ export type ContractLoadOptions = {
   cache?: DocumentCache;
 }
 
+export type ContractCompileOptions = {
+  style?: any;
+  verify?: boolean;
+}
+
 export type ContractSignOptions = {
   counterparty: Counterparty;
   signatory: Signatory;
@@ -425,7 +430,7 @@ export class Contract {
     this.params.contract_path = inputPathParsed.dir
   }
 
-  async compile(outputFile: string, style: any) {
+  async compile(outputFile: string, opts?: ContractCompileOptions) {
     if (!this.filename) {
       throw new Error('Missing filename for contract')
     }
@@ -434,6 +439,12 @@ export class Contract {
     }
     this.computeHash()
     await this.prepareTemplateParams(this.filename)
+    if (opts && opts.verify) {
+      await this.verify({
+        useKeybase: true,
+      })
+    }
+
     logger.debug(`Using template params: ${JSON.stringify(this.params, null, 2)}`)
     // render the template to a temporary directory
     const templateExt = this.template.ext ? this.template.ext : DEFAULT_TEMPLATE_EXT
@@ -451,7 +462,7 @@ export class Contract {
       if (templateExt === '.tex') {
         await this.compileWithTectonic(tmpContract.name, outputFile)
       } else {
-        await this.compileWithPandoc(tmpContract.name, outputFile, style)
+        await this.compileWithPandoc(tmpContract.name, outputFile, opts && opts.style ? opts.style : {})
       }
       logger.info(`Saved output PDF file: ${outputFile}`)
     } finally {
@@ -484,9 +495,10 @@ export class Contract {
       throw new Error('Missing filename for contract')
     }
     if (!opts.useKeybase) {
-      logger.info('Only contracts signed using Keybase can be validated')
-      return
+      throw new Error('Only contracts signed using Keybase can be validated')
     }
+
+    logger.info(`Attempting to verify contract: ${this.filename}`)
 
     const parsedFilename = path.parse(path.resolve(this.filename))
     const sigProps = await this.lookupSignatureProperties(parsedFilename.dir)

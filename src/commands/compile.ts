@@ -20,6 +20,7 @@ export default class Compile extends Command {
     profile: flags.string({ char: 'p', default: DEFAULT_PROFILE_PATH, description: 'your local profile path (for managing identities, templates, etc.)' }),
     style: flags.string({ char: 's', description: 'an optional style file to specify the font and PDF engine to use when rendering the PDF' }),
     verbose: flags.boolean({ char: 'v', default: false, description: 'increase output logging verbosity to DEBUG level' }),
+    verify: flags.boolean({ description: 'verify the contract before compiling it' }),
   }
 
   static args = [
@@ -40,7 +41,10 @@ export default class Compile extends Command {
         gitRepoCachePath: gitRepoCachePath(flags.profile),
         cache: cache,
       })
-      await contract.compile(flags.output, style)
+      await contract.compile(flags.output, {
+        style: style,
+        verify: flags.verify,
+      })
     })
   }
 }
