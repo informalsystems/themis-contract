@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.2 (in progress)
+
+* Add prerequisite fonts to `fonts` folder
+* Add installation script to `scripts/install.sh`
+
 ## v0.1.1
 
 * Allow users to specify font spec for signature when signing using Keybase
