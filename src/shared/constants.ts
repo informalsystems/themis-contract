@@ -44,7 +44,7 @@ export const RESERVED_TEMPLATE_VARS = [
   'hash',
 ]
 
-export const DEFAULT_SIGNATURE_HASH_FONT = 'Helvetica'
+export const DEFAULT_SIGNATURE_HASH_FONT = 'Roboto:style=Regular'
 
 // Available from https://fonts.google.com/specimen/Sacramento
 export const DEFAULT_SIGNATURE_FONT = 'Sacramento:style=Regular'
