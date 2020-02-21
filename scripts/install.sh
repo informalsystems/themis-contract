@@ -9,6 +9,13 @@ unixlike_font_installed() {
 }
 
 install_for_macos() {
+  echo "Checking for Homebrew..."
+  # See https://stackoverflow.com/a/26759734/1156132
+  if ! [ -x "$(command -v brew)" ]; then
+    echo "Installing Homebrew..."
+    /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+  fi
+
   echo "Installing requirements through Homebrew..."
   brew install node@12 pandoc tectonic graphicsmagick ghostscript || true
   # Update NPM and install Yarn
