@@ -19,7 +19,8 @@ install_for_macos() {
   git clone git@github.com:informalsystems/neat-contract.git /tmp/neat-contract
 
   echo "Uninstalling any old versions of neat-contract..."
-  npm uninstall -g neat-contract
+  npm uninstall -g neat-contract || true
+  yarn global remove neat-contract || true
 
   echo "Installing neat-contract..."
   cd /tmp/neat-contract && \
