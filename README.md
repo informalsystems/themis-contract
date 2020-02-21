@@ -74,7 +74,7 @@ id            initials     signature     keybase_id       can_sign
 manderson     yes          yes           manderson        yes
 ```
 
-Now you can sign contracts using the identity 
+Now you can sign contracts using the identity.
 
 ### Contracts
 
@@ -94,11 +94,11 @@ take place between the Interchain Foundation (`icf`) and an external contractor
 <!-- Here we loop through all the signatories in the "icf" counterparty -->
 {{#each icf.signatories}}
   <p>
-    {{#has_signed this}}
+    {{#if this.has_signed}}
       <img src="{{this.signature_image}}">
     {{else}}
       <i>Still to be signed</i>
-    {{/has_signed}}
+    {{/if}}
   </p>
   <p>{{this.full_names}}</p>
 {{/each}}
@@ -110,11 +110,11 @@ take place between the Interchain Foundation (`icf`) and an external contractor
 <!-- Here we loop through all the signatories in the "contractor" counterparty -->
 {{#each contractor.signatories}}
   <p>
-    {{#has_signed this}}
+    {{#if this.has_signed}}
       <img src="{{this.signature_image}}">
     {{else}}
       <i>Still to be signed</i>
-    {{/has_signed}}
+    {{/if}}
   </p>
   <p>{{this.full_names}}</p>
 {{/each}}
