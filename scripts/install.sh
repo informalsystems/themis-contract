@@ -40,6 +40,8 @@ install_for_macos() {
   else
     echo "Sacramento installed!"
   fi
+
+  rm -rf /tmp/neat-contract
 }
 
 if [ "${OS}" = Darwin ]; then
