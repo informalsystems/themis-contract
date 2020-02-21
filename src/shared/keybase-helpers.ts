@@ -93,6 +93,24 @@ export const keybaseSign = async (inputFile: string, outputFile: string, key?: s
   }
 }
 
+export const keybaseVerifySignature = async (inputFile: string, detachedSigFile: string, keybaseUser: string) => {
+  const keybase = await spawnAsync('keybase', [
+    'pgp',
+    'verify',
+    '-d',
+    detachedSigFile,
+    '-i',
+    inputFile,
+    '-S',
+    keybaseUser,
+  ])
+  logger.debug(`keybase stdout:\n${keybase.stdout}`)
+  logger.debug(`keybase stderr:\n${keybase.stderr}`)
+  if (keybase.status !== 0) {
+    throw new Error(`keybase verification call failed with exit code ${keybase.status}`)
+  }
+}
+
 export const keybaseSigFilename = (basePath: string, counterparty: Counterparty, signatory: Signatory): string => {
   return path.join(basePath, `${counterparty.id}__${signatory.id}.sig`)
 }

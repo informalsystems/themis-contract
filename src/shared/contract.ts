@@ -8,14 +8,14 @@ import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync,
 import { DocumentCache, computeCacheFilename, computeContentHash } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
-import { extractHandlebarsTemplateVariables, extractMustacheTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName } from './template-helpers'
+import { extractHandlebarsTemplateVariables, extractMustacheTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName, sigFileName } from './template-helpers'
 import { writeTOMLFileAsync } from './toml'
 import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
 import { Counterparty, Signatory, mergeParams } from './counterparties'
 import { Identity } from './identities'
 import * as mime from 'mime-types'
 import { URL } from 'url'
-import { keybaseSign, keybaseSigFilename, readKeybaseSig } from './keybase-helpers'
+import { keybaseSign, keybaseSigFilename, readKeybaseSig, keybaseVerifySignature } from './keybase-helpers'
 import * as crypto from 'crypto'
 import * as gm from 'gm'
 import * as Mustache from 'mustache'
@@ -311,6 +311,17 @@ export type ContractSignOptions = {
   signatureFont?: string;
 }
 
+export type ContractVerificationOptions = {
+  useKeybase: boolean;
+}
+
+export type SignatureInfo = {
+  filename: string;
+  counterparty: Counterparty;
+  signatory: Signatory;
+  expectedKeybaseID: string;
+}
+
 /**
  * A contract is effectively a configuration file that describes:
  *
@@ -377,6 +388,7 @@ export class Contract {
           if (parsedPath.ext !== '.sig') {
             continue
           }
+          files.set(`${parsedPath.name}`, fullPath)
           files.set(`${parsedPath.name}__signed_date`, (await getSignatureTimestamp(fullPath)).format('Do MMMM YYYY'))
           logger.debug(`Found cryptographic signature ${parsedPath.name} at: ${fullPath}`)
         }
@@ -395,14 +407,14 @@ export class Contract {
       throw new Error('Internal error: no hash of contract')
     }
     const inputPathParsed = path.parse(inputFile)
-    const sigFiles = await this.lookupSignatureProperties(path.resolve(inputPathParsed.dir))
+    const sigProps = await this.lookupSignatureProperties(path.resolve(inputPathParsed.dir))
 
     this.params.hash = this.hash
     // ensure counterparties are populated fully
     this.params.counterparties = {}
     this.params.counterparties_list = []
     this.counterparties.forEach(counterparty => {
-      const cvar = counterparty.toTemplateVar(sigFiles)
+      const cvar = counterparty.toTemplateVar(sigProps)
       this.params.counterparties[counterparty.id] = cvar
       this.params.counterparties_list.push(cvar)
       if (counterparty.id in this.params) {
@@ -461,6 +473,66 @@ export class Contract {
     } else {
       await this.signWithoutKeybase(opts)
     }
+  }
+
+  /**
+   * Verifies all signatures associated with this contract.
+   * @param {ContractValiationOptions} opts Options for validating this contract.
+   */
+  async verify(opts: ContractVerificationOptions) {
+    if (!this.filename) {
+      throw new Error('Missing filename for contract')
+    }
+    if (!opts.useKeybase) {
+      logger.info('Only contracts signed using Keybase can be validated')
+      return
+    }
+
+    const parsedFilename = path.parse(path.resolve(this.filename))
+    const sigProps = await this.lookupSignatureProperties(parsedFilename.dir)
+    let errors = 0
+    let expectedSigs = 0
+    const sigsToVerify: SignatureInfo[] = []
+
+    this.counterparties.forEach(c => {
+      c.signatories.forEach(s => {
+        expectedSigs++
+        const sigFile = sigProps.get(sigFileName(c.id, s.id))
+        if (!sigFile) {
+          logger.error(`(${errors + 1}) Missing signature for signatory "${s.fullNames}" of counterparty "${c.fullName}"`)
+          errors++
+          return
+        }
+        if (!s.keybaseId) {
+          logger.error(`(${errors + 1}) Missing Keybase ID for signatory "${s.fullNames}" of counterparty "${c.fullName}"`)
+          errors++
+          return
+        }
+        sigsToVerify.push({
+          filename: sigFile,
+          counterparty: c,
+          signatory: s,
+          expectedKeybaseID: s.keybaseId,
+        })
+      })
+    })
+    if (expectedSigs === 0) {
+      logger.error(`(${errors + 1}) No signatories for contract - cannot verify it`)
+      errors++
+    }
+    for (const sig of sigsToVerify) {
+      try {
+        await keybaseVerifySignature(this.filename, sig.filename, sig.expectedKeybaseID)
+        logger.info(`Successfully verified signature for signatory "${sig.signatory.fullNames}" of counterparty "${sig.counterparty.fullName}"`)
+      } catch (error) {
+        logger.error(`(${errors + 1}) Verification failed for signatory "${sig.signatory.fullNames}" of counterparty "${sig.counterparty.fullName}"`)
+        errors++
+      }
+    }
+    if (errors > 0) {
+      throw new Error(`Found ${errors} error${errors === 1 ? '' : 's'} while verifying contract`)
+    }
+    logger.info('Successfully verified all required signatures on contract')
   }
 
   private computeHash() {
