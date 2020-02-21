@@ -26,22 +26,12 @@ install_for_macos() {
   yarn install && \
   yarn global add file:`pwd`
 
-  echo "Checking font availability..."
-  HELVETICA=$(unixlike_font_installed "Helvetica:style=Regular")
-  SACRAMENTO=$(unixlike_font_installed "Sacramento:style=Regular")
-
-  if [ $HELVETICA -eq 0 ]; then
-    echo "Missing font: Helvetica"
-  else
-    echo "Helvetica installed!"
-  fi
-  if [ $SACRAMENTO -eq 0 ]; then
-    echo "Missing font: Sacramento (can be downloaded from https://fonts.google.com/specimen/Sacramento)"
-  else
-    echo "Sacramento installed!"
-  fi
+  echo "Installing required fonts..."
+  cp /tmp/neat-contract/fonts/Roboto/*.ttf ~/Library/Fonts/
+  cp /tmp/neat-contract/fonts/Sacramento/*.ttf ~/Library/Fonts/
 
   rm -rf /tmp/neat-contract
+  echo "Done!"
 }
 
 if [ "${OS}" = Darwin ]; then
