@@ -60,13 +60,7 @@ yourself. This is a way of organizing your written (image-based) signatures and
 ```bash
 # Will ask you interactively for all the relevant fields
 > neat-contract save-identity
-2020-02-08 18:51:32 info Querying local Keybase (whoami and key listing)...
-? Enter an ID for the new identity (snake_case): manderson
-? Please enter the Keybase ID: manderson
-? Please enter the 70-char hex key ID for the Keybase key you would like to use: 0123401234012345...
-? Which image file would you like to use for signature *initials*? /Users/manderson/Documents/initials.png
-? Which image file would you like to use for your *full* signature? /Users/manderson/Documents/fullsignature.png
-2020-02-08 18:52:06 info Updated identity "manderson"
+# ...
 
 # List identities you've saved
 > neat-contract list-identities
