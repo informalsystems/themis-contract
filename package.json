@@ -1,7 +1,7 @@
 {
   "name": "neat-contract",
   "description": "Neat Enterprise As Text - Contracting",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Thane Thomson <thane@informal.systems>",
   "bin": {
     "neat-contract": "./bin/run"
