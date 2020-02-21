@@ -15,6 +15,7 @@ install_for_macos() {
   npm i -g npm yarn
 
   echo "Cloning repository..."
+  rm -rf /tmp/neat-contract
   git clone git@github.com:informalsystems/neat-contract.git /tmp/neat-contract
 
   echo "Uninstalling any old versions of neat-contract..."
