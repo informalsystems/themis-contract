@@ -168,6 +168,30 @@ To verify a cryptographically signed contract prior to compiling:
 # ...
 ```
 
+### Signing Contracts Without Installing `neat-contract`
+For people who want to sign contracts without installing `neat-contract`, as of
+`v0.1.2` you can simply use the Keybase CLI to create a **detached signature**.
+Be sure to follow the naming convention though:
+
+```bash
+> keybase pgp sign -d -i contract.toml -o counterpartyid__signatoryid.sig
+```
+
+Whoever generates the final PDF, however, will need to install `neat-contract`
+in order to generate the signature images for the compiling process:
+
+```bash
+# Will automagically find any signatures associated with the contract where
+# images should be generated. Does not overwrite existing signature images.
+> neat-contract gen-sigimages contract.toml
+
+# Alternatively, overwrite existing signature images.
+> neat-contract gen-sigimages --overwrite contract.toml
+
+# Specify a custom font for generating signatures.
+> neat-contract gen-sigimages --font "Cedarville Cursive" contract.toml
+```
+
 ### Counterparties
 To speed things up when creating contracts, you can define counterparties in
 your local profile.
