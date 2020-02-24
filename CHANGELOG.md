@@ -1,9 +1,11 @@
 # Changelog
 
-## v0.1.2 (in progress)
+## v0.1.2
 
 * Add prerequisite fonts to `fonts` folder
 * Add installation script to `scripts/install.sh`
+* Add `gen-sigimages` command to allow for generation of signature images from
+  detached cryptographic signature files
 
 ## v0.1.1
 
