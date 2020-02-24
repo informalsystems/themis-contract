@@ -2,9 +2,9 @@ import { TomlReader } from '@sgarciac/bombadil'
 import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
 import * as path from 'path'
-import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS, DEFAULT_SIGNATURE_FONT, DEFAULT_SIGNATURE_HASH_FONT } from './constants'
+import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS } from './constants'
 import { isGitURL, GitURL } from './git-url'
-import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync, dirExistsAsync, getImageSize } from './async-io'
+import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync, dirExistsAsync } from './async-io'
 import { DocumentCache, computeCacheFilename, computeContentHash } from './document-cache'
 import { logger } from './logging'
 import axios from 'axios'
@@ -15,13 +15,12 @@ import { Counterparty, Signatory, mergeParams } from './counterparties'
 import { Identity } from './identities'
 import * as mime from 'mime-types'
 import { URL } from 'url'
-import { keybaseSign, keybaseSigFilename, readKeybaseSig, keybaseVerifySignature } from './keybase-helpers'
+import { keybaseSign, keybaseSigFilename, keybaseVerifySignature } from './keybase-helpers'
 import * as crypto from 'crypto'
 import * as gm from 'gm'
 import * as Mustache from 'mustache'
 import { gitPullAll, gitClone, gitCheckout } from './git-helpers'
-import { generatePDF417File } from './barcode-helpers'
-import { findFontFile } from './font-helpers'
+import { generateCryptographicSigImages } from './barcode-helpers'
 import { getSignatureTimestamp } from './crypto-helpers'
 
 /**
@@ -327,6 +326,12 @@ export type SignatureInfo = {
   expectedKeybaseID: string;
 }
 
+export type ContractSigImageGenerationOptions = {
+  overwriteExisting?: boolean;
+  verify?: boolean;
+  font?: string;
+}
+
 /**
  * A contract is effectively a configuration file that describes:
  *
@@ -547,6 +552,47 @@ export class Contract {
     logger.info('Successfully verified all required signatures on contract')
   }
 
+  /**
+   * Allows us to generate signature images for cryptographic signatures.
+   * @param {ContractSigImageGenerationOptions} opts Configuration options.
+   */
+  async generateSigImages(opts?: ContractSigImageGenerationOptions) {
+    if (opts && opts.verify) {
+      await this.verify({useKeybase: true})
+    }
+    if (!this.filename) {
+      throw new Error('Internal error: missing filename for contract')
+    }
+    const inputPathParsed = path.parse(this.filename)
+    const sigProps = await this.lookupSignatureProperties(path.resolve(inputPathParsed.dir))
+
+    for (const [key, filename] of sigProps) {
+      const keyParts = key.split('__')
+      if (keyParts.length !== 2) {
+        continue
+      }
+      const counterparty = this.counterparties.get(keyParts[0])
+      if (!counterparty) {
+        continue
+      }
+      const signatory = counterparty.signatories.get(keyParts[1])
+      if (!signatory) {
+        continue
+      }
+      // should we produce a signature image for this signature file?
+      if (!sigProps.has(`${key}__full`) || (opts && opts.overwriteExisting)) {
+        const parsedPath = path.parse(filename)
+        await generateCryptographicSigImages(filename, parsedPath.dir, {
+          counterparty: counterparty,
+          signatory: signatory,
+          font: opts && opts.font ? opts.font : undefined,
+        })
+      } else {
+        logger.info(`Not updating signature images for: ${filename} (use --overwrite to overwrite this signature's images)`)
+      }
+    }
+  }
+
   private computeHash() {
     if (!this.raw || !this.template) {
       throw new Error('Internal error: missing fields in contract to be able to compute hash')
@@ -560,57 +606,29 @@ export class Contract {
   }
 
   private async signWithKeybase(opts: ContractSignOptions) {
-    if (!opts.identity.sigFull || !opts.identity.sigInitials || !this.filename || !this.template || !this.hash) {
+    if (!opts.identity.keybaseID || !opts.identity.keybaseKeyID || !this.filename || !this.template || !this.hash) {
       return
     }
     const parentPath = path.parse(this.filename).dir
-    const hashFont = await findFontFile(DEFAULT_SIGNATURE_HASH_FONT)
-    const sigFont = await findFontFile(opts.signatureFont ? opts.signatureFont : DEFAULT_SIGNATURE_FONT)
-
     const tmpDir = tmp.dirSync()
-    const initialsHash = `${this.hash.substr(0, this.hash.length / 4)}...`
-    const sigHash = `${this.hash.substr(0, this.hash.length / 2)}...`
+    const keybaseSigFile = keybaseSigFilename(parentPath, opts.counterparty, opts.signatory)
 
     try {
       const tmpContract = path.join(tmpDir.name, 'contract.toml')
       await writeFileAsync(tmpContract, this.raw)
       logger.debug(`Wrote contract to file: ${tmpContract}`)
-      const keybaseSigFile = keybaseSigFilename(parentPath, opts.counterparty, opts.signatory)
       logger.info('Using Keybase to sign contract...')
-      await keybaseSign(tmpContract, keybaseSigFile)
+      await keybaseSign(tmpContract, keybaseSigFile, opts.identity.keybaseKeyID)
       logger.info(`Generated signature file: ${keybaseSigFile}`)
-      const sig = await readKeybaseSig(keybaseSigFile)
-
-      const tmpBarcode = path.join(tmpDir.name, 'pdf417.png')
-      logger.info('Generating PDF417 barcode image for signature...')
-      await generatePDF417File(sig, tmpBarcode)
-      const barcodeSize = await getImageSize(tmpBarcode)
-      logger.debug(`Barcode dimensions: ${barcodeSize.width} x ${barcodeSize.height}`)
-
-      logger.info('Generating signature images...')
-      const tmpSigFull = path.join(tmpDir.name, 'sig.png')
-      const destSigInitials = path.join(parentPath, `${initialsImageName(opts.counterparty.id, opts.signatory.id)}.png`)
-      const destSigFull = path.join(parentPath, `${fullSigImageName(opts.counterparty.id, opts.signatory.id)}.png`)
-
-      await writeGMAsync(
-        destSigInitials,
-        gm(200, 150, '#ffffff').stroke('#000000').font(hashFont, 18).drawText(10, 130, initialsHash)
-        .font(sigFont, 50).drawText(40, 70, opts.signatory.initials()),
-      )
-
-      await writeGMAsync(
-        tmpSigFull,
-        gm(800, 200, '#ffffff').stroke('#000000').font(hashFont, 30).drawText(20, 170, sigHash)
-        .font(sigFont, 70).drawText(30, 80, opts.signatory.fullNames),
-      )
-
-      await writeGMAsync(
-        destSigFull,
-        gm(tmpSigFull).background('#ffffff').resize(barcodeSize.width).append(tmpBarcode),
-      )
     } finally {
       tmpDir.removeCallback()
     }
+
+    await generateCryptographicSigImages(keybaseSigFile, parentPath, {
+      counterparty: opts.counterparty,
+      signatory: opts.signatory,
+      font: opts.signatureFont,
+    })
   }
 
   private async signWithoutKeybase(opts: ContractSignOptions) {

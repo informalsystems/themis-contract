@@ -8,14 +8,14 @@ export class Identity {
   id: string
 
   /** The full path to the identity's partial signature image, for initialing. */
-  sigInitials: string | undefined
+  sigInitials?: string
 
   /** The full path to the identity's full signature image. */
-  sigFull: string | undefined
+  sigFull?: string
 
-  keybaseID: string | undefined
+  keybaseID?: string
 
-  keybaseKeyID: string | undefined
+  keybaseKeyID?: string
 
   constructor(id: string) {
     this.id = id
