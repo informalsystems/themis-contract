@@ -26,7 +26,6 @@
     "gm": "1.23.1",
     "handlebars": "4.7.3",
     "inquirer": "7.0.4",
-    "inquirer-fuzzy-path": "2.2.0",
     "mime-types": "2.1.26",
     "moment": "2.24.0",
     "mustache": "4.0.0",

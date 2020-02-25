@@ -38,6 +38,26 @@ export default class ListIdentities extends Command {
           header: 'id',
           minWidth: longestID + 5,
         },
+        canSignWithKeybase: {
+          header: 'can_sign_with_keybase',
+          minWidth: 'can_sign_with_keybase'.length + 5,
+          get: row => row.canSignWithKeybase() ? 'yes' : '',
+        },
+        canSignWithImages: {
+          header: 'can_sign_with_images',
+          minWidth: 'can_sign_with_images'.length + 5,
+          get: row => row.canSignWithImages() ? 'yes' : '',
+        },
+        keybaseID: {
+          header: 'keybase_id',
+          minWidth: longestKeybaseID + 5,
+          get: row => row.keybaseID ? row.keybaseID : '(none)',
+        },
+        keybaseKeyID: {
+          header: 'keybase_key_id',
+          extended: true,
+          get: row => row.keybaseKeyID ? row.keybaseKeyID : '(none)',
+        },
         sigInitials: {
           header: 'initials',
           minWidth: 'initials'.length + 5,
@@ -47,21 +67,6 @@ export default class ListIdentities extends Command {
           header: 'signature',
           minWidth: 'signature'.length + 5,
           get: row => row.sigFull ? 'yes' : '',
-        },
-        keybaseID: {
-          header: 'keybase_id',
-          minWidth: longestKeybaseID + 5,
-          get: row => row.keybaseID ? row.keybaseID : '(none)',
-        },
-        canSign: {
-          header: 'can_sign',
-          minWidth: 'can_sign'.length + 5,
-          get: row => row.canSign() ? 'yes' : '',
-        },
-        keybaseKeyID: {
-          header: 'keybase_key_id',
-          extended: true,
-          get: row => row.keybaseKeyID ? row.keybaseKeyID : '(none)',
         },
       }, {
         printLine: this.log,

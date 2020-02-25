@@ -34,22 +34,18 @@ export class Identity {
     }
   }
 
-  /**
-   * Right now we only consider an identity "complete" and capable of being used
-   * to sign contracts if we have both the initials and full signature images
-   * for the identity. In future, however, we will also require the Keybase ID
-   * and key ID.
-   * @returns {boolean} Whether or not this identity can be used for signing
-   *   contracts.
-   */
-  canSign(): boolean {
-    if (!this.sigInitials) {
-      return false
+  canSignWithKeybase(): boolean {
+    if (this.keybaseID && this.keybaseKeyID) {
+      return true
     }
-    if (!this.sigFull) {
-      return false
+    return false
+  }
+
+  canSignWithImages(): boolean {
+    if (this.sigInitials && this.sigFull) {
+      return true
     }
-    return true
+    return false
   }
 
   async saveToPath(basePath: string) {

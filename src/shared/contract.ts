@@ -477,12 +477,6 @@ export class Contract {
   }
 
   async sign(opts: ContractSignOptions) {
-    if (!opts.identity.sigInitials) {
-      throw new Error('Identity does not have an initials signature file')
-    }
-    if (!opts.identity.sigFull) {
-      throw new Error('Identity does not have a full signature file')
-    }
     this.computeHash()
     if (opts.useKeybase) {
       await this.signWithKeybase(opts)
@@ -606,7 +600,13 @@ export class Contract {
   }
 
   private async signWithKeybase(opts: ContractSignOptions) {
-    if (!opts.identity.keybaseID || !opts.identity.keybaseKeyID || !this.filename || !this.template || !this.hash) {
+    if (!opts.identity.keybaseID) {
+      throw new Error(`Identity "${opts.identity.id}" is missing a Keybase ID`)
+    }
+    if (!opts.identity.keybaseKeyID) {
+      throw new Error(`Identity "${opts.identity.id}" is missing a Keybase key ID`)
+    }
+    if (!this.filename || !this.template || !this.hash) {
       return
     }
     const parentPath = path.parse(this.filename).dir
@@ -632,7 +632,13 @@ export class Contract {
   }
 
   private async signWithoutKeybase(opts: ContractSignOptions) {
-    if (!opts.identity.sigFull || !opts.identity.sigInitials || !this.filename || !this.raw || !this.template) {
+    if (!opts.identity.sigInitials) {
+      throw new Error(`Identity "${opts.identity.id}" is missing an initials image`)
+    }
+    if (!opts.identity.sigFull) {
+      throw new Error(`Identity "${opts.identity.id}" is missing a full signature image`)
+    }
+    if (!this.filename || !this.raw || !this.template) {
       return
     }
     if (!this.hash) {

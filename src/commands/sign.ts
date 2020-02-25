@@ -22,7 +22,7 @@ export default class Sign extends Command {
     counterparty: flags.string({ char: 'c', description: 'the ID of the counterparty (in the contract) on behalf of whom you are signing' }),
     signatory: flags.string({ char: 's', description: 'the ID of the signatory (in the contract) as whom you are signing' }),
     identity: flags.string({ char: 'i', description: 'the ID of the local identity to use to sign' }),
-    usekeybase: flags.boolean({ char: 'k', description: 'use Keybase to generate cryptographic signatures' }),
+    useimages: flags.boolean({ default: false, description: 'use images for signatures/initials instead of Keybase cryptographic signatures' }),
     font: flags.string({ description: 'specify a font spec to search for to select a font for your signature' }),
   }
 
@@ -76,7 +76,7 @@ export default class Sign extends Command {
         type: 'list',
         name: 'id',
         message: 'Which identity do you want to use to sign?',
-        choices: identityDB.list().filter(i => i.canSign()).sort((a, b) => {
+        choices: identityDB.list().filter(i => flags.useimages ? i.canSignWithImages() : i.canSignWithKeybase()).sort((a, b) => {
           return (a.id < b.id) ? -1 : ((a.id > b.id) ? 1 : 0)
         }).map(i => {
           return { name: i.id, value: i.id }
@@ -86,15 +86,12 @@ export default class Sign extends Command {
       if (!identity) {
         throw new Error(`No such identity: "${identityID}"`)
       }
-      if (!identity.canSign()) {
-        throw new Error(`Identity is missing information and cannot be used to sign: "${identityID}" (see "list-identities" for more information)`)
-      }
 
       await contract.sign({
         counterparty: counterparty,
         signatory: signatory,
         identity: identity,
-        useKeybase: flags.usekeybase,
+        useKeybase: !flags.useimages,
         signatureFont: flags.font,
       })
       logger.info('Now compile the contract and you should see the signatures in the relevant places')
