@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.3 (in progress)
+## v0.1.3
 
 * Make cryptographic signing with Keybase the default option for the `sign`
   command
