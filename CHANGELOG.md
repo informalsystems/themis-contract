@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.3 (in progress)
+
+* Make cryptographic signing with Keybase the default option for the `sign`
+  command
+
 ## v0.1.2
 
 * Add prerequisite fonts to `fonts` folder
