@@ -134,30 +134,19 @@ from the specified template.
 You'll notice at this point there are no signatures in the contract. You need to
 sign it!
 
-```bash
-# Will ask you for all of the relevant information
-> neat-contract sign ./contract.toml
-# ...
-
-# Compile again and you should see your signature come up in the contract
-> neat-contract compile -o contract.pdf ./contract.toml
-# ...
-```
-
 ### Using Keybase to Sign and Verify
 For an additional level of security, `neat-contract` can use Keybase under the
 hood to cryptographically sign a contract.
 
 ```bash
-# Use the "-k" flag to indicate you want to use Keybase to sign the contract
-> neat-contract sign -k contract.toml
+> neat-contract sign contract.toml
 # ...
 ```
 
 To verify a cryptographically signed contract:
 
 ```bash
-> neat-contract verify -k contract.toml
+> neat-contract verify contract.toml
 # ...
 ```
 
