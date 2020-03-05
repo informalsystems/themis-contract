@@ -72,6 +72,11 @@ Now you can sign contracts using the identity.
 
 ### Contracts
 
+**NB**: The first time you try to compile a contract will probably take quite a
+while. This is because [Tectonic](https://tectonic-typesetting.github.io/en-US/)
+(the default PDF generation engine) downloads all LaTeX dependencies in the
+background automatically for you, without you needing to manually install them.
+
 In order to generate a contract, we first need a template. Take a look at the
 following contrived HTML-based template. We know up-front that our contract will
 take place between the Interchain Foundation (`icf`) and an external contractor
