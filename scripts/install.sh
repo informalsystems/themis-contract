@@ -2,6 +2,7 @@
 set -e
 
 OS="$(uname -s)"
+NEAT_CONTRACT_REPO=${NEAT_CONTRACT_REPO:-'git@github.com:informalsystems/neat-contract.git'}
 
 unixlike_font_installed() {
   SPEC="$1"
@@ -9,7 +10,6 @@ unixlike_font_installed() {
 }
 
 unixlike_add_path() {
-  path="$1"
   echo "Attempting to add path: $1"
   rcpath=""
   if [ "${SHELL}" = "/bin/bash" ]; then
@@ -23,8 +23,8 @@ unixlike_add_path() {
     exit 1
   fi
 
-  cat "${rcpath}" | grep -q "${path}" || \
-    echo -e "export PATH=\"${path}:\${PATH}\"\n" >> "${rcpath}"
+  cat "${rcpath}" | grep -q "$1" || \
+    echo -e "export PATH=\"$1:\${PATH}\"\n" >> "${rcpath}"
 }
 
 install_for_macos() {
@@ -46,7 +46,7 @@ install_for_macos() {
 
   echo "Cloning repository..."
   rm -rf /tmp/neat-contract
-  git clone git@github.com:informalsystems/neat-contract.git /tmp/neat-contract
+  git clone ${NEAT_CONTRACT_REPO} /tmp/neat-contract
 
   echo "Uninstalling any old versions of neat-contract..."
   npm uninstall -g neat-contract || true
@@ -64,8 +64,6 @@ install_for_macos() {
   rm -rf /tmp/neat-contract
   echo "Done!"
 }
-
-unixlike_add_path "/tmp/powerlog"
 
 if [ "${OS}" = Darwin ]; then
   install_for_macos
