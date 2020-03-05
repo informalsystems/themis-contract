@@ -163,7 +163,7 @@ For people who want to sign contracts without installing `neat-contract`, as of
 Be sure to follow the naming convention though:
 
 ```bash
-> keybase pgp sign -d -i contract.toml -o counterpartyid__signatoryid.sig
+> keybase pgp sign -d -i contract.toml -o ${COUNTERPARTY_ID}__${SIGNATORY_ID}.sig
 ```
 
 Whoever generates the final PDF, however, will need to install `neat-contract`
