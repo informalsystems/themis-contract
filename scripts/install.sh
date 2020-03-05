@@ -8,6 +8,25 @@ unixlike_font_installed() {
   fc-list ${SPEC} | wc -l | tr -d ' '
 }
 
+unixlike_add_path() {
+  path="$1"
+  echo "Attempting to add path: $1"
+  rcpath=""
+  if [ "${SHELL}" = "/bin/bash" ]; then
+    rcpath="${HOME}/.bashrc"
+  elif [ "${SHELL}" = "/bin/zsh" ]; then
+    rcpath="${HOME}/.zshrc"
+  fi
+
+  if [ "${rcpath}" = "" ]; then
+    echo "Cannot autodetect shell (only BASH and ZSH are currently supported)"
+    exit 1
+  fi
+
+  cat "${rcpath}" | grep -q "${path}" || \
+    echo -e "export PATH=\"${path}:\${PATH}\"\n" >> "${rcpath}"
+}
+
 install_for_macos() {
   echo "Checking for Homebrew..."
   # See https://stackoverflow.com/a/26759734/1156132
@@ -18,6 +37,10 @@ install_for_macos() {
 
   echo "Installing requirements through Homebrew..."
   brew install git node@12 pandoc tectonic graphicsmagick ghostscript || true
+  # Ensure our path is set up correctly to use the freshly installed NodeJS
+  unixlike_add_path "/usr/local/opt/node@12/bin"
+  export PATH="/usr/local/opt/node@12/bin:${PATH}"
+
   # Update NPM and install Yarn
   npm i -g npm yarn
 
@@ -41,6 +64,8 @@ install_for_macos() {
   rm -rf /tmp/neat-contract
   echo "Done!"
 }
+
+unixlike_add_path "/tmp/powerlog"
 
 if [ "${OS}" = Darwin ]; then
   install_for_macos
