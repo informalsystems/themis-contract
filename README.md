@@ -223,6 +223,8 @@ source = "template.html"
 # This is useful in the context of LaTeX templates.
 # delimiters = ["<<", ">>"]
 
+# "icf" is one of the counterparties to which we referred earlier in the
+# "counterparties" array.
 [icf]
 full_name = "Interchain Foundation"
 # These people must all sign on behalf of the Interchain Foundation.
@@ -231,22 +233,28 @@ signatories = [
   "ebuchman"
 ]
 
+# "aflemming" is a signatory, defined in the "icf" counterparties list
 [aflemming]
 full_names = "Arianne Flemming"
 keybase_id = "aflemming"
 
+# "ebuchman" is a signatory, defined in the "icf" counterparties list
 [ebuchman]
 full_names = "Ethan Buchman"
 keybase_id = "ebuchman"
 
+# "contractor" is the other counterparty, defined in the "counterparties"
+# array above
 [contractor]
 full_name = "Company A Consulting"
 signatories = [
   "manderson",
 ]
 
+# "manderson" is the only signatory for the "contractor" counterparty
 [manderson]
 full_names = "Michael Anderson"
+keybase_id = "manderson"
 ```
 
 ## Features Coming Soon
