@@ -43,6 +43,9 @@ Once you have the requirements installed, simply:
 > git clone git@github.com:informalsystems/neat-contract.git
 > cd neat-contract
 
+# Install dependencies
+> npm i
+
 # Install the application
 > npm i -g
 
