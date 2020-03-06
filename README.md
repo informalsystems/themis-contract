@@ -8,24 +8,26 @@ be used just yet: at present, a `v0.1.x` series is being released. Major version
 releases can come out at any time.
 
 ## Overview
+
 `neat-contract` is a prototype tool to allow for parameterized contracting. It's
 currently built using TypeScript on top of [oclif](https://oclif.io/) to speed
 up development of the CLI tool.
 
 ## Requirements
+
 To run this application, you will need:
 
-* One of the latest [NodeJS](https://nodejs.org/en/) LTS editions (ideally
+- One of the latest [NodeJS](https://nodejs.org/en/) LTS editions (ideally
   v12.15+)
-* [pandoc](https://pandoc.org/) (for transforming Markdown and HTML files to
+- [pandoc](https://pandoc.org/) (for transforming Markdown and HTML files to
   LaTeX)
-* [tectonic](https://tectonic-typesetting.github.io/en-US/) (for compiling LaTeX
+- [tectonic](https://tectonic-typesetting.github.io/en-US/) (for compiling LaTeX
   files to PDF)
-* [Keybase CLI](https://keybase.io/) (for cryptographically signing contracts)
-* [GraphicsMagick](http://www.graphicsmagick.org/) (for manipulating signature
+- [Keybase CLI](https://keybase.io/) (for cryptographically signing contracts)
+- [GraphicsMagick](http://www.graphicsmagick.org/) (for manipulating signature
   images)
-* [Ghostscript](https://www.ghostscript.com/) (for image manipulation)
-* [Sacramento Font](https://fonts.google.com/specimen/Sacramento) (for
+- [Ghostscript](https://www.ghostscript.com/) (for image manipulation)
+- [Sacramento Font](https://fonts.google.com/specimen/Sacramento) (for
   handwriting-style signatures)
 
 Installing most of the above (except for Keybase, which must be downloaded from
@@ -36,7 +38,19 @@ brew install node@12 pandoc tectonic graphicsmagick ghostscript
 ```
 
 ## Installation
+
 Once you have the requirements installed, simply:
+
+### Mac OS
+
+```bash
+> curl https://raw.githubusercontent.com/informalsystems/neat-contract/master/scripts/install.sh?token=<GITTOKEN> | sh
+```
+
+Where `GITTOKEN` is replaced with a git API token. (Ask @thanethomson or
+@shonfeder if you need access to a token).
+
+## Other systems
 
 ```bash
 # Clone this repository
@@ -47,7 +61,8 @@ Once you have the requirements installed, simply:
 > npm i
 
 # Install the application
-> npm i -g
+# TODO Fix so the local install is not required
+> npm i && npm i -g
 
 # Run it!
 > neat-contract help
@@ -56,6 +71,7 @@ Once you have the requirements installed, simply:
 ## Usage
 
 ### Identities
+
 In order to sign anything, you need to set up one or more **identities** for
 yourself. This is a way of organizing your written (image-based) signatures and
 (in future) your cryptographic identities.
@@ -143,6 +159,7 @@ You'll notice at this point there are no signatures in the contract. You need to
 sign it!
 
 ### Using Keybase to Sign and Verify
+
 For an additional level of security, `neat-contract` can use Keybase under the
 hood to cryptographically sign a contract.
 
@@ -166,6 +183,7 @@ To verify a cryptographically signed contract prior to compiling:
 ```
 
 ### Signing Contracts Without Installing `neat-contract`
+
 For people who want to sign contracts without installing `neat-contract`, as of
 `v0.1.2` you can simply use the Keybase CLI to create a **detached signature**.
 Be sure to follow the naming convention though:
@@ -190,6 +208,7 @@ in order to generate the signature images for the compiling process:
 ```
 
 ### Counterparties
+
 To speed things up when creating contracts, you can define counterparties in
 your local profile.
 
@@ -202,6 +221,7 @@ your local profile.
 ```
 
 ## Contracts
+
 Contracts, from `neat-contract`'s perspective, are TOML files that specify all
 of the necessary components to be able to compile a real-world contract. It's
 highly recommended that you keep all aspects of your contract under version
@@ -267,4 +287,4 @@ keybase_id = "manderson"
 
 ## Features Coming Soon
 
-* [DocuSign API](https://developers.docusign.com/esign-rest-api/guides/concepts/overview) integration
+- [DocuSign API](https://developers.docusign.com/esign-rest-api/guides/concepts/overview) integration
