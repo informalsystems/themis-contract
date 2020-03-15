@@ -727,7 +727,9 @@ export class Contract {
       logger.debug(`tectonic stdout:\n${tectonic.stdout}`)
       logger.debug(`tectonic stderr:\n${tectonic.stderr}`)
       if (tectonic.status !== 0) {
-        throw new Error(`tectonic failed with exit code: ${tectonic.status}`)
+          throw new Error(
+              `tectonic failed with exit code: ${tectonic.status}:\n${tectonic.stderr}`
+          )
       }
       const tmpOutFile = path.join(tmpOutDir.name, `${infParsed.name}.pdf`)
       logger.debug(`Temporary output file should be at: ${tmpOutFile}`)
