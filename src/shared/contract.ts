@@ -10,7 +10,7 @@ import { logger } from './logging'
 import axios from 'axios'
 import { extractHandlebarsTemplateVariables, extractMustacheTemplateVariables, templateVarsToObj, initialsImageName, fullSigImageName, sigFileName } from './template-helpers'
 import { writeTOMLFileAsync } from './toml'
-import { TemplateError, ContractMissingFieldError, ContractFormatError } from './errors'
+import { TemplateError, ContractInvalidTomlError, ContractMissingFieldError, ContractFormatError } from './errors'
 import { Counterparty, Signatory, mergeParams } from './counterparties'
 import { Identity } from './identities'
 import * as mime from 'mime-types'
@@ -742,7 +742,11 @@ export class Contract {
     const reader = new TomlReader()
     reader.readToml(content)
 
-    const a = reader.result
+    const a = reader.result;
+
+    if (a === undefined) {
+      throw new ContractInvalidTomlError(filename, reader.errors);
+    }
     if (!('template' in a)) {
       throw new ContractMissingFieldError('template')
     }
