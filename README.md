@@ -57,9 +57,6 @@ Where `GITTOKEN` is replaced with a git API token. (Ask @thanethomson or
 > git clone git@github.com:informalsystems/neat-contract.git
 > cd neat-contract
 
-# Install dependencies
-> npm i
-
 # Install the application
 # TODO Fix so the local install is not required
 > npm i && npm i -g
