@@ -1,4 +1,4 @@
-import { TomlError } from "@sgarciac/bombadil";
+import { TomlError } from '@sgarciac/bombadil'
 
 export class ContractFormatError extends Error { }
 
@@ -22,7 +22,7 @@ export class CounterpartyMissingFieldError extends ContractFormatError {
 
 export class ContractInvalidTomlError extends ContractFormatError {
   constructor(filename: string, tomlErrors: TomlError[]) {
-    super(`Errors when parsing TOML from file ${filename}: ${tomlErrors}`);
+    super(`Errors when parsing TOML from file ${filename}: ${tomlErrors}`)
   }
 }
 

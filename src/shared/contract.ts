@@ -727,9 +727,9 @@ export class Contract {
       logger.debug(`tectonic stdout:\n${tectonic.stdout}`)
       logger.debug(`tectonic stderr:\n${tectonic.stderr}`)
       if (tectonic.status !== 0) {
-          throw new Error(
-              `tectonic failed with exit code: ${tectonic.status}:\n${tectonic.stderr}`
-          )
+        throw new Error(
+          `tectonic failed with exit code: ${tectonic.status}:\n${tectonic.stderr}`,
+        )
       }
       const tmpOutFile = path.join(tmpOutDir.name, `${infParsed.name}.pdf`)
       logger.debug(`Temporary output file should be at: ${tmpOutFile}`)
@@ -744,10 +744,10 @@ export class Contract {
     const reader = new TomlReader()
     reader.readToml(content)
 
-    const a = reader.result;
+    const a = reader.result
 
     if (a === undefined) {
-      throw new ContractInvalidTomlError(filename, reader.errors);
+      throw new ContractInvalidTomlError(filename, reader.errors)
     }
     if (!('template' in a)) {
       throw new ContractMissingFieldError('template')
