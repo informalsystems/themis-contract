@@ -4,8 +4,9 @@
 
 **PROTOTYPE**: Note that `neat-contract` is a prototype right now. All code on
 this branch is to be considered highly experimental. No semantic versioning will
-be used just yet: at present, a `v0.1.x` series is being released. Major version
-releases can come out at any time.
+be used just yet: at present, a `v0.1.x` series is being released. Breaking
+changes can be released at any time (including complete rewrites in another
+programming language).
 
 ## Overview
 
@@ -44,11 +45,8 @@ Once you have the requirements installed, simply:
 ### Mac OS
 
 ```bash
-> curl https://raw.githubusercontent.com/informalsystems/neat-contract/master/scripts/install.sh?token=<GITTOKEN> | sh
+> curl https://raw.githubusercontent.com/informalsystems/neat-contract/master/scripts/install.sh | sh
 ```
-
-Where `GITTOKEN` is replaced with a git API token. (Ask @thanethomson or
-@shonfeder if you need access to a token).
 
 ## Other systems
 
@@ -58,7 +56,6 @@ Where `GITTOKEN` is replaced with a git API token. (Ask @thanethomson or
 > cd neat-contract
 
 # Install the application
-# TODO Fix so the local install is not required
 > npm i && npm i -g
 
 # Run it!
