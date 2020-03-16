@@ -278,7 +278,3 @@ signatories = [
 full_names = "Michael Anderson"
 keybase_id = "manderson"
 ```
-
-## Features Coming Soon
-
-- [DocuSign API](https://developers.docusign.com/esign-rest-api/guides/concepts/overview) integration
