@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.5
+
+* [\#13](https://github.com/informalsystems/neat-contract/pull/13) - Report
+  reason for TOML parsing errors.
+
 ## v0.1.4
 
 * Switch default PDF engine to **tectonic**
