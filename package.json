@@ -27,6 +27,7 @@
     "handlebars": "4.7.3",
     "inquirer": "7.0.4",
     "mime-types": "2.1.26",
+    "minimist": "^1.2.5",
     "moment": "2.24.0",
     "mustache": "4.0.0",
     "open-editor": "2.0.1",
