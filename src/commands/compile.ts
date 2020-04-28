@@ -10,8 +10,8 @@ export default class Compile extends Command {
   static description = 'compile a contract to produce a PDF'
 
   static examples = [
-    '$ neat-contract compile ./contract/contract.toml',
-    '$ neat-contract compile -o ./contract/mycontract.pdf ./contract/contract.toml',
+    '$ themis-contract compile ./contract/contract.toml',
+    '$ themis-contract compile -o ./contract/mycontract.pdf ./contract/contract.toml',
   ]
 
   static flags = {

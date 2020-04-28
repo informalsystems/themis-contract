@@ -23,8 +23,8 @@ export default class SaveIdentity extends Command {
   static aliases = ['si']
 
   static examples = [
-    '$ neat-contract save-identity --id manderson',
-    '$ neat-contract si --id manderson',
+    '$ themis-contract save-identity --id manderson',
+    '$ themis-contract si --id manderson',
   ]
 
   static flags = {

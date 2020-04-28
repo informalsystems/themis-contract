@@ -1,8 +1,12 @@
 # Changelog
 
+## v0.1.6
+
+* Rename `neat-contract` to `themis-contract`
+
 ## v0.1.5
 
-* [\#13](https://github.com/informalsystems/neat-contract/pull/13) - Report
+* [\#13](https://github.com/informalsystems/themis-contract/pull/13) - Report
   reason for TOML parsing errors.
 
 ## v0.1.4

@@ -11,8 +11,8 @@ export default class ListCounterparties extends Command {
   static aliases = ['lsc']
 
   static examples = [
-    '$ neat-contract list-counterparties',
-    '$ neat-contract lsc',
+    '$ themis-contract list-counterparties',
+    '$ themis-contract lsc',
   ]
 
   static flags = {

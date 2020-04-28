@@ -11,7 +11,7 @@ export const DEFAULT_PDF_ENGINE = 'tectonic'
 export const DEFAULT_TEMPLATE_EXT = '.md'
 
 export const HOMEDIR = os.homedir()
-export const DEFAULT_PROFILE_PATH = path.join(HOMEDIR, '.neat', 'contract')
+export const DEFAULT_PROFILE_PATH = path.join(HOMEDIR, '.themis', 'contract')
 
 // We store cached templates in this folder, where the names of the files are
 // MD5 hashes (in hex) of their source paths. This allows us to track many

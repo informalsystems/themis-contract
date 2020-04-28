@@ -11,9 +11,9 @@ export default class RemoveCounterparty extends Command {
   static aliases = ['rmc']
 
   static examples = [
-    '$ neat-contract rm-counterparty company_a',
-    '$ neat-contract rm-counterparty -y company_a',
-    '$ neat-contract rm-counterparty --all',
+    '$ themis-contract rm-counterparty company_a',
+    '$ themis-contract rm-counterparty -y company_a',
+    '$ themis-contract rm-counterparty --all',
   ]
 
   static flags = {

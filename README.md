@@ -1,8 +1,8 @@
-# Neat Contracts 🖋
+# Themis Contract 🖋
 
-![Node.js CI](https://github.com/informalsystems/neat-contract/workflows/Node.js%20CI/badge.svg?branch=master)
+![Node.js CI](https://github.com/informalsystems/themis-contract/workflows/Node.js%20CI/badge.svg?branch=master)
 
-**PROTOTYPE**: Note that `neat-contract` is a prototype right now. All code on
+**PROTOTYPE**: Note that `themis-contract` is a prototype right now. All code on
 this branch is to be considered highly experimental. No semantic versioning will
 be used just yet: at present, a `v0.1.x` series is being released. Breaking
 changes can be released at any time (including complete rewrites in another
@@ -10,7 +10,7 @@ programming language).
 
 ## Overview
 
-`neat-contract` is a prototype tool to allow for parameterized contracting. It's
+`themis-contract` is a prototype tool to allow for parameterized contracting. It's
 currently built using TypeScript on top of [oclif](https://oclif.io/) to speed
 up development of the CLI tool.
 
@@ -45,21 +45,21 @@ Once you have the requirements installed, simply:
 ### Mac OS
 
 ```bash
-> curl https://raw.githubusercontent.com/informalsystems/neat-contract/master/scripts/install.sh | sh
+> curl https://raw.githubusercontent.com/informalsystems/themis-contract/master/scripts/install.sh | sh
 ```
 
 ## Other systems
 
 ```bash
 # Clone this repository
-> git clone git@github.com:informalsystems/neat-contract.git
-> cd neat-contract
+> git clone git@github.com:informalsystems/themis-contract.git
+> cd themis-contract
 
 # Install the application
 > npm i && npm i -g
 
 # Run it!
-> neat-contract help
+> themis-contract help
 ```
 
 ## Usage
@@ -72,11 +72,11 @@ yourself. This is a way of organizing your written (image-based) signatures and
 
 ```bash
 # Will ask you interactively for all the relevant fields
-> neat-contract save-identity
+> themis-contract save-identity
 # ...
 
 # List identities you've saved
-> neat-contract list-identities
+> themis-contract list-identities
 id            initials     signature     keybase_id       can_sign
 manderson     yes          yes           manderson        yes
 ```
@@ -133,20 +133,20 @@ take place between the Interchain Foundation (`icf`) and an external contractor
 ```
 
 Now you can use this template to generate a contract with empty variables.
-`neat-contract` will do its best to extract what it thinks are the variables
+`themis-contract` will do its best to extract what it thinks are the variables
 from the specified template.
 
 ```bash
 # Extract all variables from a Handlebars template and use these to generate a
 # base contract. Reads `template.html` and writes to `./contract.toml`.
-> neat-contract new --template template.html ./contract.toml
+> themis-contract new --template template.html ./contract.toml
 
-# `neat-contract` tries to open up your favourite editor to change
+# `themis-contract` tries to open up your favourite editor to change
 # `contract.toml`'s parameters accordingly.
 
 # Then, when you want to compile your contract. Reads `contract.toml` and
 # generates `contract.pdf` using pandoc and tectonic.
-> neat-contract compile -o contract.pdf ./contract.toml
+> themis-contract compile -o contract.pdf ./contract.toml
 ```
 
 You'll notice at this point there are no signatures in the contract. You need to
@@ -154,31 +154,31 @@ sign it!
 
 ### Using Keybase to Sign and Verify
 
-For an additional level of security, `neat-contract` can use Keybase under the
+For an additional level of security, `themis-contract` can use Keybase under the
 hood to cryptographically sign a contract.
 
 ```bash
-> neat-contract sign contract.toml
+> themis-contract sign contract.toml
 # ...
 ```
 
 To verify a cryptographically signed contract:
 
 ```bash
-> neat-contract verify contract.toml
+> themis-contract verify contract.toml
 # ...
 ```
 
 To verify a cryptographically signed contract prior to compiling:
 
 ```bash
-> neat-contract compile --verify -o contract.pdf contract.toml
+> themis-contract compile --verify -o contract.pdf contract.toml
 # ...
 ```
 
-### Signing Contracts Without Installing `neat-contract`
+### Signing Contracts Without Installing `themis-contract`
 
-For people who want to sign contracts without installing `neat-contract`, as of
+For people who want to sign contracts without installing `themis-contract`, as of
 `v0.1.2` you can simply use the Keybase CLI to create a **detached signature**.
 Be sure to follow the naming convention though:
 
@@ -186,19 +186,19 @@ Be sure to follow the naming convention though:
 > keybase pgp sign -d -i contract.toml -o ${COUNTERPARTY_ID}__${SIGNATORY_ID}.sig
 ```
 
-Whoever generates the final PDF, however, will need to install `neat-contract`
+Whoever generates the final PDF, however, will need to install `themis-contract`
 in order to generate the signature images for the compiling process:
 
 ```bash
 # Will automagically find any signatures associated with the contract where
 # images should be generated. Does not overwrite existing signature images.
-> neat-contract gen-sigimages contract.toml
+> themis-contract gen-sigimages contract.toml
 
 # Alternatively, overwrite existing signature images.
-> neat-contract gen-sigimages --overwrite contract.toml
+> themis-contract gen-sigimages --overwrite contract.toml
 
 # Specify a custom font for generating signatures.
-> neat-contract gen-sigimages --font "Cedarville Cursive" contract.toml
+> themis-contract gen-sigimages --font "Cedarville Cursive" contract.toml
 ```
 
 ### Counterparties
@@ -208,15 +208,15 @@ your local profile.
 
 ```bash
 # List current stored counterparties
-> neat-contract list-counterparties
+> themis-contract list-counterparties
 
 # Save a counterparty
-> neat-contract save-counterparty --id icf --fullname "Interchain Foundation"
+> themis-contract save-counterparty --id icf --fullname "Interchain Foundation"
 ```
 
 ## Contracts
 
-Contracts, from `neat-contract`'s perspective, are TOML files that specify all
+Contracts, from `themis-contract`'s perspective, are TOML files that specify all
 of the necessary components to be able to compile a real-world contract. It's
 highly recommended that you keep all aspects of your contract under version
 control.
@@ -232,10 +232,10 @@ counterparties = [
 [template]
 # Where to find the contract template
 source = "template.html"
-# You could also specify an HTTP or Git URL for the template
+# You could also specify an HTTPS URL for the template
 # source = "https://informal.systems/contracts/service-agreement.html"
-# (Git support coming soon)
-# source = "git+ssh://git@github.com:informalsystems/neat-contracts/service-agreement.html#v0.1.0"
+# Or you could use a Git URL
+# source = "git+ssh://git@github.com:informalsystems/contracts/service-agreement.html#v0.1.0"
 
 # Optionally specify the format of the template.
 # Right now we support both "handlebars" and "mustache" (default is "handlebars")
