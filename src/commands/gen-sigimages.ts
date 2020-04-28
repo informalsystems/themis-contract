@@ -8,8 +8,8 @@ export default class GenerateSignatureImages extends Command {
   static description = 'generates signature images from their cryptographic signatures'
 
   static examples = [
-    '$ neat-contract gen-sigimages ./contract/contract.toml',
-    '$ neat-contract gsi ./contract/contract.toml',
+    '$ themis-contract gen-sigimages ./contract/contract.toml',
+    '$ themis-contract gsi ./contract/contract.toml',
   ]
 
   static flags = {

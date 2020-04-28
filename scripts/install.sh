@@ -2,7 +2,7 @@
 set -e
 
 OS="$(uname -s)"
-NEAT_CONTRACT_REPO=${NEAT_CONTRACT_REPO:-'git@github.com:informalsystems/neat-contract.git'}
+THEMIS_CONTRACT_REPO=${THEMIS_CONTRACT_REPO:-'git@github.com:informalsystems/themis-contract.git'}
 
 unixlike_font_installed() {
   SPEC="$1"
@@ -45,23 +45,23 @@ install_for_macos() {
   npm i -g npm yarn
 
   echo "Cloning repository..."
-  rm -rf /tmp/neat-contract
-  git clone ${NEAT_CONTRACT_REPO} /tmp/neat-contract
+  rm -rf /tmp/themis-contract
+  git clone ${THEMIS_CONTRACT_REPO} /tmp/themis-contract
 
-  echo "Uninstalling any old versions of neat-contract..."
-  npm uninstall -g neat-contract || true
-  yarn global remove neat-contract || true
+  echo "Uninstalling any old versions of themis-contract..."
+  npm uninstall -g themis-contract || true
+  yarn global remove themis-contract || true
 
-  echo "Installing neat-contract..."
-  cd /tmp/neat-contract && \
+  echo "Installing themis-contract..."
+  cd /tmp/themis-contract && \
   yarn install && \
   yarn global add file:`pwd`
 
   echo "Installing required fonts..."
-  cp /tmp/neat-contract/fonts/Roboto/*.ttf ~/Library/Fonts/
-  cp /tmp/neat-contract/fonts/Sacramento/*.ttf ~/Library/Fonts/
+  cp /tmp/themis-contract/fonts/Roboto/*.ttf ~/Library/Fonts/
+  cp /tmp/themis-contract/fonts/Sacramento/*.ttf ~/Library/Fonts/
 
-  rm -rf /tmp/neat-contract
+  rm -rf /tmp/themis-contract
   echo "Done!"
 }
 

@@ -11,8 +11,8 @@ export default class ListIdentities extends Command {
   static aliases = ['lsi']
 
   static examples = [
-    '$ neat-contract list-identities',
-    '$ neat-contract lsi',
+    '$ themis-contract list-identities',
+    '$ themis-contract lsi',
   ]
 
   static flags = {

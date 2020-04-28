@@ -13,8 +13,8 @@ export default class New extends Command {
   static description = 'create a new contract'
 
   static examples = [
-    '$ neat-contract new',
-    '$ neat-contract new ./contract.toml',
+    '$ themis-contract new',
+    '$ themis-contract new ./contract.toml',
   ]
 
   static flags = {

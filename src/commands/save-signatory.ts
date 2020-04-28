@@ -10,8 +10,8 @@ export default class SaveSignatory extends Command {
   static aliases = ['ss']
 
   static examples = [
-    '$ neat-contract save-signatory company_a --id manderson',
-    '$ neat-contract ss company_a --id manderson',
+    '$ themis-contract save-signatory company_a --id manderson',
+    '$ themis-contract ss company_a --id manderson',
   ]
 
   static flags = {

@@ -8,8 +8,8 @@ export default class Verify extends Command {
   static description = 'verify all cryptographic signatures on a contract'
 
   static examples = [
-    '$ neat-contract verify ./contract/contract.toml',
-    '$ neat-contract verify -k ./contract/contract.toml',
+    '$ themis-contract verify ./contract/contract.toml',
+    '$ themis-contract verify -k ./contract/contract.toml',
   ]
 
   static flags = {

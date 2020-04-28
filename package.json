@@ -1,12 +1,12 @@
 {
-  "name": "neat-contract",
-  "description": "Neat Enterprise As Text - Contracting",
-  "version": "0.1.5",
-  "author": "Thane Thomson <thane@informal.systems>",
+  "name": "themis-contract",
+  "description": "Themis Contract - Plain text parameterized contracting",
+  "version": "0.1.6",
+  "author": "Informal Systems Inc. <hello@informal.systems>",
   "bin": {
-    "neat-contract": "./bin/run"
+    "themis-contract": "./bin/run"
   },
-  "bugs": "https://github.com/informalsystems/neat-contract/issues",
+  "bugs": "https://github.com/informalsystems/themis-contract/issues",
   "dependencies": {
     "@oclif/command": "^1.5.19",
     "@oclif/config": "^1.14.0",
@@ -63,7 +63,7 @@
     "/npm-shrinkwrap.json",
     "/oclif.manifest.json"
   ],
-  "homepage": "https://github.com/informalsystems/neat-contract",
+  "homepage": "https://github.com/informalsystems/themis-contract",
   "keywords": [
     "oclif"
   ],
@@ -71,12 +71,12 @@
   "main": "lib/index.js",
   "oclif": {
     "commands": "./lib/commands",
-    "bin": "neat-contract",
+    "bin": "themis-contract",
     "plugins": [
       "@oclif/plugin-help"
     ]
   },
-  "repository": "informalsystems/neat-contract",
+  "repository": "informalsystems/themis-contract",
   "scripts": {
     "postpack": "rm -f oclif.manifest.json",
     "posttest": "eslint . --ext .ts --config .eslintrc",

@@ -11,8 +11,8 @@ export default class ListSignatories extends Command {
   static aliases = ['lss']
 
   static examples = [
-    '$ neat-contract list-signatories',
-    '$ neat-contract lss',
+    '$ themis-contract list-signatories',
+    '$ themis-contract lss',
   ]
 
   static flags = {

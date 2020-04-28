@@ -3,85 +3,85 @@ import { GitURL } from '../../src/shared/git-url'
 
 describe('GitURL', () => {
   describe('#parse()', () => {
-    describe('git://git@github.com:informalsystems/neat-contract.git', () => {
+    describe('git://git@github.com:informalsystems/themis-contract.git', () => {
       it('should parse correctly', () => {
-        const url = GitURL.parse('git://git@github.com:informalsystems/neat-contract.git')
+        const url = GitURL.parse('git://git@github.com:informalsystems/themis-contract.git')
         assert.deepStrictEqual(url.protocols, ['git'])
         assert.strictEqual(url.username, 'git')
         assert.strictEqual(url.password, '')
         assert.strictEqual(url.host, 'github.com')
         assert.strictEqual(url.port, '')
-        assert.strictEqual(url.path, 'informalsystems/neat-contract.git')
+        assert.strictEqual(url.path, 'informalsystems/themis-contract.git')
         assert.strictEqual(url.hash, '')
       })
     })
 
-    describe('git://git@github.com:2222:informalsystems/neat-contract.git', () => {
+    describe('git://git@github.com:2222:informalsystems/themis-contract.git', () => {
       it('should parse correctly', () => {
-        const url = GitURL.parse('git://git@github.com:2222:informalsystems/neat-contract.git')
+        const url = GitURL.parse('git://git@github.com:2222:informalsystems/themis-contract.git')
         assert.deepStrictEqual(url.protocols, ['git'])
         assert.strictEqual(url.username, 'git')
         assert.strictEqual(url.password, '')
         assert.strictEqual(url.host, 'github.com')
         assert.strictEqual(url.port, '2222')
-        assert.strictEqual(url.path, 'informalsystems/neat-contract.git')
+        assert.strictEqual(url.path, 'informalsystems/themis-contract.git')
         assert.strictEqual(url.hash, '')
       })
     })
 
-    describe('git://git@github.com:2222:informalsystems/neat-contract.git#v0.1.0', () => {
+    describe('git://git@github.com:2222:informalsystems/themis-contract.git#v0.1.0', () => {
       it('should parse correctly', () => {
-        const url = GitURL.parse('git://git@github.com:2222:informalsystems/neat-contract.git#v0.1.0')
+        const url = GitURL.parse('git://git@github.com:2222:informalsystems/themis-contract.git#v0.1.0')
         assert.deepStrictEqual(url.protocols, ['git'])
         assert.strictEqual(url.username, 'git')
         assert.strictEqual(url.password, '')
         assert.strictEqual(url.host, 'github.com')
         assert.strictEqual(url.port, '2222')
-        assert.strictEqual(url.path, 'informalsystems/neat-contract.git')
+        assert.strictEqual(url.path, 'informalsystems/themis-contract.git')
         assert.strictEqual(url.hash, 'v0.1.0')
       })
     })
 
-    describe('git+ssh://git@github.com:2222:informalsystems/neat-contract.git#v0.1.0', () => {
+    describe('git+ssh://git@github.com:2222:informalsystems/themis-contract.git#v0.1.0', () => {
       it('should parse correctly', () => {
-        const url = GitURL.parse('git+ssh://git@github.com:2222:informalsystems/neat-contract.git#v0.1.0')
+        const url = GitURL.parse('git+ssh://git@github.com:2222:informalsystems/themis-contract.git#v0.1.0')
         assert.deepStrictEqual(url.protocols, ['git', 'ssh'])
         assert.strictEqual(url.username, 'git')
         assert.strictEqual(url.password, '')
         assert.strictEqual(url.host, 'github.com')
         assert.strictEqual(url.port, '2222')
-        assert.strictEqual(url.path, 'informalsystems/neat-contract.git')
-        assert.strictEqual(url.basePath(), 'informalsystems/neat-contract.git')
+        assert.strictEqual(url.path, 'informalsystems/themis-contract.git')
+        assert.strictEqual(url.basePath(), 'informalsystems/themis-contract.git')
         assert.strictEqual(url.innerPath(), '')
         assert.strictEqual(url.hash, 'v0.1.0')
       })
     })
 
-    describe('git+ssh://git@github.com:2222:informalsystems/neat-contract.git/path/to/file#v0.1.0', () => {
+    describe('git+ssh://git@github.com:2222:informalsystems/themis-contract.git/path/to/file#v0.1.0', () => {
       it('should parse correctly', () => {
-        const url = GitURL.parse('git+ssh://git@github.com:2222:informalsystems/neat-contract.git/path/to/file#v0.1.0')
+        const url = GitURL.parse('git+ssh://git@github.com:2222:informalsystems/themis-contract.git/path/to/file#v0.1.0')
         assert.deepStrictEqual(url.protocols, ['git', 'ssh'])
         assert.strictEqual(url.username, 'git')
         assert.strictEqual(url.password, '')
         assert.strictEqual(url.host, 'github.com')
         assert.strictEqual(url.port, '2222')
-        assert.strictEqual(url.path, 'informalsystems/neat-contract.git/path/to/file')
-        assert.strictEqual(url.basePath(), 'informalsystems/neat-contract.git')
+        assert.strictEqual(url.path, 'informalsystems/themis-contract.git/path/to/file')
+        assert.strictEqual(url.basePath(), 'informalsystems/themis-contract.git')
         assert.strictEqual(url.innerPath(), 'path/to/file')
         assert.strictEqual(url.hash, 'v0.1.0')
       })
     })
 
-    describe('git+ssh://git@gitlab.com:informalsystems/some-subgroup/neat-contract.git/path/to/file#v0.1.0', () => {
+    describe('git+ssh://git@gitlab.com:informalsystems/some-subgroup/themis-contract.git/path/to/file#v0.1.0', () => {
       it('should parse correctly', () => {
-        const url = GitURL.parse('git+ssh://git@gitlab.com:informalsystems/some-subgroup/neat-contract.git/path/to/file#v0.1.0')
+        const url = GitURL.parse('git+ssh://git@gitlab.com:informalsystems/some-subgroup/themis-contract.git/path/to/file#v0.1.0')
         assert.deepStrictEqual(url.protocols, ['git', 'ssh'])
         assert.strictEqual(url.username, 'git')
         assert.strictEqual(url.password, '')
         assert.strictEqual(url.host, 'gitlab.com')
         assert.strictEqual(url.port, '')
-        assert.strictEqual(url.path, 'informalsystems/some-subgroup/neat-contract.git/path/to/file')
-        assert.strictEqual(url.basePath(), 'informalsystems/some-subgroup/neat-contract.git')
+        assert.strictEqual(url.path, 'informalsystems/some-subgroup/themis-contract.git/path/to/file')
+        assert.strictEqual(url.basePath(), 'informalsystems/some-subgroup/themis-contract.git')
         assert.strictEqual(url.innerPath(), 'path/to/file')
         assert.strictEqual(url.hash, 'v0.1.0')
       })

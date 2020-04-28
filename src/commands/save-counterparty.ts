@@ -10,9 +10,9 @@ export default class SaveCounterparty extends Command {
   static aliases = ['sc']
 
   static examples = [
-    '$ neat-contract save-counterparty',
-    '$ neat-contract save-counterparty --id company_a',
-    '$ neat-contract sc --id company_a',
+    '$ themis-contract save-counterparty',
+    '$ themis-contract save-counterparty --id company_a',
+    '$ themis-contract sc --id company_a',
   ]
 
   static flags = {

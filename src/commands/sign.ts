@@ -12,7 +12,7 @@ export default class Sign extends Command {
   static description = 'sign a contract'
 
   static examples = [
-    '$ neat-contract sign ./contract/contract.toml',
+    '$ themis-contract sign ./contract/contract.toml',
   ]
 
   static flags = {
