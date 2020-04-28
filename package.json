@@ -2,7 +2,7 @@
   "name": "themis-contract",
   "description": "Themis Contract - Plain text parameterized contracting",
   "version": "0.1.6",
-  "author": "Thane Thomson <thane@informal.systems>",
+  "author": "Informal Systems Inc. <hello@informal.systems>",
   "bin": {
     "themis-contract": "./bin/run"
   },
