@@ -2,7 +2,7 @@ import { TomlReader } from '@sgarciac/bombadil'
 import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
 import * as path from 'path'
-import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS } from './constants'
+import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS } from './constants'
 import { isGitURL, GitURL } from './git-url'
 import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync, dirExistsAsync } from './async-io'
 import { DocumentCache, computeCacheFilename, computeContentHash } from './document-cache'
@@ -703,12 +703,9 @@ export class Contract {
   }
 
   private buildPandocArgs(inputFile: string, outputFile: string, style: any): string[] {
-    const font = 'font' in style ? style.font : DEFAULT_PDF_FONT
     const pdfEngine = 'pdf_engine' in style ? style.pdf_engine : DEFAULT_PDF_ENGINE
     return [
       inputFile,
-      '-V',
-      `mainfont="${font}"`,
       `--pdf-engine=${pdfEngine}`,
       '-o',
       outputFile,

@@ -6,7 +6,6 @@ export const DEFAULT_CONTRACT_FILENAME = 'contract.html'
 export const DEFAULT_CONTRACT_TEMPLATE = `<h1>New Contract</h1>
 <p>Created on {{date}}. Start adding your contract content here.</p>`
 export const DEFAULT_PARAMS_FILENAME = 'params.toml'
-export const DEFAULT_PDF_FONT = 'Helvetica'
 export const DEFAULT_PDF_ENGINE = 'tectonic'
 export const DEFAULT_TEMPLATE_EXT = '.md'
 
