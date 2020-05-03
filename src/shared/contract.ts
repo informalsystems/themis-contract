@@ -2,7 +2,7 @@ import { TomlReader } from '@sgarciac/bombadil'
 import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
 import * as path from 'path'
-import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_PDF_FONT, DEFAULT_PDF_ENGINE, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS } from './constants'
+import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS } from './constants'
 import { isGitURL, GitURL } from './git-url'
 import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync, dirExistsAsync } from './async-io'
 import { DocumentCache, computeCacheFilename, computeContentHash } from './document-cache'
@@ -303,7 +303,7 @@ export type ContractLoadOptions = {
 }
 
 export type ContractCompileOptions = {
-  style?: any;
+  defaults: string;
   verify?: boolean;
 }
 
@@ -467,7 +467,14 @@ export class Contract {
       if (templateExt === '.tex') {
         await this.compileWithTectonic(tmpContract.name, outputFile)
       } else {
-        await this.compileWithPandoc(tmpContract.name, outputFile, opts && opts.style ? opts.style : {})
+        if (opts && opts.defaults) {
+          if (await fileExistsAsync(opts.defaults)) {
+            logger.debug(`Compiling using pandoc defaults file ${opts.defaults}`)
+          } else {
+            throw new Error(`Required pandoc defaults file ${opts.defaults} does not exist`)
+          }
+        }
+        await this.compileWithPandoc(tmpContract.name, outputFile, opts && opts.defaults)
       }
       logger.info(`Saved output PDF file: ${outputFile}`)
     } finally {
@@ -686,9 +693,9 @@ export class Contract {
     }
   }
 
-  private async compileWithPandoc(inputFile: string, outputFile: string, style: any) {
+  private async compileWithPandoc(inputFile: string, outputFile: string, defaults?: string) {
     // first use Pandoc to convert the document
-    const pandocArgs = this.buildPandocArgs(inputFile, outputFile, style)
+    const pandocArgs = this.buildPandocArgs(inputFile, outputFile, defaults)
     logger.debug(`Using pandoc args: ${pandocArgs}`)
     const pandoc = await spawnAsync(
       'pandoc',
@@ -702,17 +709,13 @@ export class Contract {
     }
   }
 
-  private buildPandocArgs(inputFile: string, outputFile: string, style: any): string[] {
-    const font = 'font' in style ? style.font : DEFAULT_PDF_FONT
-    const pdfEngine = 'pdf_engine' in style ? style.pdf_engine : DEFAULT_PDF_ENGINE
-    return [
-      inputFile,
-      '-V',
-      `mainfont="${font}"`,
-      `--pdf-engine=${pdfEngine}`,
-      '-o',
-      outputFile,
-    ]
+  private buildPandocArgs(inputFile: string, outputFile: string, defaults?: string): string[] {
+    const baseArgs = [inputFile, '-o', outputFile]
+    let defaultsFlag: string[] = []
+    if (defaults) {
+      defaultsFlag = ['--defaults', defaults]
+    }
+    return baseArgs.concat(defaultsFlag)
   }
 
   private async compileWithTectonic(inputFile: string, outputFile: string) {

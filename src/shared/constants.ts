@@ -6,12 +6,11 @@ export const DEFAULT_CONTRACT_FILENAME = 'contract.html'
 export const DEFAULT_CONTRACT_TEMPLATE = `<h1>New Contract</h1>
 <p>Created on {{date}}. Start adding your contract content here.</p>`
 export const DEFAULT_PARAMS_FILENAME = 'params.toml'
-export const DEFAULT_PDF_FONT = 'Helvetica'
-export const DEFAULT_PDF_ENGINE = 'tectonic'
 export const DEFAULT_TEMPLATE_EXT = '.md'
 
 export const HOMEDIR = os.homedir()
 export const DEFAULT_PROFILE_PATH = path.join(HOMEDIR, '.themis', 'contract')
+export const DEFAULT_PANDOC_DEFAULTS_FILE = path.join(HOMEDIR, '.themis', 'pandoc-defaults.yaml')
 
 // We store cached templates in this folder, where the names of the files are
 // MD5 hashes (in hex) of their source paths. This allows us to track many
