@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+* Remove `--style` flag from `compile` subcommand
+  ([#21](https://github.com/informalsystems/themis-contract/pull/21))
+* Add `--defaults` flag to `compile` command, allowing pass through of a pandoc
+  defaults file. ([#21](https://github.com/informalsystems/themis-contract/pull/21))
+* Add `init` subcommand for initializing user environment 
+  ([#21](https://github.com/informalsystems/themis-contract/pull/21))
+
 ## v0.1.6
 
 * Rename `neat-contract` to `themis-contract`
