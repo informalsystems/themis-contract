@@ -64,6 +64,20 @@ Once you have the requirements installed, simply:
 
 ## Usage
 
+## Initialization
+
+To initialize your user environment with default configurations, run
+
+```sh
+themis-contract init
+```
+
+If you ever with to reset the configurations, run
+
+```sh
+themis-contract init --reset
+```
+
 ### Identities
 
 In order to sign anything, you need to set up one or more **identities** for

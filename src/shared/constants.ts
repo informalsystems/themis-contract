@@ -14,6 +14,8 @@ export const DEFAULT_PROFILE_PATH = path.join(HOMEDIR, '.themis', 'contract')
 export const DEFAULT_PANDOC_DEFAULTS_FILE =
   path.join(DEFAULT_PROFILE_PATH, PANDOC_DEFAULTS_FILE_NAME)
 
+export const INSTALLATION_DIR = path.join(__dirname, '..', '..')
+
 // We store cached templates in this folder, where the names of the files are
 // MD5 hashes (in hex) of their source paths. This allows us to track many
 // different sources' templates in a single flat folder.
