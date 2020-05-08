@@ -36,7 +36,7 @@ install_for_macos() {
   fi
 
   echo "Installing requirements through Homebrew..."
-  brew install git node@12 pandoc tectonic graphicsmagick ghostscript || true
+  brew install git node@12 pandoc tectonic graphicsmagick ghostscript pandoc-crossref || true
   # Ensure our path is set up correctly to use the freshly installed NodeJS
   unixlike_add_path "/usr/local/opt/node@12/bin"
   export PATH="/usr/local/opt/node@12/bin:${PATH}"

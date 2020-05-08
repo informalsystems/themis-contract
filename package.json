@@ -61,7 +61,8 @@
     "/bin",
     "/lib",
     "/npm-shrinkwrap.json",
-    "/oclif.manifest.json"
+    "/oclif.manifest.json",
+    "/pandoc-defaults.json"
   ],
   "homepage": "https://github.com/informalsystems/themis-contract",
   "keywords": [
