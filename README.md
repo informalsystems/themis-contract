@@ -22,6 +22,8 @@ To run this application, you will need:
   v12.15+)
 - [pandoc](https://pandoc.org/) (for transforming Markdown and HTML files to
   LaTeX)
+- [pandoc-crossref](https://pandoc.org/) (for section and figure referencing in
+  markdown templates)
 - [tectonic](https://tectonic-typesetting.github.io/en-US/) (for compiling LaTeX
   files to PDF)
 - [Keybase CLI](https://keybase.io/) (for cryptographically signing contracts)
