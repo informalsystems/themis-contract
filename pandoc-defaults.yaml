@@ -1,18 +1,19 @@
 from: markdown+fenced_divs+bracketed_spans
 
-# Use if h1 headings are not clauses
+# Use if h1 headings should not be numbered sections
 # shift-heading-levels-by: -1
 
 standalone: true
 self-contained: true
 
-# to get explicit sections divs based on relative heading positions
+# Enables explicit sections divs based on relative heading positions
 section-divs: true
 
-# To get numbered html sections
+# Number sections
 number-sections: true
 
-# Custom latex styles to append to the header
+# Custom latex styles to append to the header,
+# each item in the list should be a file path
 # include-in-header: []
 
 # Transformations over the pandoc AST

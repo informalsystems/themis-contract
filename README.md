@@ -66,17 +66,21 @@ Once you have the requirements installed, simply:
 
 ## Initialization
 
-To initialize your user environment with default configurations, run
+To initialize your user environment with the default configurations, run
 
 ```sh
 themis-contract init
 ```
 
-If you ever with to reset the configurations, run
+This won't overwriting or any existing configurations.
+
+If you ever want to reset the configurations, run
 
 ```sh
 themis-contract init --reset
 ```
+
+This will overwrite any configurations, restoring them to their default values.
 
 ### Identities
 
