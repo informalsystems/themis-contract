@@ -15,7 +15,7 @@ of Origin (DCO)][DCO]. By signing your commits you confirm that you wrote
 your contribution, or have otherwise secured the right to contribute the
 contribution as an open-source addition to our project.
 
-Here is the full text, also hostd at https://developercertificate.org/ :
+Here is the full text, also hosted at https://developercertificate.org/ :
 
 > Developer Certificate of Origin
 > Version 1.1
