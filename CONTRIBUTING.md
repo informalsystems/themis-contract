@@ -11,7 +11,7 @@ There are two principles ways to contribute at this point:
 ## Contributing to the source
 
 We require that all commits be signed, certifying the [Developer Certificate
-of Origin (DCO)][DCO]. By singing your commits you confirm that you wrote
+of Origin (DCO)][DCO]. By signing your commits you confirm that you wrote
 your contribution, or have otherwise secured the right to contribute the
 contribution as an open-source addition to our project.
 
