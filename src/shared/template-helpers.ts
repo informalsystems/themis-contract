@@ -16,10 +16,7 @@ const trackVariable = (tracker: Map<string, any>, path: string[], varName: strin
 const makeVariableTrackerProxy = (parentObj: object, parents: string[], trackedVars: Map<string, any>): object => {
   return new Proxy(parentObj, {
     get: (target, name) => {
-      if (typeof name === 'symbol') {
-        return ''
-      }
-      if (name === 'toHTML') {
+      if (typeof name === 'symbol' || name === 'toHTML') {
         return (): string => ''
       }
       const varName = String(name)
