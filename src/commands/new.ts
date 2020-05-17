@@ -22,7 +22,7 @@ export default class New extends Command {
     help: flags.help({ char: 'h' }),
     profile: flags.string({ char: 'p', default: DEFAULT_PROFILE_PATH, description: 'your local profile path (for managing identities, templates, etc.)' }),
     template: flags.string({ char: 't', description: 'automatically prepopulate the new contract with variables from this template' }),
-    templateformat: flags.string({ default: 'handlebars', description: 'the template format to use', options: ['mustache', 'handlebars'] }),
+    templateformat: flags.string({ default: 'mustache', description: 'the template format to use', options: ['mustache', 'handlebars'] }),
     noprompt: flags.boolean({ description: 'do not prompt for more information (use defaults)' }),
     verbose: flags.boolean({ char: 'v', default: false, description: 'increase output logging verbosity to DEBUG level' }),
     noedit: flags.boolean({ default: false, description: 'do not open your $EDITOR after creating the contract' }),
