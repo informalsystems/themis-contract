@@ -33,7 +33,16 @@ const makeVariableTrackerProxy = (parentObj: object, parents: string[], trackedV
 export const extractHandlebarsTemplateVariables = (templateSrc: string): Map<string, any> => {
   const template = Handlebars.compile(templateSrc)
   const vars = new Map<string, any>()
-  template(makeVariableTrackerProxy({}, [], vars), {allowProtoPropertiesByDefault: true})
+  try {
+    template(makeVariableTrackerProxy({}, [], vars), {allowProtoPropertiesByDefault: true})
+  } catch (error) {
+    if (error instanceof TypeError) {
+      const msg = 'Unable to extract handlebars variables. Did you mean to specify a different template system?'
+      throw new Error(msg)
+    } else {
+      throw error
+    }
+  }
   return vars
 }
 
