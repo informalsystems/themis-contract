@@ -2,7 +2,7 @@ import { TomlReader } from '@sgarciac/bombadil'
 import * as Handlebars from 'handlebars'
 import * as tmp from 'tmp'
 import * as path from 'path'
-import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS } from './constants'
+import { DEFAULT_TEXT_FILE_ENCODING, DEFAULT_TEMPLATE_EXT, DEFAULT_GIT_REPO_CACHE_PATH, RESERVED_TEMPLATE_VARS, DEFAULT_PROFILE_PATH } from './constants'
 import { isGitURL, GitURL } from './git-url'
 import { readFileAsync, writeFileAsync, spawnAsync, copyFileAsync, readdirAsync, fileExistsAsync, writeGMAsync, dirExistsAsync } from './async-io'
 import { DocumentCache, computeCacheFilename, computeContentHash } from './document-cache'
@@ -710,7 +710,12 @@ export class Contract {
   }
 
   private buildPandocArgs(inputFile: string, outputFile: string, defaults?: string): string[] {
-    const baseArgs = [inputFile, '-o', outputFile]
+    // See https://pandoc.org/MANUAL.html#options
+    // `resource-path` tells pandoc where to look for stuff like the defaults
+    // file or template overrides
+    const resourcePathLocations = ['.', DEFAULT_PROFILE_PATH]
+    const resourcePath = resourcePathLocations.join(':')
+    const baseArgs = [inputFile, '-o', outputFile, '--resource-path', resourcePath]
     let defaultsFlag: string[] = []
     if (defaults) {
       defaultsFlag = ['--defaults', defaults]

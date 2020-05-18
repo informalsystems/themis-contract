@@ -12,9 +12,10 @@ section-divs: true
 # Number sections
 number-sections: true
 
-# Custom latex styles to append to the header,
+# Custom latex styles to add to the template
 # each item in the list should be a file path
-# include-in-header: []
+include-in-header: ["header-includes.tex"]
+include-before-body: ["include-before.tex"]
 
 # Transformations over the pandoc AST
 filters:

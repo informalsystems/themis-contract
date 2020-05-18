@@ -1,14 +1,20 @@
 import * as path from 'path'
-import {INSTALLATION_DIR, PANDOC_DEFAULTS_FILE_NAME } from '../shared/constants'
+import {INSTALLATION_DIR, PANDOC_DEFAULTS_FILE_NAME, PANDOC_HEADER_INCLUDES_FILE_NAME, PANDOC_INCLUDE_BEFORE_FILE_NAME } from '../shared/constants'
 import { copyFileAsync, fileExistsAsync, ensurePath } from '../shared/async-io'
 import { logger } from '../shared/logging'
 
 export const PANDOC_DEFAULTS_SRC = path.join(INSTALLATION_DIR, PANDOC_DEFAULTS_FILE_NAME)
+export const PANDOC_HEADER_INCLUDES_SRC =
+  path.join(INSTALLATION_DIR, PANDOC_HEADER_INCLUDES_FILE_NAME)
+export const PANDOC_INCLUDE_BEFORE_SRC =
+  path.join(INSTALLATION_DIR, PANDOC_INCLUDE_BEFORE_FILE_NAME)
 
 // Workaround for inability to use variables as keys in object literal
 const buildFileDict: () => Record<string, string> = () => {
   const r: Record<string, string> = {}
   r[PANDOC_DEFAULTS_SRC] = PANDOC_DEFAULTS_FILE_NAME
+  r[PANDOC_HEADER_INCLUDES_SRC] = PANDOC_HEADER_INCLUDES_FILE_NAME
+  r[PANDOC_INCLUDE_BEFORE_SRC] = PANDOC_INCLUDE_BEFORE_FILE_NAME
   return r
 }
 
