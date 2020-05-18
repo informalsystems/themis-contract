@@ -17,6 +17,7 @@ export const generatePDF417 = async (content: string): Promise<Buffer> => {
       bcid: 'pdf417',
       text: content,
       backgroundcolor: 'ffffff',
+      height: 15,
     }, (err, png) => {
       if (err) {
         reject(err)
