@@ -1,6 +1,6 @@
 import * as path from 'path'
 import {INSTALLATION_DIR, PANDOC_DEFAULTS_FILE_NAME } from '../shared/constants'
-import { copyFileAsync, fileExistsAsync } from '../shared/async-io'
+import { copyFileAsync, fileExistsAsync, ensurePath } from '../shared/async-io'
 import { logger } from '../shared/logging'
 
 export const PANDOC_DEFAULTS_SRC = path.join(INSTALLATION_DIR, PANDOC_DEFAULTS_FILE_NAME)
@@ -26,6 +26,7 @@ export const FILES_TO_INSTALL = buildFileDict()
  * altered.
  */
 export const run = async (profile: string, reset: boolean) => {
+  await ensurePath(profile)
   for (const [src, name] of Object.entries(FILES_TO_INSTALL)) {
     const dest = path.join(profile, name)
     if (await fileExistsAsync(dest) && !reset) {
