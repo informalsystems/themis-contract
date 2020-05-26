@@ -7,7 +7,10 @@ export const DEFAULT_CONTRACT_TEMPLATE = `<h1>New Contract</h1>
 <p>Created on {{date}}. Start adding your contract content here.</p>`
 export const DEFAULT_PARAMS_FILENAME = 'params.toml'
 export const DEFAULT_TEMPLATE_EXT = '.md'
+
 export const PANDOC_DEFAULTS_FILE_NAME = 'pandoc-defaults.yaml'
+export const PANDOC_HEADER_INCLUDES_FILE_NAME = 'header-includes.tex'
+export const PANDOC_INCLUDE_BEFORE_FILE_NAME = 'include-before.tex'
 
 export const HOMEDIR = os.homedir()
 export const DEFAULT_PROFILE_PATH = path.join(HOMEDIR, '.themis', 'contract')
