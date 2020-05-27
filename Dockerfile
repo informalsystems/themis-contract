@@ -16,11 +16,13 @@ RUN cd /tmp && \
     curl --remote-name https://prerelease.keybase.io/keybase_amd64.deb && \
     apt install -y ./keybase_amd64.deb
 
+# Add our code
+COPY . /src/
+
 # Install Themis Contract
-RUN cd /tmp && \
-    git clone https://github.com/informalsystems/themis-contract.git && \
-    cd themis-contract && \
-    npm i && npm i -g
+RUN cd /src && \
+    npm i && npm i -g && \
+    rm -rf node_modules/
 
 WORKDIR /contracts
 
