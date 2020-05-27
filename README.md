@@ -20,6 +20,11 @@ To run `themis-contract` using Docker, you can build the Docker image for it
 yourself for now (we are working on getting up on Docker Hub):
 
 ```bash
+# Clone the latest source
+git clone git@github.com:informalsystems/themis-contract.git
+cd themis-contract
+
+# Build a Docker image from the latest source you've just cloned
 docker build -t themis-contract:latest
 
 # Shows the "help" command for Themis Contract
