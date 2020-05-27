@@ -25,3 +25,4 @@ RUN cd /tmp && \
 WORKDIR /contracts
 
 ENTRYPOINT [ "/usr/bin/themis-contract" ]
+CMD [ "help" ]
