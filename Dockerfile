@@ -21,3 +21,5 @@ RUN cd /tmp && \
     git clone https://github.com/informalsystems/themis-contract.git && \
     cd themis-contract && \
     npm i && npm i -g
+
+ENTRYPOINT [ "/usr/bin/themis-contract" ]
