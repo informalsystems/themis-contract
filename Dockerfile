@@ -22,4 +22,6 @@ RUN cd /tmp && \
     cd themis-contract && \
     npm i && npm i -g
 
+WORKDIR /contracts
+
 ENTRYPOINT [ "/usr/bin/themis-contract" ]
