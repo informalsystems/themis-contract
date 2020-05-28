@@ -28,8 +28,7 @@ cd themis-contract
 docker build -t themis-contract:latest .
 
 # Shows the "help" command for Themis Contract
-docker run --rm -it \
-  themis-contract:latest
+docker run --rm -it themis-contract:latest
 
 # Create a new contract from the specified template in the current directory
 # (assumes that the template.md file is in the current directory)
