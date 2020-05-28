@@ -25,7 +25,7 @@ git clone git@github.com:informalsystems/themis-contract.git
 cd themis-contract
 
 # Build a Docker image from the latest source you've just cloned
-docker build -t themis-contract:latest
+docker build -t themis-contract:latest .
 
 # Shows the "help" command for Themis Contract
 docker run --rm -it \
