@@ -21,8 +21,7 @@ COPY . /src/
 
 # Install Themis Contract
 RUN cd /src && \
-    npm i && npm i -g && \
-    rm -rf node_modules/
+    npm i && npm i -g
 
 WORKDIR /contracts
 
