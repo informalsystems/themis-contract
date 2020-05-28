@@ -31,7 +31,6 @@ docker build -t themis-contract:latest .
 docker run --rm -it themis-contract:latest
 
 # Create a new contract from the specified template in the current directory
-# (assumes that the template.md file is in the current directory)
 docker run --rm -it \
   -v `pwd`:/contracts \
   themis-contract:latest \
