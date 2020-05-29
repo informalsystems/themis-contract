@@ -8,6 +8,8 @@
   defaults file. ([#21](https://github.com/informalsystems/themis-contract/pull/21))
 * Add `init` subcommand for initializing user environment 
   ([#21](https://github.com/informalsystems/themis-contract/pull/21))
+* Add `Dockerfile`
+  ([\#51](https://github.com/informalsystems/themis-contract/pull/51)).
 
 ## v0.1.6
 
