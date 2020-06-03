@@ -6,7 +6,7 @@ BUILD_FLAGS=-mod=readonly
 all: build test
 
 build:
-	go build $(BUILD_FLAGS) -o $(OUTPUT) cmd/themis-contract/main.go
+	go build $(BUILD_FLAGS) -o $(OUTPUT) cmd/themis-contract/*
 
 test:
 	go test $(PACKAGES)

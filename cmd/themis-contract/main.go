@@ -6,8 +6,13 @@ import (
 )
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+	cmd, err := rootCmd()
+	if err != nil {
+		fmt.Printf("Failed to initialize CLI: %e\n", err)
+		os.Exit(1)
+	}
+	if err := cmd.Execute(); err != nil {
+		fmt.Printf("Failed to execute CLI: %e\n", err)
 		os.Exit(1)
 	}
 }
