@@ -75,6 +75,7 @@ func ResolveFileRef(loc string, cache Cache) (resolved *FileRef, err error) {
 
 // ResolveRelFileRef attempts to resolve a file reference relative to another
 // one. Specifically, it will attempt to resolve `rel` against `abs`.
+// TODO: Implement security check here to prevent user escaping to host file system.
 func ResolveRelFileRef(abs, rel *FileRef, cache Cache) (resolved *FileRef, err error) {
 	if !rel.IsRelative() {
 		return nil, fmt.Errorf("supplied path is not relative: %s", rel.Location)
@@ -104,7 +105,11 @@ func ResolveRelFileRef(abs, rel *FileRef, cache Cache) (resolved *FileRef, err e
 // given destination path. It is assumed that the destination path includes the
 // full file name of the desired destination file.
 func (r *FileRef) CopyTo(destPath string) error {
-	return nil
+	content, err := ioutil.ReadFile(r.localPath)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(destPath, content, 0644)
 }
 
 // Filename returns just the file name portion of the local copy of the file.

@@ -52,6 +52,17 @@ func TestGitURLParsing(t *testing.T) {
 			},
 		},
 		{
+			url: "git+ssh://github.com/company/repo.git/some/path/file.txt#6699a89a232f3db797f2e280639854bbc4b89725",
+			expected: &contract.GitURL{
+				Proto: contract.ProtoSSH,
+				Host:  "github.com",
+				Port:  22,
+				Repo:  "company/repo.git",
+				Path:  "some/path/file.txt",
+				Ref:   "6699a89a232f3db797f2e280639854bbc4b89725",
+			},
+		},
+		{
 			url: "git+https://github.com/company/repo.git/some/path/file.txt#6699a89a232f3db797f2e280639854bbc4b89725",
 			expected: &contract.GitURL{
 				Proto: contract.ProtoHTTPS,

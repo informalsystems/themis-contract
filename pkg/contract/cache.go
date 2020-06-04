@@ -1,12 +1,11 @@
 package contract
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 )
@@ -28,15 +27,6 @@ type Cache interface {
 // sources. It caches them locally in the file system.
 type FSCache struct {
 	root string
-	idx  *FSCacheIndex
-}
-
-type FSCacheIndex struct {
-	// A map of Git repositories to paths in the local file system.
-	GitRepos map[string]string `json:"git"`
-	// A map of files fetched from the web (their URLs) to paths in the local
-	// file system.
-	WebFiles map[string]string `json:"web"`
 }
 
 var _ Cache = &FSCache{}
@@ -49,24 +39,22 @@ func OpenFSCache(root string) (*FSCache, error) {
 	if err != nil {
 		return nil, err
 	}
-	idx, err := LoadFSCacheIndex(path.Join(root, "index.json"))
-	if err != nil {
-		return nil, err
-	}
 	return &FSCache{
 		root: root,
-		idx:  idx,
 	}, nil
 }
 
 func (c *FSCache) FromGit(u *GitURL) (string, error) {
 	repoURL := u.RepoURL()
-	cachedRepoPath, exists := c.idx.GitRepos[repoURL]
+	cachedRepoPath := path.Join(c.root, "git", u.Host, u.Repo)
+	exists, err := dirExists(cachedRepoPath)
+	if err != nil {
+		return "", err
+	}
 	if exists {
 		log.Debug().Msgf("Git repository %s is already cached at %s", repoURL, cachedRepoPath)
 	} else {
 		log.Debug().Msgf("Git repository %s has not yet been cached", repoURL)
-		cachedRepoPath = path.Join(c.root, "git", u.Host, u.Repo)
 		if err := GitClone(repoURL, cachedRepoPath); err != nil {
 			return "", err
 		}
@@ -78,38 +66,27 @@ func (c *FSCache) FromGit(u *GitURL) (string, error) {
 	if err := GitFetchAndCheckout(repoURL, cachedRepoPath, ref); err != nil {
 		return "", err
 	}
-	return cachedRepoPath, nil
+	return path.Join(cachedRepoPath, path.Join(strings.Split(u.Path, "/")...)), nil
 }
 
+// FromWeb attempts to fetch the file at the given URL, caching it locally in
+// the file system.
+// TODO: Implement caching (right now we always just fetch the file).
 func (c *FSCache) FromWeb(u *url.URL) (string, error) {
-	return "", nil
+	destFile := path.Join(c.root, "web", u.Host, path.Join(strings.Split(u.Path, "/")...))
+	if err := downloadFile(u, destFile); err != nil {
+		return "", err
+	}
+	return destFile, nil
 }
 
-func LoadFSCacheIndex(path string) (*FSCacheIndex, error) {
-	stat, err := os.Stat(path)
+func dirExists(d string) (bool, error) {
+	stat, err := os.Stat(d)
 	if os.IsNotExist(err) {
-		// we'll create one later as anything gets added to the cache
-		return emptyFSCacheIndex(), nil
-	} else if err != nil {
-		return nil, err
+		return false, nil
 	}
-	if !stat.Mode().IsRegular() {
-		return nil, fmt.Errorf("expected cache index to be a regular file, but it was not: %s", path)
+	if !stat.IsDir() {
+		return false, fmt.Errorf("expected %s to be a directory, but it was not", d)
 	}
-	content, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	idx := &FSCacheIndex{}
-	if err = json.Unmarshal(content, idx); err != nil {
-		return nil, err
-	}
-	return idx, nil
-}
-
-func emptyFSCacheIndex() *FSCacheIndex {
-	return &FSCacheIndex{
-		GitRepos: make(map[string]string),
-		WebFiles: make(map[string]string),
-	}
+	return true, nil
 }

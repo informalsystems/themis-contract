@@ -17,7 +17,7 @@ const (
 	ProtoHTTPS GitURLProto = "https"
 )
 
-const gitURLRegexp = "(?P<proto>[a-z+]+)://(?P<host>[a-z0-9.-]+):(?P<path>[a-zA-Z0-9 ./-]+)(#(?P<fragment>[a-zA-Z0-9.-]+))?"
+const gitURLRegexp = "(?P<proto>[a-z+]+)://(?P<host>[a-z0-9.-]+)[:/](?P<path>[a-zA-Z0-9 ./-]+)(#(?P<fragment>[a-zA-Z0-9.-]+))?"
 
 // GitURL allows us to parse out the components of a Git repository URL. The
 // format for a Git URL is different to a standard URL, so we unfortunately
