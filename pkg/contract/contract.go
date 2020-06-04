@@ -52,13 +52,13 @@ type Contract struct {
 
 // New creates a new contract in the configured path from the specified upstream
 // contract.
-func New(contractPath, upstreamLoc, cachePath string) (*Contract, error) {
+func New(contractPath, upstreamLoc string, cache Cache) (*Contract, error) {
 	if len(upstreamLoc) == 0 {
 		return nil, fmt.Errorf("when creating a contract with the `new` command, an upstream contract must be supplied as a template")
 	}
 
 	// load (and optionally cache) the upstream contract
-	upstream, err := Load(upstreamLoc, cachePath)
+	upstream, err := Load(upstreamLoc, cache)
 	if err != nil {
 		return nil, err
 	}
@@ -82,9 +82,9 @@ func New(contractPath, upstreamLoc, cachePath string) (*Contract, error) {
 // Load will parse the contract at the given location into memory. If the
 // location given is remote, the remote contract will be fetched and cached
 // first prior to being opened.
-func Load(loc, cachePath string) (*Contract, error) {
+func Load(loc string, cache Cache) (*Contract, error) {
 	log.Info().Str("location", loc).Msg("Attempting to resolve contract entrypoint")
-	entrypoint, err := ResolveFileRef(loc, cachePath)
+	entrypoint, err := ResolveFileRef(loc, cache)
 	if err != nil {
 		return nil, err
 	}
@@ -100,13 +100,13 @@ func Load(loc, cachePath string) (*Contract, error) {
 	// see if we need to resolve the parameters file or the template relative
 	// to the contract entrypoint
 	if contract.Params.IsRelative() {
-		contract.Params, err = ResolveRelFileRef(entrypoint, contract.Params, cachePath)
+		contract.Params, err = ResolveRelFileRef(entrypoint, contract.Params, cache)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if contract.Template.File.IsRelative() {
-		contract.Template.File, err = ResolveRelFileRef(entrypoint, contract.Template.File, cachePath)
+		contract.Template.File, err = ResolveRelFileRef(entrypoint, contract.Template.File, cache)
 		if err != nil {
 			return nil, err
 		}

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/informalsystems/themis-contract/pkg/themis/contract"
+	"github.com/informalsystems/themis-contract/pkg/contract"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,12 @@ func newCmd() *cobra.Command {
 		Use:   "new",
 		Short: "Create a new contract",
 		Run: func(cmd *cobra.Command, args []string) {
-			_, err := contract.New(flagContractPath, flagUpstream, themisContractCachePath())
+			cache, err := themisContractCache()
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed to initialize cache")
+				os.Exit(1)
+			}
+			_, err = contract.New(flagContractPath, flagUpstream, cache)
 			if err != nil {
 				log.Fatal().Err(err).Msg("Failed to create new contract")
 				os.Exit(1)

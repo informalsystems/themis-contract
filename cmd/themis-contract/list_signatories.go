@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/informalsystems/themis-contract/pkg/themis/contract"
+	"github.com/informalsystems/themis-contract/pkg/contract"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -13,7 +13,12 @@ func listSignatoriesCmd() *cobra.Command {
 		Use:   "list-signatories",
 		Short: "List all signatories' details for a given contract",
 		Run: func(cmd *cobra.Command, args []string) {
-			c, err := contract.Load(flagContractPath, themisContractCachePath())
+			cache, err := themisContractCache()
+			if err != nil {
+				log.Fatal().Err(err).Msg("Failed to initialize cache")
+				os.Exit(1)
+			}
+			c, err := contract.Load(flagContractPath, cache)
 			if err != nil {
 				log.Fatal().Err(err).Msg("Failed to load contract")
 				os.Exit(1)

@@ -50,6 +50,9 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/leanovate/gopter v0.2.5-0.20190402064358-634a59d12406/go.mod h1:gNcbPWNEWRe4lm+bycKqxUYoH5uoVje5SkOJ3uoLer8=
+github.com/libgit2/git2go v0.28.4 h1:xfXnDnt31R2p7Yea7023C//NglM/1v+w87peBBwLZ3U=
+github.com/libgit2/git2go/v30 v30.0.3 h1:v+KRMhx85kHS0JzkPft7Wnt3+VUrYQrD/SQ77usTO/w=
+github.com/libgit2/git2go/v30 v30.0.3/go.mod h1:YReiQ7xhMoyAL4ISYFLZt+OGqn6xtLqvTC1xJ9oAH7Y=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=

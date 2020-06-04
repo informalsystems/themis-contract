@@ -5,6 +5,7 @@ import (
 	"os/user"
 	"path"
 
+	"github.com/informalsystems/themis-contract/pkg/contract"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -30,6 +31,10 @@ func themisContractHome() string {
 
 func themisContractCachePath() string {
 	return path.Join(themisContractHome(), "cache")
+}
+
+func themisContractCache() (contract.Cache, error) {
+	return contract.OpenFSCache(themisContractCachePath())
 }
 
 func rootCmd() (*cobra.Command, error) {
