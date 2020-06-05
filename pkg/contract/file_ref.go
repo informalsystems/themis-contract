@@ -24,8 +24,8 @@ const (
 // FileRef is a reference to a local or remote file. It includes an integrity
 // check by way of a mandatory SHA256 hash in the `hash` field.
 type FileRef struct {
-	Location string `json:"location"` // A URL or file system path indicating the location of the file.
-	Hash     string `json:"hash"`     // The SHA256 hash of the file.
+	Location string `json:"location" yaml:"location" toml:"location"` // A URL or file system path indicating the location of the file.
+	Hash     string `json:"hash" yaml:"hash" toml:"hash"`             // The SHA256 hash of the file.
 
 	localPath string
 }
@@ -55,6 +55,7 @@ func ResolveFileRef(loc string, cache Cache) (resolved *FileRef, err error) {
 	switch fileRefType(loc) {
 	case LocalRef:
 		resolved, err = LocalFileRef(loc)
+		log.Debug().Msgf("Resolved location \"%s\" as a local file", loc)
 	case WebRef:
 		var u *url.URL
 		u, err = url.Parse(loc)
@@ -62,6 +63,7 @@ func ResolveFileRef(loc string, cache Cache) (resolved *FileRef, err error) {
 			return
 		}
 		resolved, err = resolveWebFileRef(u, cache)
+		log.Debug().Msgf("Resolved location \"%s\" as a file on the web", loc)
 	case GitRef:
 		var u *GitURL
 		u, err = ParseGitURL(loc)
@@ -69,6 +71,7 @@ func ResolveFileRef(loc string, cache Cache) (resolved *FileRef, err error) {
 			return
 		}
 		resolved, err = resolveGitFileRef(u, cache)
+		log.Debug().Msgf("Resolved location \"%s\" as file in a Git repository", loc)
 	}
 	return
 }
@@ -118,6 +121,17 @@ func (r *FileRef) Filename() string {
 	return filename
 }
 
+// Dir returns just the directory name portion of the local copy of the file.
+func (r *FileRef) Dir() string {
+	dir, _ := path.Split(r.localPath)
+	return dir
+}
+
+// Ext returns the extension of the file.
+func (r *FileRef) Ext() string {
+	return path.Ext(r.localPath)
+}
+
 // ReadAll attempts to read the contents of the local copy of the file into
 // memory as a string.
 func (r *FileRef) ReadAll() (string, error) {
@@ -136,6 +150,20 @@ func (r *FileRef) IsRelative() bool {
 
 func (r *FileRef) Type() FileRefType {
 	return fileRefType(r.Location)
+}
+
+// LocalRelPath returns the path of the local copy of this file relative to
+// the specified base file's path.
+func (r *FileRef) LocalRelPath(base string) (string, error) {
+	baseAbs, err := filepath.Abs(base)
+	if err != nil {
+		return "", err
+	}
+	localAbs, err := filepath.Abs(r.localPath)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Rel(baseAbs, localAbs)
 }
 
 func hashOfFile(path string) (string, error) {

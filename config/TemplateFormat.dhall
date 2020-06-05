@@ -1,4 +1,4 @@
 let TemplateFormat : Type =
-    < Mustache | Handlebars | Dhall >
+    < Mustache | Dhall >
 
 in TemplateFormat

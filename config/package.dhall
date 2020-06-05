@@ -7,5 +7,5 @@
 , Signatory = ./Signatory.dhall
 , Template = ./Template.dhall
 , TemplateFormat = ./TemplateFormat.dhall
-, File = ./File.dhall
+, FileRef = ./FileRef.dhall
 }
