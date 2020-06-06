@@ -140,6 +140,16 @@ func GitFetchAndCheckout(repoURL, localPath, ref string) error {
 	return nil
 }
 
+// GitInit performs a simple "git init" in the given path.
+func GitInit(localPath string) error {
+	log.Info().Msgf("Creating new Git repository in %s", localPath)
+	cmd := exec.Command("git", "init")
+	cmd.Dir = localPath
+	output, err := cmd.CombinedOutput()
+	log.Debug().Msgf("git init output:\n%s\n", string(output))
+	return err
+}
+
 // Splits a Git path into its repository and its path.
 func splitGitPath(host, path string) (string, string) {
 	var repoParts, pathParts []string

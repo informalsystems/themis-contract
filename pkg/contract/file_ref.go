@@ -85,12 +85,19 @@ func ResolveRelFileRef(abs, rel *FileRef, cache Cache) (resolved *FileRef, err e
 	}
 	switch abs.Type() {
 	case LocalRef:
-		resolved, err = resolveRelLocalFileRef(abs.localPath, rel.Location)
+		var absPath string
+		absPath, err = filepath.Abs(abs.localPath)
+		if err != nil {
+			return nil, err
+		}
+		absPath = path.Dir(absPath)
+		resolved, err = resolveRelLocalFileRef(absPath, rel.Location)
 	case WebRef:
 		resolved, err = resolveRelWebFileRef(abs.Location, rel.Location, cache)
 	case GitRef:
 		resolved, err = resolveRelGitFileRef(abs.Location, rel.Location, cache)
 	}
+	log.Debug().Msgf("Resolved relative file reference: %v", resolved)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +178,12 @@ func hashOfFile(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(sha256.New().Sum(content)), nil
+	hashBytes := sha256.Sum256(content)
+	hashSlice := make([]byte, len(hashBytes))
+	copy(hashSlice[:], hashBytes[:])
+	hash := hex.EncodeToString(hashSlice)
+	log.Debug().Msgf("Computed hash of %s as %s", path, hash)
+	return hash, nil
 }
 
 func resolveRelLocalFileRef(src, rel string) (*FileRef, error) {
@@ -179,6 +191,7 @@ func resolveRelLocalFileRef(src, rel string) (*FileRef, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Debug().Str("src", src).Str("rel", rel).Msgf("Resolved absolute path: %s", absPath)
 	return LocalFileRef(absPath)
 }
 
