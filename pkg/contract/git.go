@@ -106,9 +106,9 @@ func (u *GitURL) String() string {
 	return fmt.Sprintf("%s%s%s", u.RepoURL(), path, ref)
 }
 
-// GitClone currently wraps simple calls to the `git` executable on the local
+// gitClone currently wraps simple calls to the `git` executable on the local
 // system that clones a remote repository to a local path in the file system.
-func GitClone(repoURL, localPath string) error {
+func gitClone(repoURL, localPath string) error {
 	log.Info().Msgf("Attempting to clone %s to %s", repoURL, localPath)
 	output, err := exec.Command("git", "clone", repoURL, localPath).CombinedOutput()
 	log.Debug().Msgf("git clone output:\n%s\n", string(output))
@@ -118,9 +118,9 @@ func GitClone(repoURL, localPath string) error {
 	return nil
 }
 
-// GitFetchAndCheckout will fetch the given ref (commit ID, tag, branch) from
+// gitFetchAndCheckout will fetch the given ref (commit ID, tag, branch) from
 // the origin repository and attempt to check the repo out at that ref.
-func GitFetchAndCheckout(repoURL, localPath, ref string) error {
+func gitFetchAndCheckout(repoURL, localPath, ref string) error {
 	log.Info().Msgf("Fetching ref \"%s\" from %s to %s", ref, repoURL, localPath)
 	cmd := exec.Command("git", "fetch", "origin", ref)
 	cmd.Dir = localPath
@@ -138,16 +138,6 @@ func GitFetchAndCheckout(repoURL, localPath, ref string) error {
 		return fmt.Errorf("failed to checkout \"%s\" for Git repository %s: %v", ref, repoURL, err)
 	}
 	return nil
-}
-
-// GitInit performs a simple "git init" in the given path.
-func GitInit(localPath string) error {
-	log.Info().Msgf("Creating new Git repository in %s", localPath)
-	cmd := exec.Command("git", "init")
-	cmd.Dir = localPath
-	output, err := cmd.CombinedOutput()
-	log.Debug().Msgf("git init output:\n%s\n", string(output))
-	return err
 }
 
 // Splits a Git path into its repository and its path.

@@ -205,6 +205,7 @@ func resolveRelWebFileRef(src, rel string, cache Cache) (*FileRef, error) {
 		return nil, err
 	}
 	resolvedUrl := srcUrl.ResolveReference(relUrl)
+	log.Debug().Msgf("Resolved relative source web reference: %s", resolvedUrl)
 	return resolveWebFileRef(resolvedUrl, cache)
 }
 

@@ -55,7 +55,7 @@ func (c *FSCache) FromGit(u *GitURL) (string, error) {
 		log.Debug().Msgf("Git repository %s is already cached at %s", repoURL, cachedRepoPath)
 	} else {
 		log.Debug().Msgf("Git repository %s has not yet been cached", repoURL)
-		if err := GitClone(repoURL, cachedRepoPath); err != nil {
+		if err := gitClone(repoURL, cachedRepoPath); err != nil {
 			return "", err
 		}
 	}
@@ -63,7 +63,7 @@ func (c *FSCache) FromGit(u *GitURL) (string, error) {
 	if len(u.Ref) > 0 {
 		ref = u.Ref
 	}
-	if err := GitFetchAndCheckout(repoURL, cachedRepoPath, ref); err != nil {
+	if err := gitFetchAndCheckout(repoURL, cachedRepoPath, ref); err != nil {
 		return "", err
 	}
 	return path.Join(cachedRepoPath, path.Join(strings.Split(u.Path, "/")...)), nil
