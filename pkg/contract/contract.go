@@ -39,9 +39,9 @@ let contract : ThemisContract.Contract =
         , hash = "{{.ParamsFile.Hash}}"
         }
     , upstream =
-		{ location = "{{.Upstream.Location}}"
-		, hash = "{{.Upstream.Hash}}"
-		}
+        { location = "{{.Upstream.Location}}"
+        , hash = "{{.Upstream.Hash}}"
+        }
     , template =
         { format = ThemisContract.TemplateFormat.{{.Template.Format}}
         , file =
