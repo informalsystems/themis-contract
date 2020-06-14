@@ -26,12 +26,14 @@ const (
 )
 
 // TODO: Use URL source for Themis Contract Dhall package.
+const DefaultDhallConfigPackageLocation string = "../../config/package.dhall"
+
 const DhallContractTemplate string = `{-
     Do not modify this file - it is automatically generated and managed by
     Themis Contract. Any changes may be automatically overwritten.
 -}
 
-let ThemisContract = ../../config/package.dhall
+let ThemisContract = {{.ConfigPackageLocation}}
 
 let contract : ThemisContract.Contract =
     { params =
@@ -65,6 +67,14 @@ type Contract struct {
 	fileType    FileType               // What type of file is the original contract file?
 	params      map[string]interface{} // The parameters extracted from the parameters file.
 	signatories []*Signatory           // Cached signatories extracted from the parameters.
+}
+
+type dhallContractTemplateParams struct {
+	ParamsFile *FileRef
+	Template   *Template
+	Upstream   *FileRef
+
+	ConfigPackageLocation string // Where to find the `package.dhall` file for Themis Contract types.
 }
 
 // New creates a new contract in the configured path from the specified upstream
@@ -218,7 +228,12 @@ func (c *Contract) Save() error {
 		}
 		defer f.Close()
 
-		return tpl.Execute(f, c)
+		return tpl.Execute(f, &dhallContractTemplateParams{
+			ParamsFile:            c.ParamsFile,
+			Template:              c.Template,
+			Upstream:              c.Upstream,
+			ConfigPackageLocation: DefaultDhallConfigPackageLocation,
+		})
 
 	case JSONType:
 		content, err = json.Marshal(c)
