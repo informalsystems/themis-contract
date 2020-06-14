@@ -31,7 +31,7 @@ func listSignatoriesCmd() *cobra.Command {
 			}
 			log.Info().Msg("Signatories:")
 			for _, sig := range sigs {
-				log.Info().Str("id", sig.Id).Str("email", sig.Email).Str("name", sig.Name)
+				log.Info().Msgf("- %s (id: %s, e-mail: %s)", sig.Name, sig.Id, sig.Email)
 			}
 		},
 	}

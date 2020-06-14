@@ -94,7 +94,7 @@ func New(contractPath, upstreamLoc string, cache Cache) (*Contract, error) {
 // location given is remote, the remote contract will be fetched and cached
 // first prior to being opened.
 func Load(loc string, cache Cache) (*Contract, error) {
-	log.Info().Msgf("Attempting to load contract: %s", loc)
+	log.Info().Msgf("Loading contract: %s", loc)
 	entrypoint, err := ResolveFileRef(loc, cache)
 	if err != nil {
 		return nil, err
