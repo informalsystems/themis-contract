@@ -42,7 +42,7 @@ func LocalFileRef(path string) (*FileRef, error) {
 		return nil, err
 	}
 	return &FileRef{
-		Location:  path,
+		Location:  localPath,
 		Hash:      hash,
 		localPath: localPath,
 	}, nil
