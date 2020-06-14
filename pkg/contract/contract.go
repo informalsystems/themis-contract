@@ -31,7 +31,7 @@ const DhallContractTemplate string = `{-
     Themis Contract. Any changes may be automatically overwritten.
 -}
 
-let ThemisContract = ../../config/package.dhall
+let ThemisContract = "../../config/package.dhall"
 
 let contract : ThemisContract.Contract =
     { params =
@@ -81,15 +81,9 @@ func New(contractPath, upstreamLoc string, cache Cache) (*Contract, error) {
 	}
 	log.Debug().Msg(fmt.Sprintf("Loaded upstream contract: %v", upstream))
 
-	// make a copy of the upstream contract in our local path
-	contract, err := upstream.CopyTo(contractPath)
+	// derive a copy of the upstream contract in our local path
+	contract, err := upstream.deriveTo(contractPath)
 	if err != nil {
-		return nil, err
-	}
-	// the only field we need to update
-	contract.Upstream = upstream.path
-	// save the updated contract's details
-	if err := contract.Save(); err != nil {
 		return nil, err
 	}
 
@@ -128,11 +122,13 @@ func Load(loc string, cache Cache) (*Contract, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Debug().Msgf("Extracted contract parameters: %v", contract.params)
 	// update signatories from the parameters
 	contract.signatories, err = extractContractSignatories(contract.params)
 	if err != nil {
 		return nil, err
 	}
+	log.Debug().Msgf("Extracted contract signatories: %v", contract.signatories)
 	return contract, nil
 }
 
@@ -141,9 +137,9 @@ func (c *Contract) Path() *FileRef {
 	return c.path
 }
 
-// CopyTo will copy this contract to the given destination path. On success it
+// deriveTo will copy this contract to the given destination path. On success it
 // returns the new configuration of the contract, with the paths updated.
-func (c *Contract) CopyTo(destPath string) (*Contract, error) {
+func (c *Contract) deriveTo(destPath string) (*Contract, error) {
 	log.Debug().Str("path", destPath).Msg("Ensuring contract destination path exists")
 	// ensure the destination path exists
 	if err := os.MkdirAll(destPath, 0755); err != nil {
@@ -190,6 +186,12 @@ func (c *Contract) CopyTo(destPath string) (*Contract, error) {
 		fileType: c.fileType,
 	}
 	if err := dest.Save(); err != nil {
+		return nil, err
+	}
+	var err error
+	// update the file hash
+	dest.path.Hash, err = hashOfFile(dest.path.localPath)
+	if err != nil {
 		return nil, err
 	}
 	return dest, nil
@@ -250,6 +252,10 @@ func (c *Contract) SignAs(themisHome, sigId string) error {
 
 func (c *Contract) Signatories() []*Signatory {
 	return c.signatories
+}
+
+func (c *Contract) String() string {
+	return fmt.Sprintf("Contract{ParamsFile: %v, Template: %v, Upstream: %v}", c.ParamsFile, c.Template, c.Upstream)
 }
 
 func parseFileRefAsContract(ref *FileRef) (*Contract, error) {

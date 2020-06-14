@@ -41,15 +41,11 @@ func LocalFileRef(path string) (*FileRef, error) {
 	if err != nil {
 		return nil, err
 	}
-	return localFileRef(path, hash, localPath), nil
-}
-
-func localFileRef(loc, hash, localPath string) *FileRef {
 	return &FileRef{
-		Location:  loc,
+		Location:  path,
 		Hash:      hash,
 		localPath: localPath,
-	}
+	}, nil
 }
 
 // ResolveFileRef will attempt to resolve the file at the given location. If it
@@ -171,6 +167,10 @@ func (r *FileRef) LocalRelPath(base string) (string, error) {
 		return "", err
 	}
 	return filepath.Rel(baseAbs, localAbs)
+}
+
+func (r *FileRef) String() string {
+	return fmt.Sprintf("FileRef{Location: \"%s\", Hash: \"%s\"}", r.Location, r.Hash)
 }
 
 func hashOfFile(path string) (string, error) {
