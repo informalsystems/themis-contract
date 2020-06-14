@@ -17,12 +17,12 @@ func newCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			cache, err := themisContractCache()
 			if err != nil {
-				log.Fatal().Err(err).Msg("Failed to initialize cache")
+				log.Error().Err(err).Msg("Failed to initialize cache")
 				os.Exit(1)
 			}
 			_, err = contract.New(flagContractPath, args[0], cache)
 			if err != nil {
-				log.Fatal().Err(err).Msg("Failed to create new contract")
+				log.Error().Err(err).Msg("Failed to create new contract")
 				os.Exit(1)
 			}
 		},

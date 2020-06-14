@@ -15,17 +15,17 @@ func listSignatoriesCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			cache, err := themisContractCache()
 			if err != nil {
-				log.Fatal().Err(err).Msg("Failed to initialize cache")
+				log.Error().Err(err).Msg("Failed to initialize cache")
 				os.Exit(1)
 			}
 			c, err := contract.Load(flagContractPath, cache)
 			if err != nil {
-				log.Fatal().Err(err).Msg("Failed to load contract")
+				log.Error().Err(err).Msg("Failed to load contract")
 				os.Exit(1)
 			}
 			sigs := c.Signatories()
 			if len(sigs) == 0 {
-				log.Fatal().Msg("No signatories in contract (there should be at least one)")
+				log.Error().Msg("No signatories in contract (there should be at least one)")
 				// this should not happen
 				os.Exit(1)
 			}
