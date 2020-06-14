@@ -1,5 +1,7 @@
 package contract
 
+import "fmt"
+
 // TemplateFormat is a string-based enumeration type.
 type TemplateFormat string
 
@@ -16,4 +18,8 @@ const (
 type Template struct {
 	Format TemplateFormat `json:"format" yaml:"format" toml:"format"`
 	File   *FileRef       `json:"file" yaml:"file" toml:"file"`
+}
+
+func (t *Template) String() string {
+	return fmt.Sprintf("Template{Format: \"%s\", File: %v}", t.Format, t.File)
 }
