@@ -31,7 +31,7 @@ const DhallContractTemplate string = `{-
     Themis Contract. Any changes may be automatically overwritten.
 -}
 
-let ThemisContract = "../../config/package.dhall"
+let ThemisContract = ../../config/package.dhall
 
 let contract : ThemisContract.Contract =
     { params =
