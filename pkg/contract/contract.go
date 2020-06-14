@@ -149,40 +149,48 @@ func (c *Contract) CopyTo(destPath string) (*Contract, error) {
 	if err := os.MkdirAll(destPath, 0755); err != nil {
 		return nil, err
 	}
-	destFile, err := LocalFileRef(path.Join(destPath, c.path.Filename()))
-	if err != nil {
-		return nil, err
+	destContractFile := path.Join(destPath, c.path.Filename())
+	destParamsFile := path.Join(destPath, c.ParamsFile.Filename())
+	destTemplateFile := path.Join(destPath, c.Template.File.Filename())
+	files := map[string]string{
+		c.ParamsFile.localPath:    destParamsFile,
+		c.Template.File.localPath: destTemplateFile,
 	}
-	// both the params and template files must be relative paths
-	destParamsFile, err := LocalFileRef(path.Join(".", c.ParamsFile.Filename()))
-	if err != nil {
-		return nil, err
-	}
-	destTemplateFile, err := LocalFileRef(path.Join(".", c.Template.File.Filename()))
-	if err != nil {
-		return nil, err
-	}
-	dest := &Contract{
-		path:       destFile,
-		ParamsFile: destParamsFile,
-		Template: &Template{
-			Format: c.Template.Format,
-			File:   destTemplateFile,
-		},
-	}
-	files := map[string]*FileRef{
-		destFile.localPath:         c.path,
-		destParamsFile.localPath:   c.ParamsFile,
-		destTemplateFile.localPath: c.Template.File,
-	}
-	for destFile, srcRef := range files {
-		log.Info().
-			Str("from", srcRef.localPath).
-			Str("to", destFile).
-			Msg("Copying file")
-		if err := srcRef.CopyTo(destFile); err != nil {
+	for srcFile, destFile := range files {
+		log.Debug().Msgf("Copying %s to %s", srcFile, destFile)
+		if err := copyFile(srcFile, destFile); err != nil {
 			return nil, err
 		}
+	}
+	// generate the destination contract
+	dest := &Contract{
+		ParamsFile: &FileRef{
+			Location:  path.Join(".", c.ParamsFile.Filename()),
+			Hash:      c.ParamsFile.Hash,
+			localPath: destParamsFile,
+		},
+		Template: &Template{
+			Format: c.Template.Format,
+			File: &FileRef{
+				Location:  path.Join(".", c.Template.File.Filename()),
+				Hash:      c.Template.File.Hash,
+				localPath: destTemplateFile,
+			},
+		},
+		Upstream: &FileRef{
+			Location:  c.path.Location,
+			Hash:      c.path.Hash,
+			localPath: c.path.localPath,
+		},
+		path: &FileRef{
+			Location:  destContractFile,
+			Hash:      "",
+			localPath: destContractFile,
+		},
+		fileType: c.fileType,
+	}
+	if err := dest.Save(); err != nil {
+		return nil, err
 	}
 	return dest, nil
 }
@@ -342,6 +350,7 @@ func readContractParams(filename string) (map[string]interface{}, error) {
 	case ".dhall":
 		log.Debug().Msgf("Converting params file from Dhall to JSON: %s", filename)
 		content, err = exec.Command("dhall-to-json", "--file", filename).CombinedOutput()
+		log.Debug().Msgf("dhall-to-json output:\n%s\n", content)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert Dhall file %s to JSON: %v", filename, err)
 		}

@@ -41,11 +41,15 @@ func LocalFileRef(path string) (*FileRef, error) {
 	if err != nil {
 		return nil, err
 	}
+	return localFileRef(path, hash, localPath), nil
+}
+
+func localFileRef(loc, hash, localPath string) *FileRef {
 	return &FileRef{
-		Location:  path,
+		Location:  loc,
 		Hash:      hash,
 		localPath: localPath,
-	}, nil
+	}
 }
 
 // ResolveFileRef will attempt to resolve the file at the given location. If it
@@ -115,11 +119,7 @@ func ResolveRelFileRef(abs, rel *FileRef, cache Cache) (resolved *FileRef, err e
 // given destination path. It is assumed that the destination path includes the
 // full file name of the desired destination file.
 func (r *FileRef) CopyTo(destPath string) error {
-	content, err := ioutil.ReadFile(r.localPath)
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(destPath, content, 0644)
+	return copyFile(r.localPath, destPath)
 }
 
 // Filename returns just the file name portion of the local copy of the file.
@@ -222,7 +222,7 @@ func resolveRelGitFileRef(src, rel string, cache Cache) (*FileRef, error) {
 	srcPathInRepo := strings.Split(srcUrl.Path, "/")
 	relParts := strings.Split(rel, "/")
 	// we assume the last component's a file and not a folder
-	relPosInRepo := len(srcPathInRepo)-1
+	relPosInRepo := len(srcPathInRepo) - 1
 	relPartsPathStart := 0
 relPartsLoop:
 	for i, relPart := range relParts {
@@ -289,4 +289,12 @@ func fileRefType(loc string) FileRefType {
 		return GitRef
 	}
 	return LocalRef
+}
+
+func copyFile(srcPath, destPath string) error {
+	content, err := ioutil.ReadFile(srcPath)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(destPath, content, 0644)
 }
