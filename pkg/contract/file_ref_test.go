@@ -18,55 +18,58 @@ func TestRelativeFileRefResolution(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
+	contractPath := path.Join(tempDir, "path", "to", "contract.dhall")
+	paramsPath := path.Join(tempDir, "path", "to", "params.dhall")
+
 	testCases := []struct {
-		abs      string
-		absLocal string
-		rel      string
-		relLocal string
-		expected string
+		contractLoc string
+		relLoc      string
+		expected    string
 	}{
 		{
-			abs:      path.Join(tempDir, "contract.dhall"),
-			absLocal: path.Join(tempDir, "contract.dhall"),
-			rel:      "./params.dhall",
-			relLocal: path.Join(tempDir, "params.dhall"),
-			expected: path.Join(tempDir, "params.dhall"),
+			contractLoc: contractPath,
+			relLoc:      "./params.dhall",
+			expected:    paramsPath,
 		},
 		{
-			abs:      "https://somewhere.com/path/to/contract.dhall",
-			absLocal: path.Join(tempDir, "contract.dhall"),
-			rel:      "./params.dhall",
-			relLocal: path.Join(tempDir, "params.dhall"),
-			expected: "https://somewhere.com/path/to/params.dhall",
+			contractLoc: "https://somewhere.com/path/to/contract.dhall",
+			relLoc:      "./params.dhall",
+			expected:    "https://somewhere.com/path/to/params.dhall",
+		},
+		{
+			contractLoc: "git://github.com:informalsystems/themis-contract.git/path/to/contract.dhall",
+			relLoc:      "./params.dhall",
+			expected:    "git://github.com:informalsystems/themis-contract.git/path/to/params.dhall",
 		},
 	}
 
 	testFileContent := "TEST"
 	testFileHash := fmt.Sprintf("%064x", sha256.Sum256([]byte(testFileContent)))
+	if err := writeTestFiles([]string{contractPath, paramsPath}, "TEST"); err != nil {
+		t.Errorf("failed to write test files: %v", err)
+	}
 
 	cache := mockCache{
 		successes: map[string]string{
-			"https://somewhere.com/path/to/contract.dhall": path.Join(tempDir, "contract.dhall"),
-			"https://somewhere.com/path/to/params.dhall":   path.Join(tempDir, "params.dhall"),
+			"https://somewhere.com/path/to/contract.dhall":                                contractPath,
+			"https://somewhere.com/path/to/params.dhall":                                  paramsPath,
+			"git://github.com:informalsystems/themis-contract.git/path/to/contract.dhall": contractPath,
+			"git://github.com:informalsystems/themis-contract.git/path/to/params.dhall":   paramsPath,
 		},
-		failures: map[string]error{},
 	}
 
 	for _, tc := range testCases {
-		if err := writeTestFiles([]string{tc.absLocal, tc.relLocal}, "TEST"); err != nil {
-			t.Errorf("failed to write test files: %v", err)
-		}
-		absRef, err := contract.ResolveFileRef(tc.abs, &cache)
+		absRef, err := contract.ResolveFileRef(tc.contractLoc, &cache)
 		if err != nil {
-			t.Errorf("expected to be able to resolve ref %s, but got error %v", tc.abs, err)
+			t.Errorf("expected to be able to resolve ref %s, but got error: %v", tc.contractLoc, err)
 		}
 		relRef, err := contract.ResolveRelFileRef(
 			absRef,
-			&contract.FileRef{Location: tc.rel, Hash: testFileHash},
+			&contract.FileRef{Location: tc.relLoc, Hash: testFileHash},
 			&cache,
 		)
 		if err != nil {
-			t.Errorf("expected to be able to resolve relative ref %s, but got error %v", tc.rel, err)
+			t.Errorf("expected to be able to resolve relative ref %s, but got error: %v", tc.relLoc, err)
 		}
 		if tc.expected != relRef.Location {
 			t.Errorf("expected relative resolved location of %s, but got %s", tc.expected, relRef.Location)

@@ -71,7 +71,7 @@ func ResolveFileRef(loc string, cache Cache) (resolved *FileRef, err error) {
 			return
 		}
 		resolved, err = resolveGitFileRef(u, cache)
-		log.Debug().Msgf("Resolved location \"%s\" as file in a Git repository", loc)
+		log.Debug().Msgf("Resolved location \"%s\" as file in a Git repository: %v", loc, resolved)
 	}
 	return
 }
@@ -210,19 +210,37 @@ func resolveRelWebFileRef(src, rel string, cache Cache) (*FileRef, error) {
 }
 
 func resolveRelGitFileRef(src, rel string, cache Cache) (*FileRef, error) {
+	log.Debug().Msgf("Attempting to resolve relative path \"%s\" against Git URL \"%s\"", rel, src)
 	srcUrl, err := ParseGitURL(src)
 	if err != nil {
 		return nil, err
 	}
-	cachedPath, err := cache.FromGit(srcUrl)
-	if err != nil {
+	// we need to make sure we have the source cached
+	if _, err := cache.FromGit(srcUrl); err != nil {
 		return nil, err
 	}
-	srcPath := path.Join(cachedPath, path.Join(strings.Split(srcUrl.Path, "/")...))
-	relPath, err := filepath.Abs(path.Join(srcPath, rel))
-	if err != nil {
-		return nil, err
+	srcPathInRepo := strings.Split(srcUrl.Path, "/")
+	relParts := strings.Split(rel, "/")
+	// we assume the last component's a file and not a folder
+	relPosInRepo := len(srcPathInRepo)-1
+	relPartsPathStart := 0
+relPartsLoop:
+	for i, relPart := range relParts {
+		switch relPart {
+		case ".":
+			continue
+		case "..":
+			relPosInRepo--
+		default:
+			relPartsPathStart = i
+			break relPartsLoop
+		}
 	}
+	if relPosInRepo < 0 {
+		return nil, fmt.Errorf("supplied relative path is outside of repository: %s", rel)
+	}
+	relPath := strings.Join(append(srcPathInRepo[:relPosInRepo], relParts[relPartsPathStart:]...), "/")
+	log.Debug().Msgf("Relative Git repo path: %s", relPath)
 	relUrl := &GitURL{
 		Proto: srcUrl.Proto,
 		Host:  srcUrl.Host,
@@ -243,6 +261,7 @@ func resolveWebFileRef(u *url.URL, cache Cache) (*FileRef, error) {
 }
 
 func resolveGitFileRef(u *GitURL, cache Cache) (*FileRef, error) {
+	log.Debug().Msgf("Attempting to resolve Git file reference: %s", u)
 	cachedPath, err := cache.FromGit(u)
 	if err != nil {
 		return nil, err

@@ -45,6 +45,7 @@ func OpenFSCache(root string) (*FSCache, error) {
 }
 
 func (c *FSCache) FromGit(u *GitURL) (string, error) {
+	log.Debug().Msgf("Looking up cached entries for Git URL: %s", u)
 	repoURL := u.RepoURL()
 	cachedRepoPath := path.Join(c.root, "git", u.Host, u.Repo)
 	exists, err := dirExists(cachedRepoPath)
