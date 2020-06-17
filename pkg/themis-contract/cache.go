@@ -1,4 +1,4 @@
-package contract
+package themis_contract
 
 import (
 	"fmt"

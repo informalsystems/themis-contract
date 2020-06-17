@@ -1,10 +1,10 @@
-package contract_test
+package themis_contract_test
 
 import (
 	"fmt"
 	"net/url"
 
-	"github.com/informalsystems/themis-contract/pkg/contract"
+	contract "github.com/informalsystems/themis-contract/pkg/themis-contract"
 )
 
 type mockCache struct {

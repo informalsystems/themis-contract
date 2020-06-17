@@ -1,8 +1,8 @@
 # Service Agreement
 
-This service agreement is constituted between the following parties:
+This service agreement is agreed upon by the following parties:
 
-* {{company.name}}, located at {{company.address}}
+* {{client.name}}, located at {{client.address}}
 * {{supplier.name}}, located at {{supplier.address}}
 
 ## Terms of Service
@@ -15,17 +15,14 @@ This service agreement is constituted between the following parties:
 
 ## Hourly Rate
 
-The hourly rate will be EUR {{hourlyRate}}.
+The hourly rate will be {{supplier.currency}} {{supplier.hourlyRate}}.
 
 ## Signatures
 
 Signed,
 
-{{#allCompanies}}
 {{#signatories}}
 ![Signature](sig-{{id}}.png) \
-{{fullNames}},
-{{/signatories}}
-on behalf of {{name}}
+{{name}}
 
-{{/allCompanies}}
+{{/signatories}}

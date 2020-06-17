@@ -8,28 +8,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func signAsCmd() *cobra.Command {
+func updateCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "sign-as [signatory-id] [contract]",
-		Short: "Sign a contract as a particular signatory",
-		Args:  cobra.MinimumNArgs(1),
+		Use:   "update [contract]",
+		Short: "Update a contract's parameters/template files' hashes",
+		Long:  "Automatically refreshes the hashes of the parameters and/or template files",
 		Run: func(cmd *cobra.Command, args []string) {
 			contractPath := defaultContractPath
-			if len(args) > 1 {
-				contractPath = args[1]
+			if len(args) > 0 {
+				contractPath = args[0]
 			}
 			ctx, err := contract.InitContext(themisContractHome())
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to initialize context")
 			}
-			c, err := contract.Load(contractPath, ctx)
-			if err != nil {
+			if err := contract.Update(contractPath, ctx); err != nil {
 				log.Error().Err(err).Msg("Failed to load contract")
-				os.Exit(1)
-			}
-			err = c.SignAs(themisContractHome(), args[0], ctx)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to sign contract")
 				os.Exit(1)
 			}
 		},

@@ -1,9 +1,9 @@
-package contract_test
+package themis_contract_test
 
 import (
 	"testing"
 
-	"github.com/informalsystems/themis-contract/pkg/contract"
+	contract "github.com/informalsystems/themis-contract/pkg/themis-contract"
 )
 
 func TestGitURLParsing(t *testing.T) {

@@ -1,0 +1,27 @@
+{-
+    Do not modify this file - it is automatically generated and managed by
+    Themis Contract. Any changes may be automatically overwritten.
+-}
+
+let ThemisContract = https://raw.githubusercontent.com/informalsystems/themis-contract/prototype/v2/config/package.dhall
+    sha256:016b3829eaee279f2ce7a740a974f1ac75758893c42d220865a487c35ff9a890
+
+let contract : ThemisContract.Contract =
+    { params =
+        { location = "{{.ParamsFile.Location}}"
+        , hash = "{{.ParamsFile.Hash}}"
+        }
+    , upstream = {{if .Upstream}}
+        { location = "{{.Upstream.Location}}"
+        , hash = "{{.Upstream.Hash}}"
+        }{{else}}None ThemisContract.FileRef{{end}}
+    , template =
+        { format = ThemisContract.TemplateFormat.{{.Template.Format}}
+        , file =
+            { location = "{{.Template.File.Location}}"
+            , hash = "{{.Template.File.Hash}}"
+            }
+        }
+    }
+
+in contract

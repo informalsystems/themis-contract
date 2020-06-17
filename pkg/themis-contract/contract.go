@@ -1,4 +1,4 @@
-package contract
+package themis_contract
 
 import (
 	"bytes"
@@ -8,53 +8,27 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"text/template"
 
 	"github.com/BurntSushi/toml"
+	"github.com/alexkappa/mustache"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
+
+	_ "github.com/informalsystems/themis-contract/pkg/themis-contract/statik"
 )
 
 // FileType indicates the file type of a contract.
 type FileType string
 
+// TODO: Look into (more generically) supporting a shell script as a contract type, with its output interpreted as JSON.
 const (
 	DhallType FileType = "dhall"
 	JSONType  FileType = "json"
 	YAMLType  FileType = "yaml"
 	TOMLType  FileType = "toml"
 )
-
-// TODO: Use URL source for Themis Contract Dhall package.
-const DefaultDhallConfigPackageLocation string = "../../config/package.dhall"
-
-const DhallContractTemplate string = `{-
-    Do not modify this file - it is automatically generated and managed by
-    Themis Contract. Any changes may be automatically overwritten.
--}
-
-let ThemisContract = {{.ConfigPackageLocation}}
-
-let contract : ThemisContract.Contract =
-    { params =
-        { location = "{{.ParamsFile.Location}}"
-        , hash = "{{.ParamsFile.Hash}}"
-        }
-    , upstream =
-        { location = "{{.Upstream.Location}}"
-        , hash = "{{.Upstream.Hash}}"
-        }
-    , template =
-        { format = ThemisContract.TemplateFormat.{{.Template.Format}}
-        , file =
-            { location = "{{.Template.File.Location}}"
-            , hash = "{{.Template.File.Hash}}"
-            }
-        }
-    }
-
-in contract
-`
 
 // Contract encapsulates all of the relevant data we need in order to deal with
 // the contract (rendering, signature management, etc.).
@@ -69,30 +43,22 @@ type Contract struct {
 	signatories []*Signatory           // Cached signatories extracted from the parameters.
 }
 
-type dhallContractTemplateParams struct {
-	ParamsFile *FileRef
-	Template   *Template
-	Upstream   *FileRef
-
-	ConfigPackageLocation string // Where to find the `package.dhall` file for Themis Contract types.
-}
-
 // New creates a new contract in the configured path from the specified upstream
 // contract.
-func New(contractPath, upstreamLoc string, cache Cache) (*Contract, error) {
+func New(contractPath, upstreamLoc string, ctx *Context) (*Contract, error) {
 	if len(upstreamLoc) == 0 {
 		return nil, fmt.Errorf("when creating a contract with the `new` command, an upstream contract must be supplied as a template")
 	}
 
 	// load (and optionally cache) the upstream contract
-	upstream, err := Load(upstreamLoc, cache)
+	upstream, err := Load(upstreamLoc, ctx)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug().Msg(fmt.Sprintf("Loaded upstream contract: %v", upstream))
 
 	// derive a copy of the upstream contract in our local path
-	contract, err := upstream.deriveTo(contractPath)
+	contract, err := upstream.deriveTo(contractPath, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -102,10 +68,37 @@ func New(contractPath, upstreamLoc string, cache Cache) (*Contract, error) {
 
 // Load will parse the contract at the given location into memory. If the
 // location given is remote, the remote contract will be fetched and cached
-// first prior to being opened.
-func Load(loc string, cache Cache) (*Contract, error) {
+// first prior to being opened. All components of the contract, including
+// parameters file and template, will also be fetched if remote.
+func Load(loc string, ctx *Context) (*Contract, error) {
 	log.Info().Msgf("Loading contract: %s", loc)
-	entrypoint, err := ResolveFileRef(loc, cache)
+	contract, err := loadContractComponents(loc, true, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// parse the parameters file
+	contract.params, err = readContractParams(contract.ParamsFile.localPath)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug().Msgf("Extracted contract parameters: %v", contract.params)
+	// update signatories from the parameters
+	contract.signatories, err = extractContractSignatories(contract.params, path.Dir(contract.path.localPath))
+	if err != nil {
+		return nil, err
+	}
+	log.Debug().Msgf("Extracted contract signatories: %v", contract.signatories)
+	// update the parameters with signatories' possible signatures
+	contract.params, err = updateContractSignatories(contract.params, contract.signatories)
+	if err != nil {
+		return nil, err
+	}
+	return contract, nil
+}
+
+func loadContractComponents(loc string, checkHashes bool, ctx *Context) (*Contract, error) {
+	entrypoint, err := ResolveFileRef(loc, "", false, ctx.cache)
 	if err != nil {
 		return nil, err
 	}
@@ -116,30 +109,41 @@ func Load(loc string, cache Cache) (*Contract, error) {
 	// see if we need to resolve the parameters file or the template relative
 	// to the contract entrypoint
 	if contract.ParamsFile.IsRelative() {
-		contract.ParamsFile, err = ResolveRelFileRef(entrypoint, contract.ParamsFile, cache)
-		if err != nil {
-			return nil, err
-		}
+		contract.ParamsFile, err = ResolveRelFileRef(entrypoint, contract.ParamsFile, checkHashes, ctx.cache)
+	} else {
+		contract.ParamsFile, err = ResolveFileRef(contract.ParamsFile.Location, contract.ParamsFile.Hash, checkHashes, ctx.cache)
 	}
+	if err != nil {
+		return nil, err
+	}
+
 	if contract.Template.File.IsRelative() {
-		contract.Template.File, err = ResolveRelFileRef(entrypoint, contract.Template.File, cache)
-		if err != nil {
-			return nil, err
-		}
+		contract.Template.File, err = ResolveRelFileRef(entrypoint, contract.Template.File, checkHashes, ctx.cache)
+	} else {
+		contract.Template.File, err = ResolveFileRef(contract.Template.File.Location, contract.Template.File.Hash, checkHashes, ctx.cache)
 	}
-	// parse the parameters file
-	contract.params, err = readContractParams(contract.ParamsFile.localPath)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug().Msgf("Extracted contract parameters: %v", contract.params)
-	// update signatories from the parameters
-	contract.signatories, err = extractContractSignatories(contract.params)
-	if err != nil {
-		return nil, err
-	}
-	log.Debug().Msgf("Extracted contract signatories: %v", contract.signatories)
 	return contract, nil
+}
+
+// Update will attempt to load the contract at the given location and update the
+// hashes to its parameters and/or template file(s). It necessarily does not do
+// any integrity checks on the parameters and/or template files prior to loading
+// them.
+func Update(loc string, ctx *Context) error {
+	if fileRefType(loc) != LocalRef {
+		return fmt.Errorf("only contracts located in the local filesystem can be updated")
+	}
+	log.Info().Msgf("Loading contract: %s", loc)
+	// here we don't need to check the integrity of the contract up-front
+	contract, err := loadContractComponents(loc, false, ctx)
+	if err != nil {
+		return err
+	}
+	// all we need to do now is save the updated details we've loaded
+	return contract.Save(ctx)
 }
 
 // Path returns the file reference for this contract.
@@ -149,7 +153,7 @@ func (c *Contract) Path() *FileRef {
 
 // deriveTo will copy this contract to the given destination path. On success it
 // returns the new configuration of the contract, with the paths updated.
-func (c *Contract) deriveTo(destPath string) (*Contract, error) {
+func (c *Contract) deriveTo(destPath string, ctx *Context) (*Contract, error) {
 	log.Debug().Str("path", destPath).Msg("Ensuring contract destination path exists")
 	// ensure the destination path exists
 	if err := os.MkdirAll(destPath, 0755); err != nil {
@@ -195,7 +199,7 @@ func (c *Contract) deriveTo(destPath string) (*Contract, error) {
 		},
 		fileType: c.fileType,
 	}
-	if err := dest.Save(); err != nil {
+	if err := dest.Save(ctx); err != nil {
 		return nil, err
 	}
 	var err error
@@ -209,7 +213,7 @@ func (c *Contract) deriveTo(destPath string) (*Contract, error) {
 
 // Save will write the contract with its current configuration to its local
 // path.
-func (c *Contract) Save() error {
+func (c *Contract) Save(ctx *Context) error {
 	log.Info().Msgf("Writing contract: %s", c.path.localPath)
 
 	var content []byte
@@ -217,23 +221,21 @@ func (c *Contract) Save() error {
 
 	switch c.fileType {
 	case DhallType:
-		tpl, err := template.New("contract").Parse(DhallContractTemplate)
+		rawTpl, err := readStaticResource("/templates/contract.dhall.tmpl", ctx.fs)
+		if err != nil {
+			return fmt.Errorf("failed to read from internal resource: %s", err)
+		}
+		tpl, err := template.New("contract").Parse(string(rawTpl))
 		if err != nil {
 			return err
 		}
-
-		f, err := os.Create(c.path.localPath)
-		if err != nil {
-			return err
+		// render the template in-memory so if it fails we haven't destroyed the
+		// output contract file
+		var buf bytes.Buffer
+		if err := tpl.Execute(&buf, c); err != nil {
+			return fmt.Errorf("failed to execute Mustache template: %s", err)
 		}
-		defer f.Close()
-
-		return tpl.Execute(f, &dhallContractTemplateParams{
-			ParamsFile:            c.ParamsFile,
-			Template:              c.Template,
-			Upstream:              c.Upstream,
-			ConfigPackageLocation: DefaultDhallConfigPackageLocation,
-		})
+		return ioutil.WriteFile(c.path.localPath, buf.Bytes(), 0644)
 
 	case JSONType:
 		content, err = json.Marshal(c)
@@ -255,13 +257,68 @@ func (c *Contract) Save() error {
 
 // Compile takes a parsed contract and attempts to generate the output artifact
 // that constitutes the final contract (as a PDF file).
-func (c *Contract) Compile(output string) error {
+func (c *Contract) Compile(output string, ctx *Context) error {
+	// first we render the contract with its parameters to a temporary location
+	tempDir, err := ioutil.TempDir("", "themis-contract")
+	if err != nil {
+		return err
+	}
+	tempContract := path.Join(tempDir, c.Template.File.Filename())
+	if err := c.Render(tempContract); err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempDir)
+
+	// then we use pandoc to convert the temporary contract to a PDF file
+	resourcePaths := strings.Join([]string{".", ctx.profile.Path()}, ":")
+	pandocOutput, err := exec.Command(
+		"pandoc",
+		tempContract,
+		"-o",
+		output,
+		"--resource-path",
+		resourcePaths,
+	).CombinedOutput()
+	log.Debug().Msgf("pandoc execution output:\n%s\n", pandocOutput)
+	if err != nil {
+		return err
+	}
+	log.Info().Msgf("Successfully rendered contract to %s", output)
+	return nil
+}
+
+// Render takes the current contract template and renders it using the current
+// parameters. The output file is the same format as the template, just with all
+// of the parameters substituted in.
+func (c *Contract) Render(output string) error {
+	log.Info().Msg("Rendering contract")
+	log.Debug().Msgf("Attempting to load template file: %s", c.Template.File.localPath)
+	tf, err := os.Open(c.Template.File.localPath)
+	if err != nil {
+		return err
+	}
+	defer tf.Close()
+	tpl, err := mustache.Parse(tf)
+	if err != nil {
+		return fmt.Errorf("failed to parse template: %s", err)
+	}
+
+	log.Debug().Msgf("Writing rendered template to output file: %s", output)
+	of, err := os.Create(output)
+	if err != nil {
+		return fmt.Errorf("failed to create output file: %s", err)
+	}
+	defer of.Close()
+
+	if err := tpl.Render(of, c.params); err != nil {
+		return fmt.Errorf("failed to render template: %s", err)
+	}
 	return nil
 }
 
 // SignAs attempts to sign the contract on behalf of the signatory with the
 // given ID.
-func (c *Contract) SignAs(themisHome, sigId string) error {
+func (c *Contract) SignAs(themisHome, sigId string, ctx *Context) error {
 	return nil
 }
 
@@ -312,6 +369,7 @@ func parseFileRefAsContract(ref *FileRef) (*Contract, error) {
 func parseDhallContract(filename string) (*Contract, error) {
 	log.Debug().Msgf("Converting Dhall file to JSON: %s", filename)
 	content, err := exec.Command("dhall-to-json", "--file", filename).CombinedOutput()
+	log.Debug().Msgf("dhall-to-json output:\n%s\n", content)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert Dhall file %s to JSON: %v", filename, err)
 	}
@@ -402,7 +460,7 @@ func readContractParams(filename string) (map[string]interface{}, error) {
 // We extract signatories by grabbing the "signatories" field, marshalling it
 // to JSON, and then unmarshalling it into our desired array of Signatory
 // instances. Inefficient, but it works and it was quick to code.
-func extractContractSignatories(params map[string]interface{}) ([]*Signatory, error) {
+func extractContractSignatories(params map[string]interface{}, contractPath string) ([]*Signatory, error) {
 	sigs, exists := params["signatories"]
 	if !exists {
 		return nil, fmt.Errorf("missing field \"signatories\" in contract parameters")
@@ -417,5 +475,49 @@ func extractContractSignatories(params map[string]interface{}) ([]*Signatory, er
 	if err := json.Unmarshal(sigsJSON, &result); err != nil {
 		return nil, err
 	}
+
+	// clear out any potential signature info
+	for _, r := range result {
+		r.Signature = ""
+	}
+
+	// scan the contract path for signatures for each signatory
+	expectedSigImages := map[string]int{}
+	for i, sig := range result {
+		sigImgFile := sigImageFilename(sig.Id)
+		if _, ok := expectedSigImages[sigImgFile]; ok {
+			return nil, fmt.Errorf("duplicate signatory ID in contract parameters: %s", sig.Id)
+		}
+		expectedSigImages[sigImgFile] = i
+	}
+	files, err := ioutil.ReadDir(contractPath)
+	if err != nil {
+		return nil, err
+	}
+	for _, fi := range files {
+		if fi.IsDir() {
+			continue
+		}
+		sigId, ok := expectedSigImages[fi.Name()]
+		if !ok {
+			continue
+		}
+		result[sigId].Signature = path.Join(contractPath, fi.Name())
+		log.Debug().Msgf("Discovered signature image \"%s\" for signatory \"%s\"", result[sigId].Signature, result[sigId].Id)
+	}
 	return result, nil
+}
+
+func updateContractSignatories(params map[string]interface{}, signatories []*Signatory) (map[string]interface{}, error) {
+	sigJSON, err := json.Marshal(signatories)
+	if err != nil {
+		return nil, err
+	}
+	var sigArr []interface{}
+	if err = json.Unmarshal(sigJSON, &sigArr); err != nil {
+		return nil, err
+	}
+	params["signatories"] = sigArr
+	log.Debug().Msgf("Updated contract signatories: %v", params)
+	return params, nil
 }

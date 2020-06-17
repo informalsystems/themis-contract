@@ -1,4 +1,4 @@
-package contract
+package themis_contract
 
 import (
 	"crypto/sha256"
@@ -49,9 +49,9 @@ func LocalFileRef(path string) (*FileRef, error) {
 }
 
 // ResolveFileRef will attempt to resolve the file at the given location. If it
-// is a remote file, it will be fetched from its location and cached locally in
-// the given cache path.
-func ResolveFileRef(loc string, cache Cache) (resolved *FileRef, err error) {
+// is a remote file, it will be fetched from its location and cached locally
+// using the given cache.
+func ResolveFileRef(loc, expectedHash string, checkHash bool, cache Cache) (resolved *FileRef, err error) {
 	switch fileRefType(loc) {
 	case LocalRef:
 		resolved, err = LocalFileRef(loc)
@@ -73,13 +73,29 @@ func ResolveFileRef(loc string, cache Cache) (resolved *FileRef, err error) {
 		resolved, err = resolveGitFileRef(u, cache)
 		log.Debug().Msgf("Resolved location \"%s\" as file in a Git repository: %v", loc, resolved)
 	}
+	if resolved != nil && err == nil {
+		if expectedHash != "" && resolved.Hash != expectedHash {
+			if checkHash {
+				log.Error().
+					Str("expected", expectedHash).
+					Str("actual", resolved.Hash).
+					Msgf("Hash mismatch on file: %s", resolved.Location)
+				return nil, fmt.Errorf("hash mismatch")
+			} else {
+				log.Warn().
+					Str("expected", expectedHash).
+					Str("actual", resolved.Hash).
+					Msgf("Hash for file has changed: %s", resolved.Location)
+			}
+		}
+	}
 	return
 }
 
 // ResolveRelFileRef attempts to resolve a file reference relative to another
 // one. Specifically, it will attempt to resolve `rel` against `abs`.
 // TODO: Implement security check here to prevent user escaping to host file system.
-func ResolveRelFileRef(abs, rel *FileRef, cache Cache) (resolved *FileRef, err error) {
+func ResolveRelFileRef(abs, rel *FileRef, checkHash bool, cache Cache) (resolved *FileRef, err error) {
 	if !rel.IsRelative() {
 		return nil, fmt.Errorf("supplied path is not relative: %s", rel.Location)
 	}
@@ -102,11 +118,18 @@ func ResolveRelFileRef(abs, rel *FileRef, cache Cache) (resolved *FileRef, err e
 		return nil, err
 	}
 	if resolved.Hash != rel.Hash {
-		log.Error().
-			Str("source", rel.Hash).
-			Str("resolved", resolved.Hash).
-			Msg("Hash mismatch")
-		return nil, fmt.Errorf("hash mismatch")
+		if checkHash {
+			log.Error().
+				Str("expected", rel.Hash).
+				Str("actual", resolved.Hash).
+				Msgf("Hash mismatch on file: %s", resolved.Location)
+			return nil, fmt.Errorf("hash mismatch")
+		} else {
+			log.Warn().
+				Str("expected", rel.Hash).
+				Str("actual", resolved.Hash).
+				Msgf("Hash for file has changed: %s", resolved.Location)
+		}
 	}
 	return
 }

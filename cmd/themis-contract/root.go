@@ -5,16 +5,16 @@ import (
 	"os/user"
 	"path"
 
-	"github.com/informalsystems/themis-contract/pkg/contract"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
+const defaultContractPath = "contract.dhall"
+
 var (
-	flagVerbose      bool
-	flagContractPath string
-	flagThemisHome   string
+	flagVerbose    bool
+	flagThemisHome string
 )
 
 func defaultThemisHome() (string, error) {
@@ -27,14 +27,6 @@ func defaultThemisHome() (string, error) {
 
 func themisContractHome() string {
 	return path.Join(flagThemisHome, "contract")
-}
-
-func themisContractCachePath() string {
-	return path.Join(themisContractHome(), "cache")
-}
-
-func themisContractCache() (contract.Cache, error) {
-	return contract.OpenFSCache(themisContractCachePath())
 }
 
 func rootCmd() (*cobra.Command, error) {
@@ -56,13 +48,13 @@ func rootCmd() (*cobra.Command, error) {
 		},
 	}
 	cmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "increase output logging verbosity")
-	cmd.PersistentFlags().StringVar(&flagContractPath, "contract", ".", "path to the contract you want to interact with")
 	cmd.PersistentFlags().StringVar(&flagThemisHome, "themis-home", themisHome, "path to the root of your Themis configuration directory")
 	cmd.AddCommand(
 		newCmd(),
 		compileCmd(),
 		listSignatoriesCmd(),
 		signAsCmd(),
+		updateCmd(),
 	)
 	return cmd, nil
 }

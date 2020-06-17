@@ -1,4 +1,4 @@
-package contract
+package themis_contract
 
 import "fmt"
 
@@ -15,6 +15,7 @@ const (
 
 // Template refers to the contract text template to use when rendering a
 // contract.
+// TODO: Use a list of files for the template as opposed to a single one to allow for complex templates.
 type Template struct {
 	Format TemplateFormat `json:"format" yaml:"format" toml:"format"`
 	File   *FileRef       `json:"file" yaml:"file" toml:"file"`

@@ -1,4 +1,4 @@
-package contract_test
+package themis_contract_test
 
 import (
 	"crypto/sha256"
@@ -8,7 +8,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/informalsystems/themis-contract/pkg/contract"
+	contract "github.com/informalsystems/themis-contract/pkg/themis-contract"
 )
 
 func TestRelativeFileRefResolution(t *testing.T) {
@@ -59,13 +59,14 @@ func TestRelativeFileRefResolution(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		absRef, err := contract.ResolveFileRef(tc.contractLoc, &cache)
+		absRef, err := contract.ResolveFileRef(tc.contractLoc, "", false, &cache)
 		if err != nil {
 			t.Errorf("expected to be able to resolve ref %s, but got error: %v", tc.contractLoc, err)
 		}
 		relRef, err := contract.ResolveRelFileRef(
 			absRef,
 			&contract.FileRef{Location: tc.relLoc, Hash: testFileHash},
+			true,
 			&cache,
 		)
 		if err != nil {
