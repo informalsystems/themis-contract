@@ -53,7 +53,7 @@ func rootCmd() (*cobra.Command, error) {
 		newCmd(),
 		compileCmd(),
 		listSignatoriesCmd(),
-		signAsCmd(),
+		signCmd(),
 		updateCmd(),
 	)
 	return cmd, nil
