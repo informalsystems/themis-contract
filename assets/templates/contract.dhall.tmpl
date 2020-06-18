@@ -11,7 +11,7 @@ let contract : ThemisContract.Contract =
         { location = "{{.ParamsFile.Location}}"
         , hash = "{{.ParamsFile.Hash}}"
         }
-    , upstream = {{if .Upstream}}
+    , upstream = {{if .Upstream}}Some
         { location = "{{.Upstream.Location}}"
         , hash = "{{.Upstream.Hash}}"
         }{{else}}None ThemisContract.FileRef{{end}}
