@@ -1,7 +1,7 @@
 PACKAGES=$(shell go list ./...)
 OUTPUT=build/themis-contract
 BUILD_FLAGS=-mod=readonly
-.DEFAULT_GOAL := all
+.DEFAULT_GOAL := build
 
 all: build test
 
