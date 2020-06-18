@@ -10,12 +10,9 @@ the repository.
 From the command line, run:
 
 ```bash
-# You need to be working within a Git repository locally.
-git init
-
 # Clones from the `master` branch by default
 themis-contract new \
-    --template git://github.com:informalsystems/themis-contract/examples/service-agreement/
+    git://github.com:informalsystems/themis-contract/examples/service-agreement/contract.dhall#prototype/v2
 ```
 
 This will clone the given repository into your local repository cache, copy out
@@ -70,17 +67,17 @@ There are currently two ways to sign contracts:
 1. Image- and Git-based, where a simple image is generated (using a font of
    your choosing) that contains the signatory's full names. This is committed
    to your local Git repository (and thus assumes you're working in a Git repo).
-2. Cryptographically, using [Keybase][keybase].
+2. Cryptographically, using [Keybase][keybase] (not yet implemented).
 
 The contract is already configured to use the image-/Git-based signing, so all
 we need to do is:
 
 ```bash
-themis-contract sign-as userid
+themis-contract sign
 ```
 
 Now, if you look in the current folder, you should see an image called
-`client__userid.png`, where `userid` is your signatory's user ID.
+`sig--userid.png`, where `userid` is your signatory's user ID.
 
 What happens behind the scenes is the following:
 
