@@ -316,9 +316,11 @@ func (c *Contract) Render(output string) error {
 	return nil
 }
 
-// SignAs attempts to sign the contract on behalf of the signatory with the
-// given ID.
-func (c *Contract) SignAs(themisHome, sigId string, ctx *Context) error {
+// Sign attempts to sign the contract on behalf of the signatory with the
+// given ID. If `sigId` is empty (""), it attempts to infer the signatory on
+// behalf of whom you want to sign based on the default signatory for your
+// current profile.
+func (c *Contract) Sign(sigId string, ctx *Context) error {
 	return nil
 }
 

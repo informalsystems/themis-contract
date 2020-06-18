@@ -29,7 +29,7 @@ func signCmd() *cobra.Command {
 				log.Error().Err(err).Msg("Failed to load contract")
 				os.Exit(1)
 			}
-			err = c.SignAs(themisContractHome(), flagSigId, ctx)
+			err = c.Sign(flagSigId, ctx)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to sign contract")
 				os.Exit(1)
