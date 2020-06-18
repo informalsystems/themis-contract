@@ -17,7 +17,7 @@ const (
 	ProtoHTTPS GitURLProto = "https"
 )
 
-const gitURLRegexp = "(?P<proto>[a-z+]+)://(?P<host>[a-z0-9.-]+)[:/](?P<path>[a-zA-Z0-9 ./-]+)(#(?P<fragment>[a-zA-Z0-9.-]+))?"
+const gitURLRegexp = "(?P<proto>[a-z+]+)://(?P<host>[a-z0-9.-]+)[:/](?P<path>[a-zA-Z0-9 ./-]+)(#(?P<fragment>[a-zA-Z0-9/.-]+))?"
 
 // GitURL allows us to parse out the components of a Git repository URL. The
 // format for a Git URL is different to a standard URL, so we unfortunately
@@ -109,6 +109,8 @@ func (u *GitURL) String() string {
 // gitClone currently wraps simple calls to the `git` executable on the local
 // system that clones a remote repository to a local path in the file system.
 func gitClone(repoURL, localPath string) error {
+	// TODO: Use user-supplier username in cloning.
+	repoURL = strings.Replace(repoURL, "git://", "git@", 1)
 	log.Info().Msgf("Attempting to clone %s to %s", repoURL, localPath)
 	output, err := exec.Command("git", "clone", repoURL, localPath).CombinedOutput()
 	log.Debug().Msgf("git clone output:\n%s\n", string(output))
