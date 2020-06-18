@@ -171,7 +171,7 @@ func (r *FileRef) ReadAll() (string, error) {
 // IsRelative provides a simple check to see whether this file reference is
 // relative to another file reference.
 func (r *FileRef) IsRelative() bool {
-	return strings.HasPrefix(r.Location, ".")
+	return strings.HasPrefix(r.Location, ".") || !strings.ContainsAny(r.Location, "/\\")
 }
 
 func (r *FileRef) Type() FileRefType {
