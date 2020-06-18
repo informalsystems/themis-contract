@@ -8,15 +8,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func signAsCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "sign-as [signatory-id] [contract]",
-		Short: "Sign a contract as a particular signatory",
-		Args:  cobra.MinimumNArgs(1),
+var flagSigId string
+
+func signCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "sign [contract]",
+		Short: "Sign a contract",
+		Long:  "Sign a contract, optionally specifying the signatory as whom you want to sign",
 		Run: func(cmd *cobra.Command, args []string) {
 			contractPath := defaultContractPath
-			if len(args) > 1 {
-				contractPath = args[1]
+			if len(args) > 0 {
+				contractPath = args[0]
 			}
 			ctx, err := contract.InitContext(themisContractHome())
 			if err != nil {
@@ -27,11 +29,13 @@ func signAsCmd() *cobra.Command {
 				log.Error().Err(err).Msg("Failed to load contract")
 				os.Exit(1)
 			}
-			err = c.SignAs(themisContractHome(), args[0], ctx)
+			err = c.SignAs(themisContractHome(), flagSigId, ctx)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to sign contract")
 				os.Exit(1)
 			}
 		},
 	}
+	cmd.PersistentFlags().StringVar(&flagSigId, "as", "", "the ID of the signatory on behalf of whom you want to sign")
+	return cmd
 }
