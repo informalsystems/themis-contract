@@ -320,7 +320,43 @@ func (c *Contract) Render(output string) error {
 // given ID. If `sigId` is empty (""), it attempts to infer the signatory on
 // behalf of whom you want to sign based on the default signatory for your
 // current profile.
-func (c *Contract) Sign(sigId string, ctx *Context) error {
+func (c *Contract) Sign(signatoryId string, ctx *Context) error {
+	signature, err := ctx.CurSignature()
+	if err != nil {
+		return err
+	}
+	var signatory *Signatory
+	if len(signatoryId) == 0 {
+		// look for a signatory whose e-mail address matches our signature's
+		signatory = c.FindSignatoryByEmail(signature.Email)
+		if signatory == nil {
+			return fmt.Errorf("cannot find signatory matching current profile's signature e-mail address of \"%s\"", signature.Email)
+		}
+	} else {
+		signatory = c.FindSignatoryById(signatoryId)
+		if signatory == nil {
+			return fmt.Errorf("cannot find signatory in contract with ID \"%s\"", signatoryId)
+		}
+	}
+	// apply the signature to our contract on behalf of the given signatory
+	return signature.ApplyTo(c.path.localPath, signatory.Id)
+}
+
+func (c *Contract) FindSignatoryByEmail(email string) *Signatory {
+	for _, sig := range c.signatories {
+		if sig.Email == email {
+			return sig
+		}
+	}
+	return nil
+}
+
+func (c *Contract) FindSignatoryById(id string) *Signatory {
+	for _, sig := range c.signatories {
+		if sig.Id == id {
+			return sig
+		}
+	}
 	return nil
 }
 

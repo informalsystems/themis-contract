@@ -9,7 +9,7 @@ import (
 )
 
 func newCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	return &cobra.Command{
 		Use:   "new [upstream] [output]",
 		Short: "Create a new contract",
 		Long:  "Create a new contract, using the specified upstream contract effectively as a template",
@@ -19,9 +19,10 @@ func newCmd() *cobra.Command {
 			if len(args) > 1 {
 				contractPath = args[1]
 			}
-			ctx, err := contract.InitContext(themisContractHome())
+			ctx, err := contract.InitContext(flagHome)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to initialize context")
+				os.Exit(1)
 			}
 			_, err = contract.New(contractPath, args[0], ctx)
 			if err != nil {
@@ -30,5 +31,4 @@ func newCmd() *cobra.Command {
 			}
 		},
 	}
-	return cmd
 }

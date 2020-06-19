@@ -21,9 +21,10 @@ func compileCmd() *cobra.Command {
 			if len(args) > 0 {
 				contractPath = args[0]
 			}
-			ctx, err := contract.InitContext(themisContractHome())
+			ctx, err := contract.InitContext(flagHome)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to initialize context")
+				os.Exit(1)
 			}
 			c, err := contract.Load(contractPath, ctx)
 			if err != nil {

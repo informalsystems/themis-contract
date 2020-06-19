@@ -13,24 +13,20 @@ import (
 const defaultContractPath = "contract.dhall"
 
 var (
-	flagVerbose    bool
-	flagThemisHome string
+	flagVerbose bool
+	flagHome    string
 )
 
-func defaultThemisHome() (string, error) {
+func defaultThemisContractHome() (string, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return "", err
 	}
-	return path.Join(usr.HomeDir, ".themis"), nil
-}
-
-func themisContractHome() string {
-	return path.Join(flagThemisHome, "contract")
+	return path.Join(usr.HomeDir, ".themis", "contract"), nil
 }
 
 func rootCmd() (*cobra.Command, error) {
-	themisHome, err := defaultThemisHome()
+	home, err := defaultThemisContractHome()
 	if err != nil {
 		return nil, err
 	}
@@ -48,13 +44,14 @@ func rootCmd() (*cobra.Command, error) {
 		},
 	}
 	cmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "increase output logging verbosity")
-	cmd.PersistentFlags().StringVar(&flagThemisHome, "themis-home", themisHome, "path to the root of your Themis configuration directory")
+	cmd.PersistentFlags().StringVar(&flagHome, "home", home, "path to the root of your Themis Contract configuration directory")
 	cmd.AddCommand(
 		newCmd(),
 		compileCmd(),
 		listSignatoriesCmd(),
 		signCmd(),
 		updateCmd(),
+		profileCmd(),
 	)
 	return cmd, nil
 }

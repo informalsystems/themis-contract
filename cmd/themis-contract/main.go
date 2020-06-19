@@ -12,7 +12,7 @@ func main() {
 		os.Exit(1)
 	}
 	if err := cmd.Execute(); err != nil {
-		fmt.Printf("Failed to execute CLI: %e\n", err)
+		fmt.Printf("Failed to execute CLI: %s\n", err)
 		os.Exit(1)
 	}
 }
