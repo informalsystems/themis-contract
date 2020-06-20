@@ -30,12 +30,7 @@ func profileListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List existing profiles",
 		Run: func(cmd *cobra.Command, args []string) {
-			ctx, err := contract.InitContext(flagHome)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to initialize context")
-				os.Exit(1)
-			}
-			profiles, err := ctx.Profiles()
+			profiles, err := globalCtx.Profiles()
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to load profiles")
 				os.Exit(1)
@@ -59,16 +54,11 @@ func profileAddCmd() *cobra.Command {
 		Long:  "Add a new profile with the given name and optionally specify a signature ID to use for the profile",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ctx, err := contract.InitContext(flagHome)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to initialize context")
-				os.Exit(1)
-			}
 			sigID := ""
 			if len(args) > 1 {
 				sigID = args[1]
 			}
-			profile, err := ctx.AddProfile(args[0], sigID)
+			profile, err := globalCtx.AddProfile(args[0], sigID)
 			if err != nil {
 				log.Error().Msgf("Failed to add new profile: %s", err)
 				os.Exit(1)
@@ -85,12 +75,7 @@ func profileRemoveCmd() *cobra.Command {
 		Long:  "Remove the profile with the given ID",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ctx, err := contract.InitContext(flagHome)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to initialize context")
-				os.Exit(1)
-			}
-			if err := ctx.RemoveProfile(args[0]); err != nil {
+			if err := globalCtx.RemoveProfile(args[0]); err != nil {
 				log.Error().Msgf("Failed to remove profile \"%s\": %s", args[0], err)
 				os.Exit(1)
 			}
@@ -107,12 +92,7 @@ func profileRenameCmd() *cobra.Command {
 will automatically be derived from the name)`,
 		Args: cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			ctx, err := contract.InitContext(flagHome)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to initialize context")
-				os.Exit(1)
-			}
-			if err := ctx.RenameProfile(args[0], args[1]); err != nil {
+			if err := globalCtx.RenameProfile(args[0], args[1]); err != nil {
 				log.Error().Msgf("Failed to rename profile \"%s\": %s", args[0], err)
 				os.Exit(1)
 			}
@@ -130,17 +110,12 @@ func profileSetCmd() *cobra.Command {
 Valid profile parameter names include: %s`, strings.Join(contract.ValidProfileParamNames(), ",")),
 		Args: cobra.ExactArgs(3),
 		Run: func(cmd *cobra.Command, args []string) {
-			ctx, err := contract.InitContext(flagHome)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to initialize context")
-				os.Exit(1)
-			}
-			profile, err := ctx.GetProfileByID(args[0])
+			profile, err := globalCtx.GetProfileByID(args[0])
 			if err != nil {
 				log.Error().Msgf("Failed to load profile \"%s\": %s", args[0], err)
 				os.Exit(1)
 			}
-			if err := profile.SetParam(args[1], args[2], ctx); err != nil {
+			if err := profile.SetParam(args[1], args[2], globalCtx); err != nil {
 				log.Error().Msgf("Failed to set parameter \"%s\" for profile \"%s\": %s", args[1], args[0], err)
 				os.Exit(1)
 			}

@@ -19,13 +19,7 @@ func newCmd() *cobra.Command {
 			if len(args) > 1 {
 				contractPath = args[1]
 			}
-			ctx, err := contract.InitContext(flagHome)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to initialize context")
-				os.Exit(1)
-			}
-			_, err = contract.New(contractPath, args[0], ctx)
-			if err != nil {
+			if _, err := contract.New(contractPath, args[0], globalCtx); err != nil {
 				log.Error().Err(err).Msg("Failed to create new contract")
 				os.Exit(1)
 			}

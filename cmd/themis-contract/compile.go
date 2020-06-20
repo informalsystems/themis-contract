@@ -21,17 +21,12 @@ func compileCmd() *cobra.Command {
 			if len(args) > 0 {
 				contractPath = args[0]
 			}
-			ctx, err := contract.InitContext(flagHome)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to initialize context")
-				os.Exit(1)
-			}
-			c, err := contract.Load(contractPath, ctx)
+			c, err := contract.Load(contractPath, globalCtx)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to load contract")
 				os.Exit(1)
 			}
-			err = c.Compile(flagOutput, ctx)
+			err = c.Compile(flagOutput, globalCtx)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to compile contract")
 				os.Exit(1)

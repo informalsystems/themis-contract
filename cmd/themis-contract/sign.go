@@ -20,17 +20,12 @@ func signCmd() *cobra.Command {
 			if len(args) > 0 {
 				contractPath = args[0]
 			}
-			ctx, err := contract.InitContext(flagHome)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to initialize context")
-				os.Exit(1)
-			}
-			c, err := contract.Load(contractPath, ctx)
+			c, err := contract.Load(contractPath, globalCtx)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to load contract")
 				os.Exit(1)
 			}
-			err = c.Sign(flagSigId, ctx)
+			err = c.Sign(flagSigId, globalCtx)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to sign contract")
 				os.Exit(1)

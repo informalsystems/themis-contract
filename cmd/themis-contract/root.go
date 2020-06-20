@@ -5,6 +5,7 @@ import (
 	"os/user"
 	"path"
 
+	contract "github.com/informalsystems/themis-contract/pkg/themis-contract"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -15,6 +16,8 @@ const defaultContractPath = "contract.dhall"
 var (
 	flagVerbose bool
 	flagHome    string
+
+	globalCtx *contract.Context
 )
 
 func defaultThemisContractHome() (string, error) {
@@ -41,6 +44,12 @@ func rootCmd() (*cobra.Command, error) {
 			}
 			zerolog.SetGlobalLevel(level)
 			log.Debug().Msg("Increasing output verbosity to debug level")
+
+			globalCtx, err = contract.InitContext(flagHome)
+			if err != nil {
+				log.Error().Msgf("Failed to initialize context: %s", err)
+				os.Exit(1)
+			}
 		},
 	}
 	cmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "increase output logging verbosity")
@@ -52,6 +61,7 @@ func rootCmd() (*cobra.Command, error) {
 		signCmd(),
 		updateCmd(),
 		profileCmd(),
+		signatureCmd(),
 	)
 	return cmd, nil
 }
