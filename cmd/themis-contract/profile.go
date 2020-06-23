@@ -137,7 +137,7 @@ func profileSetCmd() *cobra.Command {
 		Short: "Set a profile parameter value",
 		Long: fmt.Sprintf(`Set a specific profile parameter to the given value
 
-Valid profile parameter names include: %s`, strings.Join(contract.ValidProfileParamNames(), ",")),
+Valid profile parameter names include: %s`, strings.Join(contract.ValidProfileParamNames(), ", ")),
 		Args: cobra.ExactArgs(3),
 		Run: func(cmd *cobra.Command, args []string) {
 			profile, err := globalCtx.GetProfileByID(args[0])

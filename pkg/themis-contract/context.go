@@ -151,7 +151,11 @@ func (ctx *Context) RenameProfile(srcID, destName string) error {
 // GetProfileByID is a shortcut method to load a profile from our current
 // context whose ID matches the given one.
 func (ctx *Context) GetProfileByID(id string) (*Profile, error) {
-	return loadProfile(path.Join(themisContractProfilesPath(ctx.home), id))
+	profile, exists := ctx.profileDB.profiles[id]
+	if !exists {
+		return nil, fmt.Errorf("profile with ID \"%s\" does not exist", id)
+	}
+	return profile, nil
 }
 
 // Signatures returns a list of signatures sorted by signature name.
@@ -162,6 +166,14 @@ func (ctx *Context) Signatures() ([]*Signature, error) {
 	}
 	sort.Sort(SignatureByName(result))
 	return result, nil
+}
+
+func (ctx *Context) GetSignatureByID(id string) (*Signature, error) {
+	sig, exists := ctx.sigDB.sigs[id]
+	if !exists {
+		return nil, fmt.Errorf("signature with ID \"%s\" does not exist", id)
+	}
+	return sig, nil
 }
 
 func (ctx *Context) AddSignature(name, email, sigImage string) (*Signature, error) {
@@ -195,5 +207,29 @@ func (ctx *Context) RenameSignature(srcID, destName string) error {
 			return fmt.Errorf("failed to update profile \"%s\": %s", profile.id, err)
 		}
 	}
+	return nil
+}
+
+func (ctx *Context) SetSignatureParam(sig *Signature, param, val string) error {
+	switch param {
+	case string(SignatureEmail):
+		sig.Email = val
+		return nil
+	case string(SignatureImage):
+		return ctx.setSignatureImage(sig, val)
+	}
+	return fmt.Errorf("unrecognized parameter \"%s\"", param)
+}
+
+func (ctx *Context) setSignatureImage(sig *Signature, newImagePath string) error {
+	if _, err := os.Stat(newImagePath); os.IsNotExist(err) {
+		return fmt.Errorf("no such file: %s", newImagePath)
+	}
+	imageBaseName := path.Base(newImagePath)
+	destImagePath := path.Join(path.Dir(sig.path), imageBaseName)
+	if err := copyFile(newImagePath, destImagePath); err != nil {
+		return fmt.Errorf("failed to copy new image to signature folder: %s", err)
+	}
+	sig.ImagePath = imageBaseName
 	return nil
 }

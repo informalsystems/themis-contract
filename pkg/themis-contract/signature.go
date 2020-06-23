@@ -12,6 +12,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type SignatureParameter string
+
+const (
+	SignatureEmail SignatureParameter = "email"
+	SignatureImage SignatureParameter = "image"
+)
+
 // Signature is what we apply to a contract to sign it.
 // TODO: Investigate GPG-based signing.
 type Signature struct {
@@ -91,7 +98,7 @@ func (db *SignatureDB) newSignature(name, email, sigImage string) (*Signature, e
 		id:        id,
 		path:      sigPath,
 	}
-	if err := sig.save(); err != nil {
+	if err := sig.Save(); err != nil {
 		return nil, fmt.Errorf("failed to save signature: %s", err)
 	}
 	db.sigs[id] = sig
@@ -131,7 +138,7 @@ func (db *SignatureDB) rename(srcID, destName string) (string, error) {
 	sig.id = destID
 	sig.Name = destName
 	sig.path = destPath
-	if err := sig.save(); err != nil {
+	if err := sig.Save(); err != nil {
 		return "", err
 	}
 	return destID, nil
@@ -142,6 +149,13 @@ func (db *SignatureDB) rename(srcID, destName string) (string, error) {
 // Signature-related functionality
 //
 //------------------------------------------------------------------------------
+
+func ValidSignatureParamNames() []string {
+	return []string{
+		string(SignatureEmail),
+		string(SignatureImage),
+	}
+}
 
 // loadSignature will attempt to load information relating to the signature
 // located at the given filesystem path.
@@ -168,7 +182,7 @@ func loadSignature(sigPath string) (*Signature, error) {
 	return &sig, nil
 }
 
-func (s *Signature) save() error {
+func (s *Signature) Save() error {
 	content, err := json.Marshal(s)
 	if err != nil {
 		return fmt.Errorf("failed to convert signature \"%s\" to JSON: %s", s.id, err)

@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
+	contract "github.com/informalsystems/themis-contract/pkg/themis-contract"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +21,7 @@ func signatureCmd() *cobra.Command {
 		signatureAddCmd(),
 		signatureRemoveCmd(),
 		signatureRenameCmd(),
-		//signatureSetCmd(),
+		signatureSetCmd(),
 	)
 	return cmd
 }
@@ -95,6 +98,33 @@ will automatically be derived from the name)`,
 				os.Exit(1)
 			}
 			log.Info().Msgf("Successfully renamed signature with ID \"%s\" to \"%s\"", args[0], args[1])
+		},
+	}
+}
+
+func signatureSetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "set [id] [param] [value]",
+		Short: "Set a signature parameter value",
+		Long: fmt.Sprintf(`Set a specific signature parameter to the given value
+
+Valid signature parameter names include: %s`, strings.Join(contract.ValidSignatureParamNames(), ", ")),
+		Args: cobra.ExactArgs(3),
+		Run: func(cmd *cobra.Command, args []string) {
+			sig, err := globalCtx.GetSignatureByID(args[0])
+			if err != nil {
+				log.Error().Msgf("Failed to load signature \"%s\": %s", args[0], err)
+				os.Exit(1)
+			}
+			if err := globalCtx.SetSignatureParam(sig, args[1], args[2]); err != nil {
+				log.Error().Msgf("Failed to set parameter \"%s\" for signature \"%s\": %s", args[1], args[0], err)
+				os.Exit(1)
+			}
+			if err := sig.Save(); err != nil {
+				log.Error().Msgf("Failed to save signature \"%s\": %s", args[0], err)
+				os.Exit(1)
+			}
+			log.Info().Msgf("Successfully updated signature \"%s\"", sig.Name)
 		},
 	}
 }
