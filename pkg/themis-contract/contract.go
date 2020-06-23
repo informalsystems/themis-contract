@@ -22,12 +22,26 @@ import (
 // FileType indicates the file type of a contract.
 type FileType string
 
-// TODO: Look into (more generically) supporting a shell script as a contract type, with its output interpreted as JSON.
 const (
 	DhallType FileType = "dhall"
 	JSONType  FileType = "json"
 	YAMLType  FileType = "yaml"
 	TOMLType  FileType = "toml"
+)
+
+const (
+	gitMsgNewContract string = `Add new contract
+
+Add contract derived from upstream at {{.Upstream.Location}}`
+
+	gitMsgUpdateContract string = `Update contract
+
+Update contract with upstream at {{.Upstream.Location}} (hash {{.Upstream.Hash}}) and Template at {{.Template.File.Location}} (hash {{.Template.File.Hash}})`
+
+	gitMsgSignContract string = `Sign contract
+
+Sign the contract {{.ContractFile}} with hash {{.ContractHash}} (signatory e-mail: {{.Email}})
+`
 )
 
 // Contract encapsulates all of the relevant data we need in order to deal with
@@ -61,6 +75,20 @@ func New(contractPath, upstreamLoc string, ctx *Context) (*Contract, error) {
 	contract, err := upstream.deriveTo(contractPath, ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if ctx.autoCommit {
+		if !isGitRepo(contractPath) {
+			log.Info().Msgf("Initializing Git repository in contract folder: %s", contractPath)
+			if err := gitInit(contractPath); err != nil {
+				return nil, fmt.Errorf("failed to initialize Git repository in contract folder: %s", err)
+			}
+		} else {
+			log.Info().Msgf("Contract folder %s is already within a Git repository", contractPath)
+		}
+		if err := gitAddAndCommit(contractPath, contract.allLocalRelativeFiles(), gitMsgNewContract, contract); err != nil {
+			return nil, fmt.Errorf("failed to auto-commit change to contract repo: %s", err)
+		}
 	}
 
 	return contract, nil
@@ -143,7 +171,19 @@ func Update(loc string, ctx *Context) error {
 		return err
 	}
 	// all we need to do now is save the updated details we've loaded
-	return contract.Save(ctx)
+	if err := contract.Save(ctx); err != nil {
+		return err
+	}
+
+	if ctx.autoCommit {
+		contractDir := path.Dir(contract.path.localPath)
+		log.Debug().Msgf("Git auto-commit is on. Attempting to commit changes to %s", contractDir)
+		if err := gitAddAndCommit(contractDir, contract.allLocalRelativeFiles(), gitMsgUpdateContract, contract); err != nil {
+			return fmt.Errorf("failed to auto-commit change to contract repo: %s", err)
+		}
+	}
+
+	return nil
 }
 
 // Path returns the file reference for this contract.
@@ -175,14 +215,14 @@ func (c *Contract) deriveTo(destPath string, ctx *Context) (*Contract, error) {
 	// generate the destination contract
 	dest := &Contract{
 		ParamsFile: &FileRef{
-			Location:  path.Join(".", c.ParamsFile.Filename()),
+			Location:  c.ParamsFile.Filename(),
 			Hash:      c.ParamsFile.Hash,
 			localPath: destParamsFile,
 		},
 		Template: &Template{
 			Format: c.Template.Format,
 			File: &FileRef{
-				Location:  path.Join(".", c.Template.File.Filename()),
+				Location:  c.Template.File.Filename(),
 				Hash:      c.Template.File.Hash,
 				localPath: destTemplateFile,
 			},
@@ -252,7 +292,10 @@ func (c *Contract) Save(ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(c.path.localPath, content, 0644)
+	if err := ioutil.WriteFile(c.path.localPath, content, 0644); err != nil {
+		return fmt.Errorf("failed to write contract to %s", c.path.localPath)
+	}
+	return nil
 }
 
 // Compile takes a parsed contract and attempts to generate the output artifact
@@ -339,7 +382,27 @@ func (c *Contract) Sign(signatoryId string, ctx *Context) error {
 		}
 	}
 	// apply the signature to our contract on behalf of the given signatory
-	return signature.applyTo(c.path.localPath, signatory.Id)
+	sigImagePath, err := signature.applyTo(c.path.localPath, signatory.Id)
+	if err != nil {
+		return fmt.Errorf("failed to apply signature \"%s\" to contract: %s", signature.id, err)
+	}
+	if ctx.autoCommit {
+		contractDir := path.Dir(c.path.localPath)
+		commitFiles := []string{path.Base(c.path.localPath), path.Base(sigImagePath)}
+		commitCtx := struct {
+			Email        string
+			ContractFile string
+			ContractHash string
+		}{
+			Email:        signatory.Email,
+			ContractFile: commitFiles[0],
+			ContractHash: c.path.Hash,
+		}
+		if err := gitAddAndCommit(contractDir, commitFiles, gitMsgSignContract, &commitCtx); err != nil {
+			return fmt.Errorf("failed to automatically commit signing action to contract Git repository: %s", err)
+		}
+	}
+	return nil
 }
 
 func (c *Contract) FindSignatoryByEmail(email string) *Signatory {
@@ -366,6 +429,14 @@ func (c *Contract) Signatories() []*Signatory {
 
 func (c *Contract) String() string {
 	return fmt.Sprintf("Contract{ParamsFile: %v, Template: %v, Upstream: %v}", c.ParamsFile, c.Template, c.Upstream)
+}
+
+func (c *Contract) allLocalRelativeFiles() []string {
+	return []string{
+		path.Base(c.path.localPath),
+		path.Base(c.ParamsFile.localPath),
+		path.Base(c.Template.File.localPath),
+	}
 }
 
 func parseFileRefAsContract(ref *FileRef) (*Contract, error) {

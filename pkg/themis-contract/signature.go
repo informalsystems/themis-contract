@@ -195,12 +195,15 @@ func (s *Signature) Save() error {
 
 // applyTo will attempt to apply this signature to the contract in the specified
 // path (assuming it's the full path to the contract file) on behalf of the
-// specified signatory ID.
-// TODO: Implement Git commit here with current hash of contract.
-func (s *Signature) applyTo(contractPath string, sigId string) error {
+// specified signatory ID. On success, returns the path to the image we've just
+// copied across.
+func (s *Signature) applyTo(contractPath string, sigId string) (string, error) {
 	sigImagePath := path.Join(path.Base(contractPath), sigImageFilename(sigId))
 	log.Debug().Msgf("Copying signature file from %s to %s", s.ImagePath, sigImagePath)
-	return copyFile(path.Join(s.path, s.ImagePath), sigImagePath)
+	if err := copyFile(path.Join(s.path, s.ImagePath), sigImagePath); err != nil {
+		return "", fmt.Errorf("failed to copy signature from %s to %s: %s", s.ImagePath, sigImagePath, err)
+	}
+	return sigImagePath, nil
 }
 
 func (s *Signature) String() string {

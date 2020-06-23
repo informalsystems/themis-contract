@@ -14,8 +14,9 @@ import (
 const defaultContractPath = "contract.dhall"
 
 var (
-	flagVerbose bool
-	flagHome    string
+	flagVerbose      bool
+	flagHome         string
+	flagNoAutoCommit bool
 
 	globalCtx *contract.Context
 )
@@ -45,13 +46,14 @@ func rootCmd() (*cobra.Command, error) {
 			zerolog.SetGlobalLevel(level)
 			log.Debug().Msg("Increasing output verbosity to debug level")
 
-			globalCtx, err = contract.InitContext(flagHome)
+			globalCtx, err = contract.InitContext(flagHome, !flagNoAutoCommit)
 			if err != nil {
 				log.Error().Msgf("Failed to initialize context: %s", err)
 				os.Exit(1)
 			}
 		},
 	}
+	cmd.PersistentFlags().BoolVar(&flagNoAutoCommit, "no-auto-commit", false, "do not attempt to automatically commit changes to contracts to their parent Git repository")
 	cmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "increase output logging verbosity")
 	cmd.PersistentFlags().StringVar(&flagHome, "home", home, "path to the root of your Themis Contract configuration directory")
 	cmd.AddCommand(

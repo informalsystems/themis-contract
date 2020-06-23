@@ -1,11 +1,13 @@
 package themis_contract
 
 import (
+	"bytes"
 	"fmt"
 	"net/url"
 	"os/exec"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/rs/zerolog/log"
 )
@@ -16,6 +18,9 @@ const (
 	ProtoSSH   GitURLProto = "git"
 	ProtoHTTPS GitURLProto = "https"
 )
+
+// The number of characters at which to wrap Git commit messages.
+const gitCommitMessageWrap int = 80
 
 const gitURLRegexp = "(?P<proto>[a-z+]+)://(?P<host>[a-z0-9.-]+)[:/](?P<path>[a-zA-Z0-9 ./-]+)(#(?P<fragment>[a-zA-Z0-9/.-]+))?"
 
@@ -138,6 +143,50 @@ func gitFetchAndCheckout(repoURL, localPath, ref string) error {
 	log.Debug().Msgf("git checkout output:\n%s\n", string(output))
 	if err != nil {
 		return fmt.Errorf("failed to checkout \"%s\" for Git repository %s: %v", ref, repoURL, err)
+	}
+	return nil
+}
+
+func isGitRepo(repoPath string) bool {
+	cmd := exec.Command("git", "status")
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	log.Debug().Msgf("git status output:\n%s\n", string(output))
+	return err == nil
+}
+
+func gitInit(repoPath string) error {
+	cmd := exec.Command("git", "init")
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	log.Debug().Msgf("git init output:\n%s\n", string(output))
+	return err
+}
+
+func gitAddAndCommit(workDir string, commitSpecs []string, rawTemplate string, templateCtx interface{}) error {
+	log.Debug().Msgf("Attempting to add %v in \"%s\" to Git repo with commit message template:\n%s\n", workDir, commitSpecs, rawTemplate)
+	tpl, err := template.New("git-commit").Parse(rawTemplate)
+	if err != nil {
+		return fmt.Errorf("failed to parse Git commit template: %s", err)
+	}
+	var buf bytes.Buffer
+	log.Debug().Msgf("Rendering template with context: %v", templateCtx)
+	if err := tpl.Execute(&buf, templateCtx); err != nil {
+		return fmt.Errorf("failed to render Git commit template: %s", err)
+	}
+	cmd := exec.Command("git", append([]string{"add"}, commitSpecs...)...)
+	cmd.Dir = workDir
+	output, err := cmd.CombinedOutput()
+	log.Debug().Msgf("git add output:\n%s\n", string(output))
+	if err != nil {
+		return fmt.Errorf("failed to add %v to Git repo in \"%s\": %s", commitSpecs, workDir, err)
+	}
+	cmd = exec.Command("git", "commit", "-m", wordWrapString(buf.String(), gitCommitMessageWrap))
+	cmd.Dir = workDir
+	output, err = cmd.CombinedOutput()
+	log.Debug().Msgf("git commit output:\n%s\n", string(output))
+	if err != nil {
+		return fmt.Errorf("failed to commit changes to Git repo in \"%s\": %s", workDir, err)
 	}
 	return nil
 }
