@@ -83,6 +83,9 @@ func (ctx *Context) UseProfile(id string) (*Profile, error) {
 // profile.
 func (ctx *Context) CurSignature() (*Signature, error) {
 	activeProfile := ctx.ActiveProfile()
+	if len(activeProfile.SignatureID) == 0 {
+		return nil, fmt.Errorf("no signature associated with current profile (\"%s\")", activeProfile.id)
+	}
 	sig, ok := ctx.sigDB.sigs[activeProfile.SignatureID]
 	if !ok {
 		return nil, fmt.Errorf("cannot find signatory with ID \"%s\" for profile \"%s\"", activeProfile.SignatureID, activeProfile.id)

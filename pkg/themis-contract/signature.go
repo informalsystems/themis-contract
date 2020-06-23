@@ -198,12 +198,13 @@ func (s *Signature) Save() error {
 // specified signatory ID. On success, returns the path to the image we've just
 // copied across.
 func (s *Signature) applyTo(contractPath string, sigId string) (string, error) {
-	sigImagePath := path.Join(path.Base(contractPath), sigImageFilename(sigId))
-	log.Debug().Msgf("Copying signature file from %s to %s", s.ImagePath, sigImagePath)
-	if err := copyFile(path.Join(s.path, s.ImagePath), sigImagePath); err != nil {
-		return "", fmt.Errorf("failed to copy signature from %s to %s: %s", s.ImagePath, sigImagePath, err)
+	sigImageSrcPath := path.Join(s.path, s.ImagePath)
+	sigImageDestPath := path.Join(path.Dir(contractPath), sigImageFilename(sigId))
+	log.Debug().Msgf("Copying signature file from %s to %s", sigImageSrcPath, sigImageDestPath)
+	if err := copyFile(sigImageSrcPath, sigImageDestPath); err != nil {
+		return "", fmt.Errorf("failed to copy signature from %s to %s: %s", sigImageSrcPath, sigImageDestPath, err)
 	}
-	return sigImagePath, nil
+	return sigImageDestPath, nil
 }
 
 func (s *Signature) String() string {

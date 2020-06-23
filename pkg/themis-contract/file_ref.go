@@ -193,7 +193,7 @@ func (r *FileRef) LocalRelPath(base string) (string, error) {
 }
 
 func (r *FileRef) String() string {
-	return fmt.Sprintf("FileRef{Location: \"%s\", Hash: \"%s\"}", r.Location, r.Hash)
+	return fmt.Sprintf("FileRef{Location: \"%s\", Hash: \"%s\", localPath: \"%s\"}", r.Location, r.Hash, r.localPath)
 }
 
 func hashOfFile(path string) (string, error) {

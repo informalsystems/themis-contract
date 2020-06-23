@@ -178,10 +178,8 @@ func gitAddAndCommit(workDir string, commitSpecs []string, rawTemplate string, t
 	cmd.Dir = workDir
 	output, err := cmd.CombinedOutput()
 	log.Debug().Msgf("git add output:\n%s\n", string(output))
-	if err != nil {
-		return fmt.Errorf("failed to add %v to Git repo in \"%s\": %s", commitSpecs, workDir, err)
-	}
-	cmd = exec.Command("git", "commit", "-m", wordWrapString(buf.String(), gitCommitMessageWrap))
+	// we ignore the status of the "add" command because we allow empty commits here
+	cmd = exec.Command("git", "commit", "--allow-empty", "-m", wordWrapString(buf.String(), gitCommitMessageWrap))
 	cmd.Dir = workDir
 	output, err = cmd.CombinedOutput()
 	log.Debug().Msgf("git commit output:\n%s\n", string(output))

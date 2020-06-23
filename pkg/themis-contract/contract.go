@@ -104,6 +104,7 @@ func Load(loc string, ctx *Context) (*Contract, error) {
 	if err != nil {
 		return nil, err
 	}
+	log.Debug().Msgf("Loaded contract components: %v", contract)
 
 	// parse the parameters file
 	contract.params, err = readContractParams(contract.ParamsFile.localPath)
@@ -428,7 +429,7 @@ func (c *Contract) Signatories() []*Signatory {
 }
 
 func (c *Contract) String() string {
-	return fmt.Sprintf("Contract{ParamsFile: %v, Template: %v, Upstream: %v}", c.ParamsFile, c.Template, c.Upstream)
+	return fmt.Sprintf("Contract{ParamsFile: %v, Template: %v, Upstream: %v, path: %v}", c.ParamsFile, c.Template, c.Upstream, c.path)
 }
 
 func (c *Contract) allLocalRelativeFiles() []string {
