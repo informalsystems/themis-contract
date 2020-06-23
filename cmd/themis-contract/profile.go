@@ -13,10 +13,11 @@ import (
 func profileCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "profile",
-		Short: "Profile management",
+		Short: "ActiveProfile management",
 	}
 	cmd.AddCommand(
 		profileListCmd(),
+		profileUseCmd(),
 		profileAddCmd(),
 		profileRemoveCmd(),
 		profileRenameCmd(),
@@ -27,22 +28,40 @@ func profileCmd() *cobra.Command {
 
 func profileListCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "list",
+		Use:   "ls",
 		Short: "List existing profiles",
 		Run: func(cmd *cobra.Command, args []string) {
-			profiles, err := globalCtx.Profiles()
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to load profiles")
-				os.Exit(1)
-			}
+			profiles := globalCtx.Profiles()
 			if len(profiles) == 0 {
-				log.Info().Msgf("No profiles configured yet")
+				log.Info().Msgf("No profiles configured yet. Use \"themis-contract profile add\" to add one.")
 				return
 			}
+			activeProfile := globalCtx.ActiveProfile()
 			log.Info().Msgf("%d profile(s) available:", len(profiles))
 			for _, profile := range profiles {
-				log.Info().Msgf("- %s", profile.Display())
+				act := "  "
+				if activeProfile.Id() == profile.Id() {
+					act = "> "
+				}
+				log.Info().Msgf("%s%s", act, profile.Display())
 			}
+		},
+	}
+}
+
+func profileUseCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "use [id]",
+		Short: "Switch to using a specific profile",
+		Long:  "Switch to using the profile with the specified ID",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			profile, err := globalCtx.UseProfile(args[0])
+			if err != nil {
+				log.Error().Msgf("Failed to switch to profile \"%s\": %s", args[0], err)
+				os.Exit(1)
+			}
+			log.Info().Msgf("Switched to profile: %s", profile.Display())
 		},
 	}
 }
@@ -64,6 +83,13 @@ func profileAddCmd() *cobra.Command {
 				os.Exit(1)
 			}
 			log.Info().Msgf("Added profile: %s", profile.Display())
+			// if we only have one new profile now, try to make it the default
+			if len(globalCtx.Profiles()) == 1 {
+				log.Info().Msgf("Automatically choosing profile \"%s\" as currently active, since it's the only profile", profile.Id())
+				if _, err := globalCtx.UseProfile(profile.Id()); err != nil {
+					log.Error().Msgf("Failed to select profile \"%s\" as active: %s", profile.Id(), err)
+				}
+			}
 		},
 	}
 }
@@ -115,7 +141,7 @@ Valid profile parameter names include: %s`, strings.Join(contract.ValidProfilePa
 				log.Error().Msgf("Failed to load profile \"%s\": %s", args[0], err)
 				os.Exit(1)
 			}
-			if err := profile.SetParam(args[1], args[2], globalCtx); err != nil {
+			if err := globalCtx.SetProfileParam(profile, args[1], args[2]); err != nil {
 				log.Error().Msgf("Failed to set parameter \"%s\" for profile \"%s\": %s", args[1], args[0], err)
 				os.Exit(1)
 			}
@@ -123,6 +149,7 @@ Valid profile parameter names include: %s`, strings.Join(contract.ValidProfilePa
 				log.Error().Msgf("Failed to save profile \"%s\": %s", args[0], err)
 				os.Exit(1)
 			}
+			log.Info().Msgf("Successfully updated profile \"%s\"", profile.Name)
 		},
 	}
 }

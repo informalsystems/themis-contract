@@ -4,14 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path"
+	"sort"
 
 	"github.com/rs/zerolog/log"
 )
-
-const DefaultProfileId string = "default"
 
 type ProfileParameter string
 
@@ -19,38 +17,178 @@ const (
 	ProfileSignatureID ProfileParameter = "signature-id"
 )
 
-// Profile is a way of naming and differentiating between rendering
+// ProfileDB allows us to manage our local database of profiles.
+type ProfileDB struct {
+	ActiveProfileID string `json:"active_profile_id"` // The ID of the profile currently active. Can be empty if none active.
+
+	activeProfile *Profile            // The profile represented by ActiveProfileID.
+	profiles      map[string]*Profile // The profiles we've loaded from the file system.
+	configPath    string              // The path to the database's configuration file.
+	profilesPath  string              // The path to the root of where to find all of the profiles.
+}
+
+// ActiveProfile is a way of naming and differentiating between rendering
 // configurations used when rendering contracts.
 type Profile struct {
 	Name        string `json:"name"`                   // A short, descriptive name for the profile.
 	SignatureID string `json:"signature_id,omitempty"` // The ID of the signature to use when signing using this profile.
 
-	id   string // A unique ID for this profile.
-	path string // The local filesystem path to this profile's folder.
+	id     string // A unique ID for this profile.
+	path   string // The local filesystem path to this profile's folder.
+	active bool   // Is this our currently active profile?
 }
 
-// ProfileConfig provides overall configuration relating to profile management.
-type ProfileConfig struct {
-	ActiveProfile string `json:"active_profile"` // The ID of the profile currently active.
-}
+type ProfileByName []*Profile
 
-// GetCurProfile loads the currently selected profile from the given home
-// directory for Themis Contract (usually `~/.themis/contract`).
-func GetCurProfile(home string) (*Profile, error) {
+var _ sort.Interface = ProfileByName{}
+
+//------------------------------------------------------------------------------
+//
+// Profile database-related functionality
+//
+//------------------------------------------------------------------------------
+
+// loadProfileDB will load all profiles located within the given Themis Contract
+// home directory (usually `~/.themis/contract`). It also detects which of the
+// profiles is currently our active profile.
+func loadProfileDB(home string) (*ProfileDB, error) {
 	profilesHome := themisContractProfilesPath(home)
-	cfgRaw, err := ioutil.ReadFile(path.Join(profilesHome, "config.json"))
+	if err := os.MkdirAll(profilesHome, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create profiles home directory \"%s\": %s", profilesHome, err)
+	}
+	profileDBConfigPath := path.Join(profilesHome, "config.json")
+	if _, err := os.Stat(profileDBConfigPath); os.IsNotExist(err) {
+		log.Debug().Msgf("No profile configuration file present at %s - creating", profileDBConfigPath)
+		if err := ensureProfileConfig(profilesHome); err != nil {
+			return nil, err
+		}
+	}
+	configJSON, err := ioutil.ReadFile(profileDBConfigPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load profile database configuration file at %s: %s", profileDBConfigPath, err)
 	}
-	cfg := &ProfileConfig{}
-	if err := json.Unmarshal(cfgRaw, cfg); err != nil {
-		return nil, err
+	db := &ProfileDB{}
+	if err := json.Unmarshal(configJSON, db); err != nil {
+		return nil, fmt.Errorf("failed to interpret profile database configuration file %s: %s", profileDBConfigPath, err)
 	}
-	return LoadProfile(path.Join(profilesHome, cfg.ActiveProfile))
+	log.Debug().Msgf("Successfully loaded profile database configuration: %v", db)
+	// load all of the profiles
+	db.profiles, err = loadAllProfiles(profilesHome)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load profiles: %s", err)
+	}
+	if len(db.ActiveProfileID) > 0 {
+		var exists bool
+		db.activeProfile, exists = db.profiles[db.ActiveProfileID]
+		if !exists {
+			return nil, fmt.Errorf("cannot find active profile with ID \"%s\"", db.ActiveProfileID)
+		}
+		db.activeProfile.active = true
+	}
+	db.configPath = profileDBConfigPath
+	db.profilesPath = profilesHome
+	return db, nil
 }
 
-// LoadProfile will load the profile from the given profile path.
-func LoadProfile(profilePath string) (*Profile, error) {
+func (db *ProfileDB) setActiveProfile(id string) (*Profile, error) {
+	profile, exists := db.profiles[id]
+	if !exists {
+		return nil, fmt.Errorf("no such profile with ID \"%s\"", id)
+	}
+	if len(db.ActiveProfileID) > 0 {
+		db.profiles[db.ActiveProfileID].active = false
+	}
+	profile.active = true
+	db.ActiveProfileID = id
+	db.activeProfile = profile
+	if err := db.save(); err != nil {
+		return nil, fmt.Errorf("failed to update active profile selection: %s", err)
+	}
+	return profile, nil
+}
+
+// sortedProfiles returns a list of all of our current profiles sorted by name.
+func (db *ProfileDB) sortedProfiles() []*Profile {
+	result := make([]*Profile, 0)
+	for _, profile := range db.profiles {
+		result = append(result, profile)
+	}
+	sort.Sort(ProfileByName(result))
+	return result
+}
+
+func (db *ProfileDB) profilesWithSignatureID(id string) []*Profile {
+	profiles := make([]*Profile, 0)
+	for _, profile := range db.profiles {
+		if profile.SignatureID == id {
+			profiles = append(profiles, profile)
+		}
+	}
+	return profiles
+}
+
+// remove will attempt to remove the profile with the given ID.
+func (db *ProfileDB) remove(id string) error {
+	profile, exists := db.profiles[id]
+	if !exists {
+		return fmt.Errorf("profile with ID \"%s\" does not exist", id)
+	}
+	delete(db.profiles, id)
+	if db.ActiveProfileID == id {
+		log.Warn().Msgf("Deleting currently active profile \"%s\"", id)
+		db.ActiveProfileID = ""
+		if err := db.save(); err != nil {
+			return fmt.Errorf("failed to update local profile database configuration: %s", err)
+		}
+	}
+	if err := os.RemoveAll(profile.path); err != nil {
+		return fmt.Errorf("failed to remove profile directory at %s: %s", profile.path, err)
+	}
+	log.Debug().Msgf("Deleted profile in path: %s", profile.path)
+	return nil
+}
+
+func (db *ProfileDB) rename(srcID, destName string) error {
+	destID, err := slugify(destName)
+	if err != nil {
+		return fmt.Errorf("cannot name profile \"%s\": %s", destName, err)
+	}
+	profile, exists := db.profiles[srcID]
+	if !exists {
+		return fmt.Errorf("cannot find profile with ID \"%s\"", srcID)
+	}
+	if _, exists := db.profiles[destID]; exists {
+		return fmt.Errorf("desired destination profile with ID \"%s\" already exists", destID)
+	}
+	oldPath := profile.path
+	profile.id = destID
+	profile.path = path.Join(db.profilesPath, destID)
+	profile.Name = destName
+
+	// rename the folder
+	if err := os.Rename(oldPath, profile.path); err != nil {
+		return fmt.Errorf("failed to rename folder %s to %s: %s", oldPath, profile.path, err)
+	}
+	log.Debug().Msgf("Moved folder %s to %s", oldPath, profile.path)
+	return profile.Save()
+}
+
+func (db *ProfileDB) save() error {
+	content, err := json.Marshal(db)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(db.configPath, content, 0644)
+}
+
+//------------------------------------------------------------------------------
+//
+// Profile-related functionality
+//
+//------------------------------------------------------------------------------
+
+// loadProfile will load the profile from the given profile path.
+func loadProfile(profilePath string) (*Profile, error) {
 	if _, err := os.Stat(profilePath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("profile does not exist at %s", profilePath)
 	}
@@ -68,6 +206,30 @@ func LoadProfile(profilePath string) (*Profile, error) {
 	profile.id = id
 	profile.path = profilePath
 	return &profile, nil
+}
+
+// newProfile will attempt to create a new profile with the given name and
+// optionally associate it with a signature ID. If `sigID` is blank ("") then
+// no signature ID will be associated with the profile yet.
+func newProfile(name, sigID, profilesHome string) (*Profile, error) {
+	id, err := slugify(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate ID for profile \"%s\": %s", name, err)
+	}
+	profilePath := path.Join(profilesHome, id)
+	if _, err := os.Stat(profilePath); !os.IsNotExist(err) {
+		return nil, fmt.Errorf("profile with ID \"%s\" already exists at %s", id, profilePath)
+	}
+	profile := &Profile{
+		Name:        name,
+		SignatureID: sigID,
+		id:          id,
+		path:        profilePath,
+	}
+	if err := profile.Save(); err != nil {
+		return nil, err
+	}
+	return profile, nil
 }
 
 func ValidProfileParamNames() []string {
@@ -89,16 +251,8 @@ func (p *Profile) Save() error {
 	return ioutil.WriteFile(outputFile, content, 0644)
 }
 
-func (p *Profile) SetParam(param string, val string, ctx *Context) error {
-	switch param {
-	case string(ProfileSignatureID):
-		return p.setSignatureID(val, ctx)
-	}
-	return fmt.Errorf("unrecognized parameter \"%s\"", param)
-}
-
 func (p *Profile) String() string {
-	return fmt.Sprintf("Profile{id: \"%s\", path: \"%s\"}", p.id, p.path)
+	return fmt.Sprintf("ActiveProfile{id: \"%s\", path: \"%s\"}", p.id, p.path)
 }
 
 // Display shows a more human-readable description of the profile than String()
@@ -119,98 +273,65 @@ func (p *Profile) Path() string {
 	return p.path
 }
 
-func (p *Profile) setSignatureID(sigID string, ctx *Context) error {
-	if _, exists := ctx.sigDB.sigs[sigID]; !exists {
-		return fmt.Errorf("signature with ID \"%s\" does not exist", sigID)
-	}
-	p.SignatureID = sigID
-	return nil
+//------------------------------------------------------------------------------
+//
+// ActiveProfile sorting
+//
+//------------------------------------------------------------------------------
+
+func (p ProfileByName) Len() int { return len(p) }
+
+func (p ProfileByName) Swap(i, j int) {
+	t := p[i]
+	p[i] = p[j]
+	p[j] = t
 }
 
-func LoadProfileConfig(filename string) (*ProfileConfig, error) {
-	content, err := ioutil.ReadFile(filename)
+func (p ProfileByName) Less(i, j int) bool { return p[i].Name < p[j].Name }
+
+//------------------------------------------------------------------------------
+//
+// Helper methods
+//
+//------------------------------------------------------------------------------
+
+func loadAllProfiles(profilesPath string) (map[string]*Profile, error) {
+	files, err := ioutil.ReadDir(profilesPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to list profiles in profiles directory \"%s\": %s", profilesPath, err)
 	}
-	var config ProfileConfig
-	if err := json.Unmarshal(content, &config); err != nil {
-		return nil, err
+	profiles := make(map[string]*Profile)
+	for _, fi := range files {
+		if !fi.IsDir() {
+			continue
+		}
+		profilePath := path.Join(profilesPath, fi.Name())
+		profile, err := loadProfile(profilePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load profile at path \"%s\": %s", profilePath, err)
+		}
+		profiles[profile.id] = profile
 	}
-	return &config, nil
+	return profiles, nil
 }
 
-func (c *ProfileConfig) Save(output string) error {
-	content, err := json.Marshal(c)
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(output, content, 0644)
-}
-
-func initProfiles(home string, fs http.FileSystem) error {
+func initProfiles(home string) error {
 	log.Debug().Msgf("Initializing profiles in %s", home)
 	// create all the directories we need
 	profilesHome := themisContractProfilesPath(home)
-	defaultProfilePath := path.Join(profilesHome, DefaultProfileId)
-	for _, dir := range []string{profilesHome, defaultProfilePath} {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("failed to initialize Themis Contract profile directory \"%s\": %s", dir, err)
-		}
-		log.Debug().Msgf("Themis Contract profile directory exists: %s", dir)
-	}
-	if err := ensureDefaultProfile(home); err != nil {
-		return err
-	}
-	if err := ensureProfileConfig(home); err != nil {
-		return err
-	}
-	profileConfigPath := path.Join(profilesHome, "config.json")
-	profileConfig, err := LoadProfileConfig(profileConfigPath)
-	if err != nil {
-		return fmt.Errorf("failed to load profile configuration: %s", err)
-	}
-	profilePath := path.Join(profilesHome, profileConfig.ActiveProfile)
-	if _, err := os.Stat(profilePath); os.IsNotExist(err) {
-		return fmt.Errorf("currently active profile \"%s\" (configured in %s) does not exist", profileConfig.ActiveProfile, profileConfigPath)
-	}
-
-	// initialize the Pandoc configuration for the currently active profile
-	pandocFiles := []string{
-		"/pandoc/pandoc-defaults.yaml",
-		"/pandoc/header-includes.tex",
-		"/pandoc/include-before.tex",
-	}
-	if err := copyStaticResources(pandocFiles, profilePath, false, fs); err != nil {
-		return err
-	}
-	return nil
+	return os.MkdirAll(profilesHome, 0755)
 }
 
-func ensureProfileConfig(home string) error {
-	profileConfigPath := path.Join(themisContractProfilesPath(home), "config.json")
+func ensureProfileConfig(profileHome string) error {
+	profileConfigPath := path.Join(profileHome, "config.json")
 	if _, err := os.Stat(profileConfigPath); !os.IsNotExist(err) {
 		return nil
 	}
-	defProfileConfig := &ProfileConfig{ActiveProfile: DefaultProfileId}
-	return defProfileConfig.Save(profileConfigPath)
-}
-
-func ensureDefaultProfile(home string) error {
-	defProfilePath := path.Join(themisContractProfilesPath(home), DefaultProfileId)
-	if err := os.MkdirAll(defProfilePath, 0755); err != nil {
-		return fmt.Errorf("failed to create default profile at %s: %s", defProfilePath, err)
+	log.Debug().Msgf("No profile configuration exists at %s - creating now", profileConfigPath)
+	defProfileConfig := &ProfileDB{
+		configPath: profileConfigPath,
 	}
-	defProfileMetaPath := path.Join(defProfilePath, "meta.json")
-	if _, err := os.Stat(defProfileMetaPath); !os.IsNotExist(err) {
-		log.Debug().Msgf("Default profile metadata file already exists at %s", defProfileMetaPath)
-		return nil
-	}
-	defProfile := &Profile{
-		Name: "Default",
-		id:   DefaultProfileId,
-		path: defProfilePath,
-	}
-	return defProfile.Save()
+	return defProfileConfig.save()
 }
 
 func themisContractProfilesPath(home string) string {

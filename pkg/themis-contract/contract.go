@@ -270,7 +270,7 @@ func (c *Contract) Compile(output string, ctx *Context) error {
 	defer os.RemoveAll(tempDir)
 
 	// then we use pandoc to convert the temporary contract to a PDF file
-	resourcePaths := strings.Join([]string{".", ctx.profile.Path()}, ":")
+	resourcePaths := strings.Join([]string{".", ctx.ActiveProfile().Path()}, ":")
 	pandocOutput, err := exec.Command(
 		"pandoc",
 		tempContract,
@@ -339,7 +339,7 @@ func (c *Contract) Sign(signatoryId string, ctx *Context) error {
 		}
 	}
 	// apply the signature to our contract on behalf of the given signatory
-	return signature.ApplyTo(c.path.localPath, signatory.Id)
+	return signature.applyTo(c.path.localPath, signatory.Id)
 }
 
 func (c *Contract) FindSignatoryByEmail(email string) *Signatory {
