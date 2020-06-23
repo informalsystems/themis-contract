@@ -9,8 +9,9 @@ import (
 
 func signatureCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "signature",
-		Short: "Signature management",
+		Use:     "signature",
+		Aliases: []string{"signatures", "sig", "sigs"},
+		Short:   "Signature management",
 	}
 	cmd.AddCommand(
 		signatureListCmd(),
@@ -24,8 +25,9 @@ func signatureCmd() *cobra.Command {
 
 func signatureListCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "ls",
-		Short: "List existing signatures",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List existing signatures",
 		Run: func(cmd *cobra.Command, args []string) {
 			sigs, err := globalCtx.Signatures()
 			if err != nil {
@@ -64,10 +66,11 @@ specified image to use when signing contracts`,
 
 func signatureRemoveCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "rm [id]",
-		Short: "Remove a signature",
-		Long:  "Remove the signature with the given ID",
-		Args:  cobra.ExactArgs(1),
+		Use:     "remove [id]",
+		Aliases: []string{"rm", "del"},
+		Short:   "Remove a signature",
+		Long:    "Remove the signature with the given ID",
+		Args:    cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := globalCtx.RemoveSignature(args[0]); err != nil {
 				log.Error().Msgf("Failed to remove signature \"%s\": %s", args[0], err)
@@ -80,8 +83,9 @@ func signatureRemoveCmd() *cobra.Command {
 
 func signatureRenameCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "mv [src-id] [dest-name]",
-		Short: "Rename a signature",
+		Use:     "rename [src-id] [dest-name]",
+		Aliases: []string{"mv", "ren"},
+		Short:   "Rename a signature",
 		Long: `Rename the signature with the given ID to have the specified name (the new ID
 will automatically be derived from the name)`,
 		Args: cobra.ExactArgs(2),

@@ -12,8 +12,9 @@ import (
 
 func profileCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "profile",
-		Short: "ActiveProfile management",
+		Use:     "profile",
+		Aliases: []string{"profiles"},
+		Short:   "ActiveProfile management",
 	}
 	cmd.AddCommand(
 		profileListCmd(),
@@ -28,8 +29,9 @@ func profileCmd() *cobra.Command {
 
 func profileListCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "ls",
-		Short: "List existing profiles",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "List existing profiles",
 		Run: func(cmd *cobra.Command, args []string) {
 			profiles := globalCtx.Profiles()
 			if len(profiles) == 0 {
@@ -96,10 +98,11 @@ func profileAddCmd() *cobra.Command {
 
 func profileRemoveCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "rm [id]",
-		Short: "Remove a profile",
-		Long:  "Remove the profile with the given ID",
-		Args:  cobra.ExactArgs(1),
+		Use:     "remove [id]",
+		Aliases: []string{"rm", "del"},
+		Short:   "Remove a profile",
+		Long:    "Remove the profile with the given ID",
+		Args:    cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := globalCtx.RemoveProfile(args[0]); err != nil {
 				log.Error().Msgf("Failed to remove profile \"%s\": %s", args[0], err)
@@ -112,8 +115,9 @@ func profileRemoveCmd() *cobra.Command {
 
 func profileRenameCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "mv [src-id] [dest-name]",
-		Short: "Rename a profile",
+		Use:     "rename [src-id] [dest-name]",
+		Aliases: []string{"mv", "ren"},
+		Short:   "Rename a profile",
 		Long: `Rename the profile with the given ID to have the specified name (the new ID
 will automatically be derived from the name)`,
 		Args: cobra.ExactArgs(2),
