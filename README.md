@@ -20,7 +20,7 @@ aims to:
    the value that software development processes offer, like version control,
    continuous integration, etc.).
 
-## Requirements
+## Requirements **TODO**
 
 It's recommended right now that you use the Docker-based version of Themis
 Contract. To do so you'll just need Docker installed, of course.
@@ -29,9 +29,11 @@ This is currently only being tested on macOS and Linux.
 
 ## Installation
 
+### Dockerized **TODO**
+
 We have a shell script that you can use locally to interact with the Docker
-image on your local machine. It tries to take care of many of the painful
-aspects of using the Docker image, like mounting the right volumes.
+image on your machine. It tries to take care of many of the painful aspects of
+using the Docker image, like mounting the right volumes.
 
 ```bash
 # Fetch the themis-contract shell script
@@ -46,14 +48,22 @@ chmod +x /usr/local/bin/themis-contract
 themis-contract --version
 ```
 
+### From source
+
+```bash
+git clone git@github.com:informalsystems/themis-contract.git
+cd themis-contract/cmd/themis-contract
+go install
+```
+
 ## Usage
 
 See the following tutorials for details as to how to set up and use Themis
 Contract to get the most out of it:
 
-* [Setting up Themis Contract](./docs/setup.md)
-* [Basic contracting tutorial](./docs/basic-tutorial.md)
-* [Anatomy of a contract](./docs/contract-anatomy.md)
+- [Setting up Themis Contract](./docs/setup.md)
+- [Basic contracting tutorial](./docs/basic-tutorial.md)
+- [Anatomy of a contract](./docs/contract-anatomy.md)
 
 ## Contributing
 
@@ -74,7 +84,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 
 [dhall]: https://dhall-lang.org/
 [pandoc]: https://pandoc.org/
