@@ -45,9 +45,6 @@ func InitContext(home string, autoCommit bool) (*Context, error) {
 	if err := initSignatures(home); err != nil {
 		return nil, err
 	}
-	if err := initDhallPackages(home, statikFS); err != nil {
-		return nil, err
-	}
 	// gain access to our filesystem-based cache
 	cache, err := OpenFSCache(path.Join(home, "cache"))
 	if err != nil {
