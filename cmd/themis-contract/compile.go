@@ -23,12 +23,12 @@ func compileCmd() *cobra.Command {
 			}
 			c, err := contract.Load(contractPath, globalCtx)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to load contract")
+				log.Error().Msgf("Failed to load contract: %s", err)
 				os.Exit(1)
 			}
 			err = c.Compile(flagOutput, globalCtx)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to compile contract")
+				log.Error().Msgf("Failed to compile contract: %s", err)
 				os.Exit(1)
 			}
 		},
