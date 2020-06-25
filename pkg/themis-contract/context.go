@@ -16,18 +16,19 @@ import (
 // TODO: Create a file reference resolver interface member to allow for mocking and better testing.
 // TODO: Look at splitting this up as per TODO on InitContext.
 type Context struct {
-	home       string          // The path to the Themis Contract home folder.
-	cache      Cache           // The cache we're currently using for storing files we retrieve from remote sources.
-	fs         http.FileSystem // For reading static resources pre-built into our binary.
-	profileDB  *ProfileDB      // Our local database of profiles.
-	sigDB      *SignatureDB    // Our local database of signatures.
-	autoCommit bool            // Should we automatically commit changes as we update the contract?
+	home            string          // The path to the Themis Contract home folder.
+	cache           Cache           // The cache we're currently using for storing files we retrieve from remote sources.
+	fs              http.FileSystem // For reading static resources pre-built into our binary.
+	profileDB       *ProfileDB      // Our local database of profiles.
+	sigDB           *SignatureDB    // Our local database of signatures.
+	autoCommit      bool            // Should we automatically commit changes as we update the contract?
+	autoPushChanges bool            // Should we automatically push local commits as we update the contract?
 }
 
 // InitContext creates a contracting context using the given Themis Contract
 // home directory (usually located at `~/.themis/contract`).
 // TODO: Perhaps this, or parts of this, should exist as its own standalone CLI command? e.g. "themis-contract init"
-func InitContext(home string, autoCommit bool) (*Context, error) {
+func InitContext(home string, autoCommit, autoPush bool) (*Context, error) {
 	if err := os.MkdirAll(home, 0755); err != nil {
 		return nil, fmt.Errorf("failed to initialize Themis Contract home directory \"%s\": %s", home, err)
 	}
@@ -59,13 +60,20 @@ func InitContext(home string, autoCommit bool) (*Context, error) {
 		return nil, fmt.Errorf("failed to open local signature database: %s", err)
 	}
 	return &Context{
-		home:       home,
-		cache:      cache,
-		fs:         statikFS,
-		profileDB:  profileDB,
-		sigDB:      sigDB,
-		autoCommit: autoCommit,
+		home:            home,
+		cache:           cache,
+		fs:              statikFS,
+		profileDB:       profileDB,
+		sigDB:           sigDB,
+		autoCommit:      autoCommit,
+		autoPushChanges: autoPush,
 	}, nil
+}
+
+func (ctx *Context) WithAutoPush(autoPush bool) *Context {
+	dupCtx := *ctx
+	dupCtx.autoPushChanges = autoPush
+	return &dupCtx
 }
 
 func (ctx *Context) ActiveProfile() *Profile {

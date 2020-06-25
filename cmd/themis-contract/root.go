@@ -17,6 +17,7 @@ var (
 	flagVerbose      bool
 	flagHome         string
 	flagNoAutoCommit bool
+	flagNoAutoPush   bool
 
 	globalCtx *contract.Context
 )
@@ -46,7 +47,7 @@ func rootCmd() (*cobra.Command, error) {
 			zerolog.SetGlobalLevel(level)
 			log.Debug().Msg("Increasing output verbosity to debug level")
 
-			globalCtx, err = contract.InitContext(flagHome, !flagNoAutoCommit)
+			globalCtx, err = contract.InitContext(flagHome, !flagNoAutoCommit, !flagNoAutoPush)
 			if err != nil {
 				log.Error().Msgf("Failed to initialize context: %s", err)
 				os.Exit(1)
@@ -54,6 +55,7 @@ func rootCmd() (*cobra.Command, error) {
 		},
 	}
 	cmd.PersistentFlags().BoolVar(&flagNoAutoCommit, "no-auto-commit", false, "do not attempt to automatically commit changes to contracts to their parent Git repository")
+	cmd.PersistentFlags().BoolVar(&flagNoAutoPush, "no-auto-push", false, "do not attempt to automatically push changes to contracts to their remote Git repository")
 	cmd.PersistentFlags().BoolVarP(&flagVerbose, "verbose", "v", false, "increase output logging verbosity")
 	cmd.PersistentFlags().StringVar(&flagHome, "home", home, "path to the root of your Themis Contract configuration directory")
 	cmd.AddCommand(
@@ -64,6 +66,7 @@ func rootCmd() (*cobra.Command, error) {
 		updateCmd(),
 		profileCmd(),
 		signatureCmd(),
+		executeCmd(),
 	)
 	return cmd, nil
 }

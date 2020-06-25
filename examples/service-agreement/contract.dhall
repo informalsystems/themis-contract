@@ -16,7 +16,7 @@ let contract : ThemisContract.Contract =
         { format = ThemisContract.TemplateFormat.Mustache
         , file =
             { location = "contract.md"
-            , hash = "2625bcb1d6d32377fded81c4d49472bfe894bf5c65377734ce38534598c390ea"
+            , hash = "c4306d4dcbc07aad6eb53f11473856dda6d284323f2a45d96ed51bce77ff1946"
             }
         }
     }

@@ -144,6 +144,12 @@ func gitFetchAndCheckout(repoURL, localPath, ref string) error {
 	if err != nil {
 		return fmt.Errorf("failed to checkout \"%s\" for Git repository %s: %v", ref, repoURL, err)
 	}
+	// For the case where the ref is a branch, we may need to merge.
+	// We cannot always pull because we may want to specify a specific commit
+	// hash as a ref.
+	if strings.Contains(string(output), "use \"git pull\" to merge the remote branch") {
+		return gitPull(localPath)
+	}
 	return nil
 }
 
@@ -155,17 +161,37 @@ func isGitRepo(repoPath string) bool {
 	return err == nil
 }
 
-func gitInit(repoPath string) error {
+func gitInit(repoPath, remote string) error {
 	cmd := exec.Command("git", "init")
 	cmd.Dir = repoPath
 	output, err := cmd.CombinedOutput()
 	log.Debug().Msgf("git init output:\n%s\n", string(output))
+	if err != nil {
+		return fmt.Errorf("git init failed: %s", err)
+	}
+	if len(remote) == 0 {
+		return nil
+	}
+	cmd = exec.Command("git", "remote", "add", "origin", remote)
+	cmd.Dir = repoPath
+	output, err = cmd.CombinedOutput()
+	log.Debug().Msgf("git remote add output:\n%s\n", string(output))
+	if err != nil {
+		return fmt.Errorf("git remote add failed: %s", err)
+	}
+	return nil
+}
+
+func gitAdd(workDir string, commitSpecs []string) error {
+	cmd := exec.Command("git", append([]string{"add"}, commitSpecs...)...)
+	cmd.Dir = workDir
+	output, err := cmd.CombinedOutput()
+	log.Debug().Msgf("git add output:\n%s\n", string(output))
 	return err
 }
 
-func gitAddAndCommit(workDir string, commitSpecs []string, rawTemplate string, templateCtx interface{}) error {
-	log.Debug().Msgf("Attempting to add %v in \"%s\" to Git repo with commit message template:\n%s\n", workDir, commitSpecs, rawTemplate)
-	tpl, err := template.New("git-commit").Parse(rawTemplate)
+func gitCommit(workDir string, allowEmpty bool, msgTemplate string, templateCtx interface{}) error {
+	tpl, err := template.New("git-commit").Parse(msgTemplate)
 	if err != nil {
 		return fmt.Errorf("failed to parse Git commit template: %s", err)
 	}
@@ -174,19 +200,94 @@ func gitAddAndCommit(workDir string, commitSpecs []string, rawTemplate string, t
 	if err := tpl.Execute(&buf, templateCtx); err != nil {
 		return fmt.Errorf("failed to render Git commit template: %s", err)
 	}
-	cmd := exec.Command("git", append([]string{"add"}, commitSpecs...)...)
+
+	args := []string{"commit"}
+	if allowEmpty {
+		args = append(args, "--allow-empty")
+	}
+	args = append(args, "-m", wordWrapString(buf.String(), gitCommitMessageWrap))
+	cmd := exec.Command("git", args...)
 	cmd.Dir = workDir
 	output, err := cmd.CombinedOutput()
-	log.Debug().Msgf("git add output:\n%s\n", string(output))
-	// we ignore the status of the "add" command because we allow empty commits here
-	cmd = exec.Command("git", "commit", "--allow-empty", "-m", wordWrapString(buf.String(), gitCommitMessageWrap))
-	cmd.Dir = workDir
-	output, err = cmd.CombinedOutput()
 	log.Debug().Msgf("git commit output:\n%s\n", string(output))
 	if err != nil {
 		return fmt.Errorf("failed to commit changes to Git repo in \"%s\": %s", workDir, err)
 	}
 	return nil
+}
+
+func gitAddAndCommit(workDir string, commitSpecs []string, msgTemplate string, templateCtx interface{}) error {
+	log.Debug().Msgf("Attempting to add %v in \"%s\" to Git repo with commit message template:\n%s\n", workDir, commitSpecs, msgTemplate)
+	// we ignore the status of the "add" command because we allow empty commits here
+	_ = gitAdd(workDir, commitSpecs)
+	return gitCommit(workDir, true, msgTemplate, templateCtx)
+}
+
+func gitListBranches(repoPath string) ([]string, string, error) {
+	cmd := exec.Command("git", "branch", "-l")
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	log.Debug().Msgf("git branch output:\n%s\n", string(output))
+	if err != nil {
+		return nil, "", err
+	}
+	branches := make([]string, 0)
+	activeBranch := ""
+	for _, line := range strings.Split(string(output), "\n") {
+		if strings.HasPrefix(line, "*") {
+			activeBranch = strings.Split(line, " ")[1]
+			branches = append(branches, activeBranch)
+			continue
+		}
+		branch := strings.Trim(line, " \n\r")
+		if len(branch) > 0 {
+			branches = append(branches, branch)
+		}
+	}
+	if len(activeBranch) == 0 {
+		return nil, "", fmt.Errorf("no active branch in repository %s", repoPath)
+	}
+	log.Debug().Msgf("Detected active branch \"%s\" in repo \"%s\". All branches: %v", activeBranch, repoPath, branches)
+	return branches, activeBranch, nil
+}
+
+func gitPull(repoPath string) error {
+	_, activeBranch, err := gitListBranches(repoPath)
+	if err != nil {
+		return fmt.Errorf("failed to list branches in repository %s: %s", repoPath, err)
+	}
+	log.Debug().Msgf("Pulling changes from remote Git repository for active branch \"%s\" into %s", activeBranch, repoPath)
+	cmd := exec.Command("git", "pull", "origin", activeBranch)
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	log.Debug().Msgf("git pull output:\n%s\n", string(output))
+	if err != nil {
+		return fmt.Errorf("failed to pull latest changes from branch \"%s\" in origin repository: %s", activeBranch, err)
+	}
+	return nil
+}
+
+func gitPush(repoPath string) error {
+	_, activeBranch, err := gitListBranches(repoPath)
+	if err != nil {
+		return fmt.Errorf("failed to list branches in repository %s: %s", repoPath, err)
+	}
+	log.Debug().Msgf("Pushing changes to remote Git repository for active branch \"%s\" into %s", activeBranch, repoPath)
+	cmd := exec.Command("git", "push", "origin", activeBranch)
+	cmd.Dir = repoPath
+	output, err := cmd.CombinedOutput()
+	log.Debug().Msgf("git push output:\n%s\n", string(output))
+	if err != nil {
+		return fmt.Errorf("failed to push latest changes to branch \"%s\" in origin repository: %s", activeBranch, err)
+	}
+	return nil
+}
+
+func gitPullAndPush(repoPath string) error {
+	if err := gitPull(repoPath); err != nil {
+		return err
+	}
+	return gitPush(repoPath)
 }
 
 // Splits a Git path into its repository and its path.

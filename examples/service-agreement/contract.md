@@ -22,7 +22,7 @@ The hourly rate will be {{supplier.currency}} {{supplier.hourlyRate}}.
 Signed,
 
 {{#signatories}}
-![Signature](sig--{{id}}.png) \
+![Signature]({{signature}}) \
 {{name}}
 
 {{/signatories}}

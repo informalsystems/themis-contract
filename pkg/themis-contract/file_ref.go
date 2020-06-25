@@ -42,7 +42,7 @@ func LocalFileRef(path string) (*FileRef, error) {
 		return nil, err
 	}
 	return &FileRef{
-		Location:  localPath,
+		Location:  path,
 		Hash:      hash,
 		localPath: localPath,
 	}, nil
@@ -62,7 +62,7 @@ func ResolveFileRef(loc, expectedHash string, checkHash bool, cache Cache) (reso
 		if err != nil {
 			return
 		}
-		resolved, err = resolveWebFileRef(u, cache)
+		resolved, err = resolveWebFileRef(loc, u, cache)
 		log.Debug().Msgf("Resolved location \"%s\" as a file on the web", loc)
 	case GitRef:
 		var u *GitURL
@@ -70,7 +70,7 @@ func ResolveFileRef(loc, expectedHash string, checkHash bool, cache Cache) (reso
 		if err != nil {
 			return
 		}
-		resolved, err = resolveGitFileRef(u, cache)
+		resolved, err = resolveGitFileRef(loc, u, cache)
 		log.Debug().Msgf("Resolved location \"%s\" as file in a Git repository: %v", loc, resolved)
 	}
 	if resolved != nil && err == nil {
@@ -101,13 +101,7 @@ func ResolveRelFileRef(abs, rel *FileRef, checkHash bool, cache Cache) (resolved
 	}
 	switch abs.Type() {
 	case LocalRef:
-		var absPath string
-		absPath, err = filepath.Abs(abs.localPath)
-		if err != nil {
-			return nil, err
-		}
-		absPath = path.Dir(absPath)
-		resolved, err = resolveRelLocalFileRef(absPath, rel.Location)
+		resolved, err = resolveRelLocalFileRef(abs.Location, rel.Location)
 	case WebRef:
 		resolved, err = resolveRelWebFileRef(abs.Location, rel.Location, cache)
 	case GitRef:
@@ -210,12 +204,19 @@ func hashOfFile(path string) (string, error) {
 }
 
 func resolveRelLocalFileRef(src, rel string) (*FileRef, error) {
-	absPath, err := filepath.Abs(path.Join(src, rel))
+	absPath, err := filepath.Abs(path.Join(path.Dir(src), rel))
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve path \"%s\" relative to \"%s\": %s", rel, src, err)
+	}
+	hash, err := hashOfFile(absPath)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug().Str("src", src).Str("rel", rel).Msgf("Resolved absolute path: %s", absPath)
-	return LocalFileRef(absPath)
+	return &FileRef{
+		Location:  rel,
+		Hash:      hash,
+		localPath: absPath,
+	}, nil
 }
 
 func resolveRelWebFileRef(src, rel string, cache Cache) (*FileRef, error) {
@@ -229,7 +230,7 @@ func resolveRelWebFileRef(src, rel string, cache Cache) (*FileRef, error) {
 	}
 	resolvedUrl := srcUrl.ResolveReference(relUrl)
 	log.Debug().Msgf("Resolved relative source web reference: %s", resolvedUrl)
-	return resolveWebFileRef(resolvedUrl, cache)
+	return resolveWebFileRef(rel, resolvedUrl, cache)
 }
 
 func resolveRelGitFileRef(src, rel string, cache Cache) (*FileRef, error) {
@@ -272,24 +273,24 @@ relPartsLoop:
 		Path:  strings.Join(filepath.SplitList(relPath), "/"),
 		Ref:   srcUrl.Ref,
 	}
-	return resolveGitFileRef(relUrl, cache)
+	return resolveGitFileRef(rel, relUrl, cache)
 }
 
-func resolveWebFileRef(u *url.URL, cache Cache) (*FileRef, error) {
+func resolveWebFileRef(loc string, u *url.URL, cache Cache) (*FileRef, error) {
 	cachedPath, err := cache.FromWeb(u)
 	if err != nil {
 		return nil, err
 	}
-	return cachedFileRef(u.String(), cachedPath)
+	return cachedFileRef(loc, cachedPath)
 }
 
-func resolveGitFileRef(u *GitURL, cache Cache) (*FileRef, error) {
+func resolveGitFileRef(loc string, u *GitURL, cache Cache) (*FileRef, error) {
 	log.Debug().Msgf("Attempting to resolve Git file reference: %s", u)
 	cachedPath, err := cache.FromGit(u)
 	if err != nil {
 		return nil, err
 	}
-	return cachedFileRef(u.String(), cachedPath)
+	return cachedFileRef(loc, cachedPath)
 }
 
 func cachedFileRef(loc, cachedPath string) (*FileRef, error) {

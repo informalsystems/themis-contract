@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -42,6 +43,10 @@ Update contract with upstream at {{.Upstream.Location}} (hash {{.Upstream.Hash}}
 
 Sign the contract {{.ContractFile}} with hash {{.ContractHash}} (signatory e-mail: {{.Email}})
 `
+
+	gitMsgCompileContract string = `Compile contract
+
+Compile the contract {{.ContractFile}} with hash {{.ContractHash}}`
 )
 
 // Contract encapsulates all of the relevant data we need in order to deal with
@@ -59,7 +64,7 @@ type Contract struct {
 
 // New creates a new contract in the configured path from the specified upstream
 // contract.
-func New(contractPath, upstreamLoc string, ctx *Context) (*Contract, error) {
+func New(contractPath, upstreamLoc, gitRemote string, ctx *Context) (*Contract, error) {
 	if len(upstreamLoc) == 0 {
 		return nil, fmt.Errorf("when creating a contract with the `new` command, an upstream contract must be supplied as a template")
 	}
@@ -80,7 +85,7 @@ func New(contractPath, upstreamLoc string, ctx *Context) (*Contract, error) {
 	if ctx.autoCommit {
 		if !isGitRepo(contractPath) {
 			log.Info().Msgf("Initializing Git repository in contract folder: %s", contractPath)
-			if err := gitInit(contractPath); err != nil {
+			if err := gitInit(contractPath, gitRemote); err != nil {
 				return nil, fmt.Errorf("failed to initialize Git repository in contract folder: %s", err)
 			}
 		} else {
@@ -88,6 +93,11 @@ func New(contractPath, upstreamLoc string, ctx *Context) (*Contract, error) {
 		}
 		if err := gitAddAndCommit(contractPath, contract.allLocalRelativeFiles(), gitMsgNewContract, contract); err != nil {
 			return nil, fmt.Errorf("failed to auto-commit change to contract repo: %s", err)
+		}
+		if ctx.autoPushChanges && len(gitRemote) > 0 {
+			if err := gitPush(contractPath); err != nil {
+				return nil, fmt.Errorf("failed to auto-push new contract to remote \"%s\": %s", gitRemote, err)
+			}
 		}
 	}
 
@@ -179,8 +189,20 @@ func Update(loc string, ctx *Context) error {
 	if ctx.autoCommit {
 		contractDir := path.Dir(contract.path.localPath)
 		log.Debug().Msgf("Git auto-commit is on. Attempting to commit changes to %s", contractDir)
-		if err := gitAddAndCommit(contractDir, contract.allLocalRelativeFiles(), gitMsgUpdateContract, contract); err != nil {
-			return fmt.Errorf("failed to auto-commit change to contract repo: %s", err)
+
+		// TODO: Should we be more specific about which files we add?
+		if err := gitAdd(contractDir, []string{"."}); err != nil {
+			log.Info().Msgf("No changes to contract files since last Git commit")
+			return nil
+		}
+		if err := gitCommit(contractDir, false, gitMsgUpdateContract, contract); err != nil {
+			return fmt.Errorf("failed to automatically commit changes to contract at %s: %s", contract.path.localPath, err)
+		}
+
+		if ctx.autoPushChanges {
+			if err := gitPullAndPush(contractDir); err != nil {
+				return fmt.Errorf("failed to automatically push changes to remote Git repository: %s", err)
+			}
 		}
 	}
 
@@ -313,6 +335,12 @@ func (c *Contract) Compile(output string, ctx *Context) error {
 	}
 	defer os.RemoveAll(tempDir)
 
+	// if it's not explicitly absolute or relative, assume we want the file in
+	// the same directory as the contract (it seems a reasonable assumption)
+	if path.Base(output) == output {
+		output = path.Join(path.Dir(c.path.localPath), output)
+	}
+	log.Info().Msgf("Compiling contract to: %s", output)
 	// then we use pandoc to convert the temporary contract to a PDF file
 	resourcePaths := strings.Join([]string{".", ctx.ActiveProfile().Path()}, ":")
 	pandocOutput, err := exec.Command(
@@ -327,7 +355,60 @@ func (c *Contract) Compile(output string, ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	log.Info().Msgf("Successfully rendered contract to %s", output)
+	log.Info().Msgf("Successfully compiled contract to %s", output)
+	return nil
+}
+
+func (c *Contract) CompileCommitAndPush(output string, ctx *Context) error {
+	// if it's not explicitly absolute or relative, assume we want the file in
+	// the same directory as the contract (it seems a reasonable assumption)
+	if path.Base(output) == output {
+		output = path.Join(path.Dir(c.path.localPath), output)
+	}
+	outputAbsPath, err := filepath.Abs(output)
+	if err != nil {
+		return err
+	}
+	if err := c.Compile(output, ctx); err != nil {
+		return err
+	}
+	contractPath := path.Dir(c.path.localPath)
+	outputPath := path.Dir(outputAbsPath)
+	outputPathRel, err := filepath.Rel(contractPath, outputPath)
+	if err != nil {
+		return err
+	}
+	// right now we only try to commit and push changes when the output file's
+	// in the same folder as the contract
+	if strings.HasPrefix(outputPathRel, "..") {
+		log.Info().Msgf("Output path is outside of folder containing contract. Not attempting to commit/push changes.")
+		return nil
+	}
+
+	// TODO: Should we still respect the autoCommit and autoPush flags?
+	if ctx.autoCommit {
+		if err := gitAdd(contractPath, []string{"."}); err != nil {
+			log.Info().Msgf("Cannot add contents of contract path \"%s\" to be committed to its Git repo. If the contract has not changed after compiling, ignore this message.", contractPath)
+			return nil
+		}
+		commitCtx := struct {
+			ContractFile string
+			ContractHash string
+		}{
+			ContractFile: path.Base(c.path.localPath),
+			ContractHash: c.path.Hash,
+		}
+		if err := gitCommit(contractPath, false, gitMsgCompileContract, &commitCtx); err != nil {
+			return fmt.Errorf("failed to commit changes after compiling contract: %s", err)
+		}
+		if ctx.autoPushChanges {
+			log.Info().Msg("Automatically pushing compiled contract changes to remote repository")
+			if err := gitPullAndPush(contractPath); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -382,6 +463,7 @@ func (c *Contract) Sign(signatoryId string, ctx *Context) error {
 			return fmt.Errorf("cannot find signatory in contract with ID \"%s\"", signatoryId)
 		}
 	}
+	log.Info().Msgf("Signing contract on behalf of \"%s\" (%s)", signatory.Id, signatory.Email)
 	// apply the signature to our contract on behalf of the given signatory
 	sigImagePath, err := signature.applyTo(c.path.localPath, signatory.Id)
 	if err != nil {
@@ -401,6 +483,12 @@ func (c *Contract) Sign(signatoryId string, ctx *Context) error {
 		}
 		if err := gitAddAndCommit(contractDir, commitFiles, gitMsgSignContract, &commitCtx); err != nil {
 			return fmt.Errorf("failed to automatically commit signing action to contract Git repository: %s", err)
+		}
+		if ctx.autoPushChanges {
+			log.Info().Msg("Automatically pushing contract signature to remote repository")
+			if err := gitPullAndPush(contractDir); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

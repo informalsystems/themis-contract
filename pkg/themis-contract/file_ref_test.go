@@ -21,26 +21,10 @@ func TestRelativeFileRefResolution(t *testing.T) {
 	contractPath := path.Join(tempDir, "path", "to", "contract.dhall")
 	paramsPath := path.Join(tempDir, "path", "to", "params.dhall")
 
-	testCases := []struct {
-		contractLoc string
-		relLoc      string
-		expected    string
-	}{
-		{
-			contractLoc: contractPath,
-			relLoc:      "./params.dhall",
-			expected:    paramsPath,
-		},
-		{
-			contractLoc: "https://somewhere.com/path/to/contract.dhall",
-			relLoc:      "./params.dhall",
-			expected:    "https://somewhere.com/path/to/params.dhall",
-		},
-		{
-			contractLoc: "git://github.com:informalsystems/themis-contract.git/path/to/contract.dhall",
-			relLoc:      "./params.dhall",
-			expected:    "git://github.com:informalsystems/themis-contract.git/path/to/params.dhall",
-		},
+	testCases := []string{
+		contractPath,
+		"https://somewhere.com/path/to/contract.dhall",
+		"git://github.com:informalsystems/themis-contract.git/path/to/contract.dhall",
 	}
 
 	testFileContent := "TEST"
@@ -59,21 +43,18 @@ func TestRelativeFileRefResolution(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		absRef, err := contract.ResolveFileRef(tc.contractLoc, "", false, &cache)
+		absRef, err := contract.ResolveFileRef(tc, "", false, &cache)
 		if err != nil {
-			t.Errorf("expected to be able to resolve ref %s, but got error: %v", tc.contractLoc, err)
+			t.Errorf("expected to be able to resolve ref %s, but got error: %v", tc, err)
 		}
-		relRef, err := contract.ResolveRelFileRef(
+		_, err = contract.ResolveRelFileRef(
 			absRef,
-			&contract.FileRef{Location: tc.relLoc, Hash: testFileHash},
+			&contract.FileRef{Location: "./params.dhall", Hash: testFileHash},
 			true,
 			&cache,
 		)
 		if err != nil {
-			t.Errorf("expected to be able to resolve relative ref %s, but got error: %v", tc.relLoc, err)
-		}
-		if tc.expected != relRef.Location {
-			t.Errorf("expected relative resolved location of %s, but got %s", tc.expected, relRef.Location)
+			t.Errorf("expected to be able to resolve relative ref \"./params.dhall\", but got error: %v", err)
 		}
 	}
 }
