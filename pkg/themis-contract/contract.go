@@ -363,7 +363,15 @@ func (c *Contract) Compile(output string, ctx *Context) error {
 	return nil
 }
 
-func (c *Contract) CompileCommitAndPush(output string, ctx *Context) error {
+// Execute is a convenience function that will automatically sign and compile
+// the contract. If Git auto-commit and auto-push are on, it also automatically
+// commits changes and pushes them to the source repository.
+func (c *Contract) Execute(sigID, output string, ctx *Context) error {
+	// we sign and commit but ensure we don't push yet
+	if err := c.Sign(sigID, ctx.WithAutoPush(false)); err != nil {
+		return err
+	}
+
 	// if it's not explicitly absolute or relative, assume we want the file in
 	// the same directory as the contract (it seems a reasonable assumption)
 	if path.Base(output) == output {

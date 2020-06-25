@@ -26,13 +26,7 @@ newly compiled contract.`,
 				log.Error().Msgf("Failed to load contract: %s", err)
 				os.Exit(1)
 			}
-			// we sign and commit but ensure we don't push yet
-			err = c.Sign(flagSigId, globalCtx.WithAutoPush(false))
-			if err != nil {
-				log.Error().Msgf("Failed to sign contract: %s", err)
-				os.Exit(1)
-			}
-			err = c.CompileCommitAndPush(flagOutput, globalCtx)
+			err = c.Execute(flagSigId, flagOutput, globalCtx)
 			if err != nil {
 				log.Error().Msgf("Failed to compile contract: %s", err)
 				os.Exit(1)
