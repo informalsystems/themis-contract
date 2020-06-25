@@ -360,7 +360,6 @@ func (c *Contract) Compile(output string, ctx *Context) error {
 	if err != nil {
 		return err
 	}
-	log.Info().Msgf("Successfully compiled contract to %s", output)
 	return nil
 }
 
@@ -482,6 +481,19 @@ func (c *Contract) Sign(signatoryId string, ctx *Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to apply signature \"%s\" to contract: %s", signature.id, err)
 	}
+
+	// update signatories, since we just signed now
+	c.signatories, err = extractContractSignatories(c.params, path.Dir(c.path.localPath))
+	if err != nil {
+		return err
+	}
+	log.Debug().Msgf("Extracted contract signatories: %v", c.signatories)
+	// update the parameters with signatories' possible signatures
+	c.params, err = updateContractSignatories(c.params, c.signatories)
+	if err != nil {
+		return err
+	}
+
 	if ctx.autoCommit {
 		contractDir := path.Dir(c.path.localPath)
 		commitFiles := []string{path.Base(c.path.localPath), path.Base(sigImagePath)}
