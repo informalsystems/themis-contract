@@ -67,6 +67,7 @@ func rootCmd() (*cobra.Command, error) {
 		profileCmd(),
 		signatureCmd(),
 		executeCmd(),
+		upstreamCmd(),
 	)
 	return cmd, nil
 }

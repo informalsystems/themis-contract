@@ -200,6 +200,7 @@ func Update(loc string, ctx *Context) error {
 		}
 
 		if ctx.autoPushChanges {
+			log.Info().Msg("Pushing/pulling changes...")
 			if err := gitPullAndPush(contractDir); err != nil {
 				return fmt.Errorf("failed to automatically push changes to remote Git repository: %s", err)
 			}
@@ -414,7 +415,7 @@ func (c *Contract) Execute(sigID, output string, ctx *Context) error {
 			return fmt.Errorf("failed to commit changes after compiling contract: %s", err)
 		}
 		if ctx.autoPushChanges {
-			log.Info().Msg("Automatically pushing compiled contract changes to remote repository")
+			log.Info().Msg("Pushing/pulling changes...")
 			if err := gitPullAndPush(contractPath); err != nil {
 				return err
 			}
@@ -497,7 +498,7 @@ func (c *Contract) Sign(signatoryId string, ctx *Context) error {
 			return fmt.Errorf("failed to automatically commit signing action to contract Git repository: %s", err)
 		}
 		if ctx.autoPushChanges {
-			log.Info().Msg("Automatically pushing contract signature to remote repository")
+			log.Info().Msg("Pushing/pulling changes...")
 			if err := gitPullAndPush(contractDir); err != nil {
 				return err
 			}
@@ -530,6 +531,27 @@ func (c *Contract) Signatories() []*Signatory {
 
 func (c *Contract) String() string {
 	return fmt.Sprintf("Contract{ParamsFile: %v, Template: %v, Upstream: %v, path: %v}", c.ParamsFile, c.Template, c.Upstream, c.path)
+}
+
+func (c *Contract) UpstreamDiff(diffProg string, ctx *Context) (*Diff, error) {
+	log.Info().Msgf("Loading upstream contract: %s", c.Upstream.Location)
+	// first we make sure we have the upstream contract's components cached
+	upstream, err := Load(c.Upstream.Location, ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load upstream contract: %s", err)
+	}
+	paramsDiff, err := fileDiff(c.ParamsFile.localPath, upstream.ParamsFile.localPath, diffProg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to perform diff on parameters file: %s", err)
+	}
+	templateDiff, err := fileDiff(c.Template.File.localPath, upstream.Template.File.localPath, diffProg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to perform diff on template file: %s", err)
+	}
+	return &Diff{
+		ParamsDiff:   paramsDiff,
+		TemplateDiff: templateDiff,
+	}, nil
 }
 
 func (c *Contract) allLocalRelativeFiles() []string {

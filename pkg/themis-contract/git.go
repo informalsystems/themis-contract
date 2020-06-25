@@ -128,7 +128,6 @@ func gitClone(repoURL, localPath string) error {
 // gitFetchAndCheckout will fetch the given ref (commit ID, tag, branch) from
 // the origin repository and attempt to check the repo out at that ref.
 func gitFetchAndCheckout(repoURL, localPath, ref string) error {
-	log.Info().Msgf("Fetching ref \"%s\" from %s to %s", ref, repoURL, localPath)
 	cmd := exec.Command("git", "fetch", "origin", ref)
 	cmd.Dir = localPath
 	output, err := cmd.CombinedOutput()
@@ -210,6 +209,10 @@ func gitCommit(workDir string, allowEmpty bool, msgTemplate string, templateCtx 
 	cmd.Dir = workDir
 	output, err := cmd.CombinedOutput()
 	log.Debug().Msgf("git commit output:\n%s\n", string(output))
+	if strings.Contains(string(output), "nothing to commit, working tree clean") {
+		log.Debug().Msgf("Nothing to commit - assuming this is okay.")
+		return nil
+	}
 	if err != nil {
 		return fmt.Errorf("failed to commit changes to Git repo in \"%s\": %s", workDir, err)
 	}
