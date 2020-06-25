@@ -31,6 +31,7 @@ newly compiled contract.`,
 				log.Error().Msgf("Failed to compile contract: %s", err)
 				os.Exit(1)
 			}
+			log.Info().Msg("Successfully executed contract")
 		},
 	}
 	cmd.PersistentFlags().StringVar(&flagSigId, "as", "", "the ID of the signatory on behalf of whom you want to sign")

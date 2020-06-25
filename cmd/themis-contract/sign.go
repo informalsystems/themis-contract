@@ -30,6 +30,7 @@ func signCmd() *cobra.Command {
 				log.Error().Msgf("Failed to sign contract: %s", err)
 				os.Exit(1)
 			}
+			log.Info().Msg("Successfully signed contract")
 		},
 	}
 	cmd.PersistentFlags().StringVar(&flagSigId, "as", "", "the ID of the signatory on behalf of whom you want to sign")

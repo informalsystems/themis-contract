@@ -31,6 +31,7 @@ func compileCmd() *cobra.Command {
 				log.Error().Msgf("Failed to compile contract: %s", err)
 				os.Exit(1)
 			}
+			log.Info().Msg("Successfully compiled contract")
 		},
 	}
 	cmd.PersistentFlags().StringVarP(&flagOutput, "output", "o", "contract.pdf", "where to write the output contract")

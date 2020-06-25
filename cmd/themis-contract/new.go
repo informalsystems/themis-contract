@@ -25,6 +25,7 @@ func newCmd() *cobra.Command {
 				log.Error().Err(err).Msg("Failed to create new contract")
 				os.Exit(1)
 			}
+			log.Info().Msg("Successfully created new contract")
 		},
 	}
 	cmd.PersistentFlags().StringVar(&flagGitRemote, "git-remote", "", "assuming you're creating a new repo for your contract, the URL of the Git remote")

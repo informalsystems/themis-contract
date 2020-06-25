@@ -22,6 +22,7 @@ func updateCmd() *cobra.Command {
 				log.Error().Err(err).Msg("Failed to load contract")
 				os.Exit(1)
 			}
+			log.Info().Msg("Successfully updated contract")
 		},
 	}
 }
