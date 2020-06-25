@@ -112,7 +112,7 @@ func (ctx *Context) AddProfile(name, sigID string) (*Profile, error) {
 			return nil, fmt.Errorf("signature with ID \"%s\" does not exist", sigID)
 		}
 	}
-	profile, err := newProfile(name, sigID, themisContractProfilesPath(ctx.home))
+	profile, err := ctx.profileDB.add(name, sigID)
 	if err != nil {
 		return nil, err
 	}

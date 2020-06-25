@@ -57,6 +57,7 @@ func loadProfileDB(home string) (*ProfileDB, error) {
 		return nil, fmt.Errorf("failed to create profiles home directory \"%s\": %s", profilesHome, err)
 	}
 	profileDBConfigPath := path.Join(profilesHome, "config.json")
+	log.Debug().Msgf("Loading profiles database configuration from: %s", profileDBConfigPath)
 	if _, err := os.Stat(profileDBConfigPath); os.IsNotExist(err) {
 		log.Debug().Msgf("No profile configuration file present at %s - creating", profileDBConfigPath)
 		if err := ensureProfileConfig(profilesHome); err != nil {
@@ -88,6 +89,28 @@ func loadProfileDB(home string) (*ProfileDB, error) {
 	db.configPath = profileDBConfigPath
 	db.profilesPath = profilesHome
 	return db, nil
+}
+
+func (db *ProfileDB) add(name, sigID string) (*Profile, error) {
+	id, err := slugify(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate ID for profile \"%s\": %s", name, err)
+	}
+	profilePath := path.Join(db.profilesPath, id)
+	if _, err := os.Stat(profilePath); !os.IsNotExist(err) {
+		return nil, fmt.Errorf("profile with ID \"%s\" already exists at %s", id, profilePath)
+	}
+	profile := &Profile{
+		Name:        name,
+		SignatureID: sigID,
+		id:          id,
+		path:        profilePath,
+	}
+	if err := profile.Save(); err != nil {
+		return nil, err
+	}
+	db.profiles[id] = profile
+	return profile, nil
 }
 
 func (db *ProfileDB) setActiveProfile(id string) (*Profile, error) {
@@ -208,30 +231,6 @@ func loadProfile(profilePath string) (*Profile, error) {
 	return &profile, nil
 }
 
-// newProfile will attempt to create a new profile with the given name and
-// optionally associate it with a signature ID. If `sigID` is blank ("") then
-// no signature ID will be associated with the profile yet.
-func newProfile(name, sigID, profilesHome string) (*Profile, error) {
-	id, err := slugify(name)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate ID for profile \"%s\": %s", name, err)
-	}
-	profilePath := path.Join(profilesHome, id)
-	if _, err := os.Stat(profilePath); !os.IsNotExist(err) {
-		return nil, fmt.Errorf("profile with ID \"%s\" already exists at %s", id, profilePath)
-	}
-	profile := &Profile{
-		Name:        name,
-		SignatureID: sigID,
-		id:          id,
-		path:        profilePath,
-	}
-	if err := profile.Save(); err != nil {
-		return nil, err
-	}
-	return profile, nil
-}
-
 func ValidProfileParamNames() []string {
 	return []string{
 		string(ProfileSignatureID),
@@ -252,7 +251,7 @@ func (p *Profile) Save() error {
 }
 
 func (p *Profile) String() string {
-	return fmt.Sprintf("ActiveProfile{id: \"%s\", path: \"%s\"}", p.id, p.path)
+	return fmt.Sprintf("Profile{id: \"%s\", path: \"%s\"}", p.id, p.path)
 }
 
 // Display shows a more human-readable description of the profile than String()
@@ -311,6 +310,7 @@ func loadAllProfiles(profilesPath string) (map[string]*Profile, error) {
 			return nil, fmt.Errorf("failed to load profile at path \"%s\": %s", profilePath, err)
 		}
 		profiles[profile.id] = profile
+		log.Debug().Msgf("Loaded profile: %v", profile)
 	}
 	return profiles, nil
 }

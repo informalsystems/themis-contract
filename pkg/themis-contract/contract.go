@@ -324,6 +324,10 @@ func (c *Contract) Save(ctx *Context) error {
 // Compile takes a parsed contract and attempts to generate the output artifact
 // that constitutes the final contract (as a PDF file).
 func (c *Contract) Compile(output string, ctx *Context) error {
+	activeProfile := ctx.ActiveProfile()
+	if activeProfile == nil {
+		return fmt.Errorf("no profile currently active (use \"themis-contract use\" to select one)")
+	}
 	// first we render the contract with its parameters to a temporary location
 	tempDir, err := ioutil.TempDir("", "themis-contract")
 	if err != nil {
@@ -342,7 +346,7 @@ func (c *Contract) Compile(output string, ctx *Context) error {
 	}
 	log.Info().Msgf("Compiling contract to: %s", output)
 	// then we use pandoc to convert the temporary contract to a PDF file
-	resourcePaths := strings.Join([]string{".", ctx.ActiveProfile().Path()}, ":")
+	resourcePaths := strings.Join([]string{".", activeProfile.Path()}, ":")
 	pandocOutput, err := exec.Command(
 		"pandoc",
 		tempContract,

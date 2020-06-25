@@ -39,10 +39,15 @@ func profileListCmd() *cobra.Command {
 				return
 			}
 			activeProfile := globalCtx.ActiveProfile()
+			if activeProfile == nil {
+				log.Info().Msg("No active profile currently. Use \"themis-contract use\" to set one.")
+			} else {
+				log.Info().Msgf("Currently active profile: %s", activeProfile.Id())
+			}
 			log.Info().Msgf("%d profile(s) available:", len(profiles))
 			for _, profile := range profiles {
 				act := "  "
-				if activeProfile.Id() == profile.Id() {
+				if activeProfile != nil && activeProfile.Id() == profile.Id() {
 					act = "> "
 				}
 				log.Info().Msgf("%s%s", act, profile.Display())

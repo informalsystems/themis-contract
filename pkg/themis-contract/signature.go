@@ -212,7 +212,11 @@ func (s *Signature) String() string {
 }
 
 func (s *Signature) Display() string {
-	return fmt.Sprintf("%s (ID: %s, e-mail: %s)", s.Name, s.id, s.Email)
+	sigImagePath := "(none)"
+	if len(s.ImagePath) > 0 {
+		sigImagePath = path.Join(s.path, s.ImagePath)
+	}
+	return fmt.Sprintf("%s (ID: %s, e-mail: %s, image: %s)", s.Name, s.id, s.Email, sigImagePath)
 }
 
 //------------------------------------------------------------------------------
