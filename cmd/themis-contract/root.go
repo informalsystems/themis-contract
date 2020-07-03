@@ -69,6 +69,7 @@ func rootCmd() (*cobra.Command, error) {
 		executeCmd(),
 		upstreamCmd(),
 		reviewCmd(),
+		versionCmd(),
 	)
 	return cmd, nil
 }
