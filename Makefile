@@ -12,4 +12,7 @@ build:
 test:
 	go test $(PACKAGES)
 
-.PHONY: all build test
+install: build
+	cp $(OUTPUT) /usr/local/bin/
+
+.PHONY: all build test install
