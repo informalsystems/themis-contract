@@ -74,6 +74,18 @@ func TestGitURLParsing(t *testing.T) {
 			},
 		},
 		{
+			url: "git://git@github.com:company/repo.git/some/path/file.txt#branch-with/slash",
+			expected: &contract.GitURL{
+				Proto: contract.ProtoSSH,
+				User:  "git",
+				Host:  "github.com",
+				Port:  22,
+				Repo:  "company/repo.git",
+				Path:  "some/path/file.txt",
+				Ref:   "branch-with/slash",
+			},
+		},
+		{
 			url: "git+https://github.com/company/repo.git/some/path/file.txt#6699a89a232f3db797f2e280639854bbc4b89725",
 			expected: &contract.GitURL{
 				Proto: contract.ProtoHTTPS,
@@ -86,13 +98,13 @@ func TestGitURLParsing(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		actual, err := contract.ParseGitURL(tc.url)
 		if err != nil {
 			t.Errorf("expected to successfully parse URL \"%s\", but got error: %v", tc.url, err)
 		}
 		if *tc.expected != *actual {
-			t.Errorf("expected %v, but got %v", tc.expected, actual)
+			t.Errorf("case %d: expected %v, but got %v", i, tc.expected, actual)
 		}
 	}
 }

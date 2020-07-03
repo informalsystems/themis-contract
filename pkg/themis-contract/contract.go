@@ -37,7 +37,7 @@ Add contract derived from upstream at {{.Upstream.Location}}`
 
 	gitMsgUpdateContract string = `Update contract
 
-Update contract with upstream at {{.Upstream.Location}} (hash {{.Upstream.Hash}}) and Template at {{.Template.File.Location}} (hash {{.Template.File.Hash}})`
+Update contract {{if .Upstream}}with upstream at {{.Upstream.Location}} (hash {{.Upstream.Hash}}){{else}}(no upstream){{end}} and Template at {{.Template.File.Location}} (hash {{.Template.File.Hash}})`
 
 	gitMsgSignContract string = `Sign contract
 
@@ -210,6 +210,17 @@ func Update(loc string, ctx *Context) error {
 	return nil
 }
 
+// Review allows you to fetch a pre-existing contract from a Git repository (by
+// cloning it locally). It also loads the contract into memory, thus parsing
+// and validating it.
+func Review(loc string) (*Contract, error) {
+	_, err := ParseGitURL(loc)
+	if err != nil {
+		return nil, fmt.Errorf("expected contract URL to be a valid Git URL: %s", err)
+	}
+	return nil, nil
+}
+
 // Path returns the file reference for this contract.
 func (c *Contract) Path() *FileRef {
 	return c.path
@@ -217,7 +228,8 @@ func (c *Contract) Path() *FileRef {
 
 // deriveTo will copy this contract to the given destination path. On success it
 // returns the new configuration of the contract, with the paths updated.
-func (c *Contract) deriveTo(destPath string, ctx *Context) (*Contract, error) {
+func (c *Contract) deriveTo(outputFile string, ctx *Context) (*Contract, error) {
+	destPath := path.Dir(outputFile)
 	log.Debug().Str("path", destPath).Msg("Ensuring contract destination path exists")
 	// ensure the destination path exists
 	if err := os.MkdirAll(destPath, 0755); err != nil {
@@ -348,14 +360,17 @@ func (c *Contract) Compile(output string, ctx *Context) error {
 	log.Info().Msgf("Compiling contract to: %s", output)
 	// then we use pandoc to convert the temporary contract to a PDF file
 	resourcePaths := strings.Join([]string{".", activeProfile.Path()}, ":")
-	pandocOutput, err := exec.Command(
-		"pandoc",
+	pandocArgs := []string{
 		tempContract,
 		"-o",
 		output,
 		"--resource-path",
 		resourcePaths,
-	).CombinedOutput()
+		"--defaults",
+		path.Join(activeProfile.Path(), "pandoc-defaults.yaml"),
+	}
+	log.Debug().Msgf("Using pandoc arguments: %s", strings.Join(pandocArgs, " "))
+	pandocOutput, err := exec.Command("pandoc", pandocArgs...).CombinedOutput()
 	log.Debug().Msgf("pandoc execution output:\n%s\n", pandocOutput)
 	if err != nil {
 		return err

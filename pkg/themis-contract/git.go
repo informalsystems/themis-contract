@@ -22,13 +22,14 @@ const (
 // The number of characters at which to wrap Git commit messages.
 const gitCommitMessageWrap int = 80
 
-const gitURLRegexp = "(?P<proto>[a-z+]+)://(?P<host>[a-z0-9.-]+)[:/](?P<path>[a-zA-Z0-9 ./-]+)(#(?P<fragment>[a-zA-Z0-9/.-]+))?"
+const gitURLRegexp = "(?P<proto>[a-z+]+)://((?P<user>[a-z0-9.-]+)@)?(?P<host>[a-z0-9.-]+)[:/](?P<path>[a-zA-Z0-9 ./-]+)(#(?P<fragment>[a-zA-Z0-9/.-]+))?"
 
 // GitURL allows us to parse out the components of a Git repository URL. The
 // format for a Git URL is different to a standard URL, so we unfortunately
 // can't use Golang's standard URL parsing.
 type GitURL struct {
 	Proto GitURLProto // The protocol by which we want to access the Git repository.
+	User  string      // The username of the user as whom to clone the repository.
 	Host  string      // The host URL (e.g. "github.com" or "gitlab.com").
 	Port  uint16      // The port (default: 22 for SSH, 80 for HTTPS).
 	Repo  string      // The repository path (e.g. for GitHub this is `user_name/repo_name.git`).
@@ -43,14 +44,20 @@ type GitURL struct {
 // TODO: Handle port parsing properly.
 func ParseGitURL(rawurl string) (*GitURL, error) {
 	if strings.HasPrefix(rawurl, "git+https://") {
-		u, err := url.Parse(rawurl)
+		u, err := url.Parse(strings.Replace(rawurl, "git+", "", 1))
 		if err != nil {
 			return nil, err
 		}
 		hostname := u.Hostname()
 		repo, path := splitGitPath(hostname, u.Path)
+		user := ""
+		if u.User != nil && len(u.User.Username()) > 0 {
+			user = u.User.Username()
+		}
+		// TODO: Should we be handling passwords here?
 		return &GitURL{
 			Proto: ProtoHTTPS,
+			User:  user,
 			Host:  hostname,
 			Port:  443,
 			Repo:  repo,
@@ -77,6 +84,8 @@ func ParseGitURL(rawurl string) (*GitURL, error) {
 			if match != "git" && match != "git+ssh" {
 				return nil, fmt.Errorf("unrecognized protocol in Git repo URL: %s", match)
 			}
+		case "user":
+			u.User = match
 		case "host":
 			u.Host = match
 		case "path":
@@ -89,15 +98,19 @@ func ParseGitURL(rawurl string) (*GitURL, error) {
 }
 
 func (u *GitURL) RepoURL() string {
+	user := ""
+	if len(u.User) > 0 {
+		user = u.User + "@"
+	}
 	if u.Proto == ProtoSSH {
-		return fmt.Sprintf("git://%s:%s", u.Host, u.Repo)
+		return fmt.Sprintf("git://%s%s:%s", user, u.Host, u.Repo)
 	}
 	// otherwise we assume it's HTTPS
 	port := ""
 	if u.Port != 443 {
 		port = fmt.Sprintf(":%d", u.Port)
 	}
-	return fmt.Sprintf("https://%s%s/%s", u.Host, port, u.Repo)
+	return fmt.Sprintf("https://%s%s%s/%s", user, u.Host, port, u.Repo)
 }
 
 func (u *GitURL) String() string {
