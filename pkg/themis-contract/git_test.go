@@ -1,6 +1,7 @@
 package themis_contract_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	contract "github.com/informalsystems/themis-contract/pkg/themis-contract"
@@ -96,6 +97,17 @@ func TestGitURLParsing(t *testing.T) {
 				Ref:   "6699a89a232f3db797f2e280639854bbc4b89725",
 			},
 		},
+		{
+			url: "git://gitlab.com:company/group1/group2/repo.git/some/path/file.txt#6699a89a232f3db797f2e280639854bbc4b89725",
+			expected: &contract.GitURL{
+				Proto: contract.ProtoSSH,
+				Host:  "gitlab.com",
+				Port:  22,
+				Repo:  "company/group1/group2/repo.git",
+				Path:  "some/path/file.txt",
+				Ref:   "6699a89a232f3db797f2e280639854bbc4b89725",
+			},
+		},
 	}
 
 	for i, tc := range testCases {
@@ -104,7 +116,15 @@ func TestGitURLParsing(t *testing.T) {
 			t.Errorf("expected to successfully parse URL \"%s\", but got error: %v", tc.url, err)
 		}
 		if *tc.expected != *actual {
-			t.Errorf("case %d: expected %v, but got %v", i, tc.expected, actual)
+			expectedJSON, err := json.MarshalIndent(tc.expected, "", "  ")
+			if err != nil {
+				t.Fatalf("case %d: failed to serialize expected Git URL: %s", i, err)
+			}
+			actualJSON, err := json.MarshalIndent(actual, "", "  ")
+			if err != nil {
+				t.Fatalf("case %d: failed to serialize actual Git URL: %s", i, err)
+			}
+			t.Errorf("case %d: expected %v, but got %v", i, string(expectedJSON), string(actualJSON))
 		}
 	}
 }

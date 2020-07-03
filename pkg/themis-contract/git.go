@@ -28,13 +28,13 @@ const gitURLRegexp = "(?P<proto>[a-z+]+)://((?P<user>[a-z0-9.-]+)@)?(?P<host>[a-
 // format for a Git URL is different to a standard URL, so we unfortunately
 // can't use Golang's standard URL parsing.
 type GitURL struct {
-	Proto GitURLProto // The protocol by which we want to access the Git repository.
-	User  string      // The username of the user as whom to clone the repository.
-	Host  string      // The host URL (e.g. "github.com" or "gitlab.com").
-	Port  uint16      // The port (default: 22 for SSH, 80 for HTTPS).
-	Repo  string      // The repository path (e.g. for GitHub this is `user_name/repo_name.git`).
-	Path  string      // The file/folder path within the repository.
-	Ref   string      // The branch, commit reference or tag, if any.
+	Proto GitURLProto `json:"proto"` // The protocol by which we want to access the Git repository.
+	User  string      `json:"user"`  // The username of the user as whom to clone the repository.
+	Host  string      `json:"host"`  // The host URL (e.g. "github.com" or "gitlab.com").
+	Port  uint16      `json:"port"`  // The port (default: 22 for SSH, 80 for HTTPS).
+	Repo  string      `json:"repo"`  // The repository path (e.g. for GitHub this is `user_name/repo_name.git`).
+	Path  string      `json:"path"`  // The file/folder path within the repository.
+	Ref   string      `json:"ref"`   // The branch, commit reference or tag, if any.
 }
 
 // ParseGitURL will parse the specified raw URL into a GitURL object, which
