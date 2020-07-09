@@ -65,6 +65,10 @@ func ParseGitURL(rawurl string) (*GitURL, error) {
 			Ref:   u.Fragment,
 		}, nil
 	}
+	// TODO: Find a more generic way of supporting this kind of syntax
+	if strings.HasPrefix(rawurl, "git@github.com") || strings.HasPrefix(rawurl, "git@gitlab.com") {
+		rawurl = "git://" + rawurl
+	}
 	r, err := regexp.Compile(gitURLRegexp)
 	if err != nil {
 		return nil, err

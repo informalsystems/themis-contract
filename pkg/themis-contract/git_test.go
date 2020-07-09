@@ -108,6 +108,30 @@ func TestGitURLParsing(t *testing.T) {
 				Ref:   "6699a89a232f3db797f2e280639854bbc4b89725",
 			},
 		},
+		{
+			url: "git@github.com:company/repo.git/some/path/file.txt#branch-with/slash",
+			expected: &contract.GitURL{
+				Proto: contract.ProtoSSH,
+				User:  "git",
+				Host:  "github.com",
+				Port:  22,
+				Repo:  "company/repo.git",
+				Path:  "some/path/file.txt",
+				Ref:   "branch-with/slash",
+			},
+		},
+		{
+			url: "git@gitlab.com:company/group1/group2/repo.git/some/path/file.txt#6699a89a232f3db797f2e280639854bbc4b89725",
+			expected: &contract.GitURL{
+				Proto: contract.ProtoSSH,
+				User:  "git",
+				Host:  "gitlab.com",
+				Port:  22,
+				Repo:  "company/group1/group2/repo.git",
+				Path:  "some/path/file.txt",
+				Ref:   "6699a89a232f3db797f2e280639854bbc4b89725",
+			},
+		},
 	}
 
 	for i, tc := range testCases {
