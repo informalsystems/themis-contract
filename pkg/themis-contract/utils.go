@@ -53,3 +53,16 @@ func wordWrapLine(l string, lineWidth int) string {
 	}
 	return wrapped
 }
+
+func trimAndSplit(s, cutset, sep string) []string {
+	return strings.Split(strings.Trim(s, cutset), sep)
+}
+
+func hasAnyPrefix(s string, prefixes []string) bool {
+	for _, p := range prefixes {
+		if strings.HasPrefix(s, p) {
+			return true
+		}
+	}
+	return false
+}

@@ -17,7 +17,7 @@ func listSignatoriesCmd() *cobra.Command {
 			if len(args) > 0 {
 				contractPath = args[0]
 			}
-			c, err := contract.Load(contractPath, globalCtx)
+			c, err := contract.Load(contractPath, ctx)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed to load contract")
 				os.Exit(1)

@@ -21,6 +21,10 @@ type Cache interface {
 	// cache. On success, returns the file system path to the file requested in
 	// the URL.
 	FromWeb(u *url.URL) (string, error)
+
+	// LocalPathForGitURL must return the local filesystem path where the
+	// contents of the specified Git repo will be cached.
+	LocalPathForGitURL(u *GitURL) string
 }
 
 // FSCache allows us to cache files and folders we've fetched from remote
@@ -79,6 +83,11 @@ func (c *FSCache) FromWeb(u *url.URL) (string, error) {
 		return "", err
 	}
 	return destFile, nil
+}
+
+func (c *FSCache) LocalPathForGitURL(u *GitURL) string {
+	cachedRepoPath := path.Join(c.root, "git", u.Host, u.Repo)
+	return path.Join(cachedRepoPath, path.Join(strings.Split(u.Path, "/")...))
 }
 
 func dirExists(d string) (bool, error) {

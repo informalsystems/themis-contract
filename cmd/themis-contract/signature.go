@@ -32,7 +32,7 @@ func signatureListCmd() *cobra.Command {
 		Aliases: []string{"ls"},
 		Short:   "List existing signatures",
 		Run: func(cmd *cobra.Command, args []string) {
-			sigs, err := globalCtx.Signatures()
+			sigs, err := ctx.Signatures()
 			if err != nil {
 				log.Error().Msgf("Failed to load signatures: %s", err)
 				os.Exit(1)
@@ -57,7 +57,7 @@ func signatureAddCmd() *cobra.Command {
 specified image to use when signing contracts`,
 		Args: cobra.ExactArgs(3),
 		Run: func(cmd *cobra.Command, args []string) {
-			sig, err := globalCtx.AddSignature(args[0], args[1], args[2])
+			sig, err := ctx.AddSignature(args[0], args[1], args[2])
 			if err != nil {
 				log.Error().Msgf("Failed to add new signature: %s", err)
 				os.Exit(1)
@@ -75,7 +75,7 @@ func signatureRemoveCmd() *cobra.Command {
 		Long:    "Remove the signature with the given ID",
 		Args:    cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := globalCtx.RemoveSignature(args[0]); err != nil {
+			if err := ctx.RemoveSignature(args[0]); err != nil {
 				log.Error().Msgf("Failed to remove signature \"%s\": %s", args[0], err)
 				os.Exit(1)
 			}
@@ -93,7 +93,7 @@ func signatureRenameCmd() *cobra.Command {
 will automatically be derived from the name)`,
 		Args: cobra.ExactArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := globalCtx.RenameSignature(args[0], args[1]); err != nil {
+			if err := ctx.RenameSignature(args[0], args[1]); err != nil {
 				log.Error().Msgf("Failed to rename signature \"%s\": %s", args[0], err)
 				os.Exit(1)
 			}
@@ -111,12 +111,12 @@ func signatureSetCmd() *cobra.Command {
 Valid signature parameter names include: %s`, strings.Join(contract.ValidSignatureParamNames(), ", ")),
 		Args: cobra.ExactArgs(3),
 		Run: func(cmd *cobra.Command, args []string) {
-			sig, err := globalCtx.GetSignatureByID(args[0])
+			sig, err := ctx.GetSignatureByID(args[0])
 			if err != nil {
 				log.Error().Msgf("Failed to load signature \"%s\": %s", args[0], err)
 				os.Exit(1)
 			}
-			if err := globalCtx.SetSignatureParam(sig, args[1], args[2]); err != nil {
+			if err := ctx.SetSignatureParam(sig, args[1], args[2]); err != nil {
 				log.Error().Msgf("Failed to set parameter \"%s\" for signature \"%s\": %s", args[1], args[0], err)
 				os.Exit(1)
 			}

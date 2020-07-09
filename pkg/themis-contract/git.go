@@ -61,7 +61,7 @@ func ParseGitURL(rawurl string) (*GitURL, error) {
 			Host:  hostname,
 			Port:  443,
 			Repo:  repo,
-			Path:  path,
+			Path:  strings.TrimLeft(path, "/"),
 			Ref:   u.Fragment,
 		}, nil
 	}
@@ -116,7 +116,7 @@ func (u *GitURL) RepoURL() string {
 func (u *GitURL) String() string {
 	path, ref := "", ""
 	if len(u.Path) > 0 {
-		path = "/" + u.Path
+		path = "/" + strings.TrimLeft(u.Path, "/")
 	}
 	if len(u.Ref) > 0 {
 		ref = "#" + u.Ref
@@ -128,7 +128,11 @@ func (u *GitURL) String() string {
 // system that clones a remote repository to a local path in the file system.
 func gitClone(repoURL, localPath string) error {
 	// TODO: Use user-supplier username in cloning.
-	repoURL = strings.Replace(repoURL, "git://", "git@", 1)
+	replaceWith := "git@"
+	if strings.Contains(repoURL, "git@") {
+		replaceWith = ""
+	}
+	repoURL = strings.Replace(repoURL, "git://", replaceWith, 1)
 	log.Info().Msgf("Attempting to clone %s to %s", repoURL, localPath)
 	output, err := exec.Command("git", "clone", repoURL, localPath).CombinedOutput()
 	log.Debug().Msgf("git clone output:\n%s\n", string(output))
@@ -159,7 +163,7 @@ func gitFetchAndCheckout(repoURL, localPath, ref string) error {
 	// For the case where the ref is a branch, we may need to merge.
 	// We cannot always pull because we may want to specify a specific commit
 	// hash as a ref.
-	if strings.Contains(string(output), "use \"git pull\" to merge the remote branch") {
+	if strings.Contains(string(output), "use \"git pull\"") {
 		return gitPull(localPath)
 	}
 	return nil

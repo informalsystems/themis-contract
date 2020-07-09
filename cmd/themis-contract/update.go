@@ -18,7 +18,7 @@ func updateCmd() *cobra.Command {
 			if len(args) > 0 {
 				contractPath = args[0]
 			}
-			if err := contract.Update(contractPath, globalCtx); err != nil {
+			if err := contract.Update(contractPath, ctx); err != nil {
 				log.Error().Err(err).Msg("Failed to load contract")
 				os.Exit(1)
 			}

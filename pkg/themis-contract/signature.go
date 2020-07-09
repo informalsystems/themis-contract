@@ -17,6 +17,8 @@ type SignatureParameter string
 const (
 	SignatureEmail SignatureParameter = "email"
 	SignatureImage SignatureParameter = "image"
+
+	SignatureTimestampFormat = "2 January 2006"
 )
 
 // Signature is what we apply to a contract to sign it.
@@ -251,4 +253,13 @@ func themisContractSignaturesPath(home string) string {
 
 func initSignatures(home string) error {
 	return os.MkdirAll(themisContractSignaturesPath(home), 0755)
+}
+
+// TODO: Use Git to extract the signed date instead of just checking the timestamp of the file.
+func getLatestSignedDate(sigFile string) (string, error) {
+	fi, err := os.Stat(sigFile)
+	if err != nil {
+		return "", err
+	}
+	return fi.ModTime().Format(SignatureTimestampFormat), nil
 }

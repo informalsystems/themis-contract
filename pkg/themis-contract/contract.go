@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"text/template"
 
@@ -33,11 +34,11 @@ const (
 const (
 	gitMsgNewContract string = `Add new contract
 
-Add contract derived from upstream at {{.Upstream.Location}}`
+Add contract derived from upstream at "{{.Upstream.Location}}"`
 
 	gitMsgUpdateContract string = `Update contract
 
-Update contract {{if .Upstream}}with upstream at {{.Upstream.Location}} (hash {{.Upstream.Hash}}){{else}}(no upstream){{end}} and Template at {{.Template.File.Location}} (hash {{.Template.File.Hash}})`
+Update contract {{if .Upstream}}with upstream at "{{.Upstream.Location}}" (hash {{.Upstream.Hash}}){{else}}(no upstream){{end}} and Template at {{.Template.File.Location}} (hash {{.Template.File.Hash}})`
 
 	gitMsgSignContract string = `Sign contract
 
@@ -137,7 +138,7 @@ func Load(loc string, ctx *Context) (*Contract, error) {
 }
 
 func loadContractComponents(loc string, checkHashes bool, ctx *Context) (*Contract, error) {
-	entrypoint, err := ResolveFileRef(loc, "", false, ctx.cache)
+	entrypoint, err := ResolveFileRef(loc, "", false, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -148,18 +149,18 @@ func loadContractComponents(loc string, checkHashes bool, ctx *Context) (*Contra
 	// see if we need to resolve the parameters file or the template relative
 	// to the contract entrypoint
 	if contract.ParamsFile.IsRelative() {
-		contract.ParamsFile, err = ResolveRelFileRef(entrypoint, contract.ParamsFile, checkHashes, ctx.cache)
+		contract.ParamsFile, err = ResolveRelFileRef(entrypoint, contract.ParamsFile, checkHashes, ctx)
 	} else {
-		contract.ParamsFile, err = ResolveFileRef(contract.ParamsFile.Location, contract.ParamsFile.Hash, checkHashes, ctx.cache)
+		contract.ParamsFile, err = ResolveFileRef(contract.ParamsFile.Location, contract.ParamsFile.Hash, checkHashes, ctx)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	if contract.Template.File.IsRelative() {
-		contract.Template.File, err = ResolveRelFileRef(entrypoint, contract.Template.File, checkHashes, ctx.cache)
+		contract.Template.File, err = ResolveRelFileRef(entrypoint, contract.Template.File, checkHashes, ctx)
 	} else {
-		contract.Template.File, err = ResolveFileRef(contract.Template.File.Location, contract.Template.File.Hash, checkHashes, ctx.cache)
+		contract.Template.File, err = ResolveFileRef(contract.Template.File.Location, contract.Template.File.Hash, checkHashes, ctx)
 	}
 	if err != nil {
 		return nil, err
@@ -172,7 +173,7 @@ func loadContractComponents(loc string, checkHashes bool, ctx *Context) (*Contra
 // any integrity checks on the parameters and/or template files prior to loading
 // them.
 func Update(loc string, ctx *Context) error {
-	if fileRefType(loc) != LocalRef {
+	if fileRefType(loc, ctx) != LocalRef {
 		return fmt.Errorf("only contracts located in the local filesystem can be updated")
 	}
 	log.Info().Msgf("Loading contract: %s", loc)
@@ -762,21 +763,47 @@ func extractContractSignatories(params map[string]interface{}, contractPath stri
 			continue
 		}
 		result[sigId].Signature = path.Join(contractPath, fi.Name())
+		result[sigId].SignedDate, err = getLatestSignedDate(result[sigId].Signature)
+		if err != nil {
+			return nil, fmt.Errorf("failed to obtain signature timestamp for \"%s\": %s", result[sigId].Id, err)
+		}
 		log.Debug().Msgf("Discovered signature image \"%s\" for signatory \"%s\"", result[sigId].Signature, result[sigId].Id)
 	}
 	return result, nil
 }
 
 func updateContractSignatories(params map[string]interface{}, signatories []*Signatory) (map[string]interface{}, error) {
+	oldSigs, ok := params["signatories"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("expected \"signatories\" in parameters file to be an array, but was %s", reflect.TypeOf(params["signatories"]))
+	}
 	sigJSON, err := json.Marshal(signatories)
 	if err != nil {
 		return nil, err
 	}
-	var sigArr []interface{}
+	var sigArr []map[string]interface{}
 	if err = json.Unmarshal(sigJSON, &sigArr); err != nil {
 		return nil, err
 	}
-	params["signatories"] = sigArr
+	// pass through any additional parameters defined on the signatories
+	for i, oldSig := range oldSigs {
+		oldSigMap, ok := oldSig.(map[string]interface{})
+		if !ok {
+			log.Debug().Msgf("Skipping use of extra parameters in signature %d since type was %s", i, reflect.TypeOf(oldSig))
+			continue
+		}
+		for k, v := range oldSigMap {
+			if _, exists := sigArr[i][k]; !exists {
+				sigArr[i][k] = v
+				log.Debug().Msgf("Populated additional parameter \"%s\" for signatory %d", k, i)
+			}
+		}
+	}
+	// additionally allow for direct referencing of signatories by way of their ID
+	for i, sig := range signatories {
+		paramKey := fmt.Sprintf("signatory_%s", sig.Id)
+		params[paramKey] = sigArr[i]
+	}
 	log.Debug().Msgf("Updated contract signatories: %v", params)
 	return params, nil
 }

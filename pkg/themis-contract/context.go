@@ -51,7 +51,7 @@ func InitContext(home string, autoCommit, autoPush bool) (*Context, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open local cache: %s", err)
 	}
-	profileDB, err := loadProfileDB(home)
+	profileDB, err := loadProfileDB(home, cache)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open local profile database: %s", err)
 	}
@@ -105,14 +105,14 @@ func (ctx *Context) Profiles() []*Profile {
 
 // AddProfile will add a profile with the given name and signature ID. The ID
 // of the profile will be derived from its name (slugified).
-func (ctx *Context) AddProfile(name, sigID string) (*Profile, error) {
+func (ctx *Context) AddProfile(name, sigID, contractsRepo string) (*Profile, error) {
 	// only if a signature ID is supplied do we care about looking it up
 	if len(sigID) > 0 {
 		if _, exists := ctx.sigDB.sigs[sigID]; !exists {
 			return nil, fmt.Errorf("signature with ID \"%s\" does not exist", sigID)
 		}
 	}
-	profile, err := ctx.profileDB.add(name, sigID)
+	profile, err := ctx.profileDB.add(name, sigID, contractsRepo, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +135,8 @@ func (ctx *Context) SetProfileParam(profile *Profile, param, val string) error {
 	switch param {
 	case string(ProfileSignatureID):
 		return ctx.setProfileSignatureID(profile, val)
+	case string(ProfileContractsRepo):
+		return ctx.setProfileContractsRepo(profile, val)
 	}
 	return fmt.Errorf("unrecognized parameter \"%s\"", param)
 }
@@ -147,6 +149,15 @@ func (ctx *Context) setProfileSignatureID(profile *Profile, sigID string) error 
 		}
 	}
 	profile.SignatureID = sigID
+	return nil
+}
+
+func (ctx *Context) setProfileContractsRepo(profile *Profile, contractsRepo string) error {
+	// try to parse it to make sure it's valid
+	if _, err := ParseGitURL(contractsRepo); err != nil {
+		return fmt.Errorf("invalid contract repository URL \"%s\": %s", contractsRepo, err)
+	}
+	profile.ContractsRepo = contractsRepo
 	return nil
 }
 

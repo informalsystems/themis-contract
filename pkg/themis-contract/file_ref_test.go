@@ -23,6 +23,7 @@ func TestRelativeFileRefResolution(t *testing.T) {
 
 	testCases := []string{
 		contractPath,
+		"contract-test",
 		"https://somewhere.com/path/to/contract.dhall",
 		"git://github.com:informalsystems/themis-contract.git/path/to/contract.dhall",
 	}
@@ -33,7 +34,7 @@ func TestRelativeFileRefResolution(t *testing.T) {
 		t.Errorf("failed to write test files: %v", err)
 	}
 
-	cache := mockCache{
+	cache := &mockCache{
 		successes: map[string]string{
 			"https://somewhere.com/path/to/contract.dhall":                                contractPath,
 			"https://somewhere.com/path/to/params.dhall":                                  paramsPath,
@@ -41,9 +42,17 @@ func TestRelativeFileRefResolution(t *testing.T) {
 			"git://github.com:informalsystems/themis-contract.git/path/to/params.dhall":   paramsPath,
 		},
 	}
+	activeProfile := contract.NewTestProfile(
+		"test",
+		"git://github.com/informalsystems/contract-templates.git",
+		[]*contract.ProfileContract{
+			contract.NewTestProfileContract("contract-test", "git://github.com/informalsystems/contract-templates.git", contractPath),
+		},
+	)
+	ctx := contract.NewTestContext(cache, activeProfile)
 
 	for _, tc := range testCases {
-		absRef, err := contract.ResolveFileRef(tc, "", false, &cache)
+		absRef, err := contract.ResolveFileRef(tc, "", false, ctx)
 		if err != nil {
 			t.Errorf("expected to be able to resolve ref %s, but got error: %v", tc, err)
 		}
@@ -51,7 +60,7 @@ func TestRelativeFileRefResolution(t *testing.T) {
 			absRef,
 			&contract.FileRef{Location: "./params.dhall", Hash: testFileHash},
 			true,
-			&cache,
+			ctx,
 		)
 		if err != nil {
 			t.Errorf("expected to be able to resolve relative ref \"./params.dhall\", but got error: %v", err)

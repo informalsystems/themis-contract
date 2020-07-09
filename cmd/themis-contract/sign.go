@@ -20,12 +20,12 @@ func signCmd() *cobra.Command {
 			if len(args) > 0 {
 				contractPath = args[0]
 			}
-			c, err := contract.Load(contractPath, globalCtx)
+			c, err := contract.Load(contractPath, ctx)
 			if err != nil {
 				log.Error().Msgf("Failed to load contract: %s", err)
 				os.Exit(1)
 			}
-			err = c.Sign(flagSigId, globalCtx)
+			err = c.Sign(flagSigId, ctx)
 			if err != nil {
 				log.Error().Msgf("Failed to sign contract: %s", err)
 				os.Exit(1)

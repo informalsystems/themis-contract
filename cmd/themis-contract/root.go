@@ -19,7 +19,7 @@ var (
 	flagNoAutoCommit bool
 	flagNoAutoPush   bool
 
-	globalCtx *contract.Context
+	ctx *contract.Context
 )
 
 func defaultThemisContractHome() (string, error) {
@@ -47,7 +47,7 @@ func rootCmd() (*cobra.Command, error) {
 			zerolog.SetGlobalLevel(level)
 			log.Debug().Msg("Increasing output verbosity to debug level")
 
-			globalCtx, err = contract.InitContext(flagHome, !flagNoAutoCommit, !flagNoAutoPush)
+			ctx, err = contract.InitContext(flagHome, !flagNoAutoCommit, !flagNoAutoPush)
 			if err != nil {
 				log.Error().Msgf("Failed to initialize context: %s", err)
 				os.Exit(1)

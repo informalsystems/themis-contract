@@ -33,12 +33,12 @@ template used in the upstream contract.`,
 			if len(args) > 0 {
 				contractPath = args[0]
 			}
-			c, err := contract.Load(contractPath, globalCtx)
+			c, err := contract.Load(contractPath, ctx)
 			if err != nil {
 				log.Error().Msgf("Failed to load contract: %s", err)
 				os.Exit(1)
 			}
-			diff, err := c.UpstreamDiff(flagDiffProg, globalCtx)
+			diff, err := c.UpstreamDiff(flagDiffProg, ctx)
 			if err != nil {
 				log.Error().Msgf("Upstream diff failed: %s", err)
 				os.Exit(1)

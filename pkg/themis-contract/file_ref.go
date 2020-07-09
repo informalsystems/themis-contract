@@ -16,9 +16,10 @@ import (
 type FileRefType string
 
 const (
-	LocalRef FileRefType = "local"
-	WebRef   FileRefType = "web"
-	GitRef   FileRefType = "git"
+	ProfileContractRef FileRefType = "profile"
+	LocalRef           FileRefType = "local"
+	WebRef             FileRefType = "web"
+	GitRef             FileRefType = "git"
 )
 
 // FileRef is a reference to a local or remote file. It includes an integrity
@@ -27,7 +28,8 @@ type FileRef struct {
 	Location string `json:"location" yaml:"location" toml:"location"` // A URL or file system path indicating the location of the file.
 	Hash     string `json:"hash" yaml:"hash" toml:"hash"`             // The SHA256 hash of the file.
 
-	localPath string
+	localPath   string
+	fileRefType FileRefType
 }
 
 // LocalFileRef creates a FileRef assuming that the file is in the local file
@@ -42,27 +44,31 @@ func LocalFileRef(path string) (*FileRef, error) {
 		return nil, err
 	}
 	return &FileRef{
-		Location:  path,
-		Hash:      hash,
-		localPath: localPath,
+		Location:    path,
+		Hash:        hash,
+		localPath:   localPath,
+		fileRefType: LocalRef,
 	}, nil
 }
 
 // ResolveFileRef will attempt to resolve the file at the given location. If it
 // is a remote file, it will be fetched from its location and cached locally
 // using the given cache.
-func ResolveFileRef(loc, expectedHash string, checkHash bool, cache Cache) (resolved *FileRef, err error) {
-	switch fileRefType(loc) {
+func ResolveFileRef(loc, expectedHash string, checkHash bool, ctx *Context) (resolved *FileRef, err error) {
+	switch fileRefType(loc, ctx) {
 	case LocalRef:
 		resolved, err = LocalFileRef(loc)
 		log.Debug().Msgf("Resolved location \"%s\" as a local file", loc)
+	case ProfileContractRef:
+		resolved, err = resolveProfileContractRef(loc, ctx.profileDB.activeProfile)
+		log.Debug().Msgf("Resolved location \"%s\" as a profile-specific contract", loc)
 	case WebRef:
 		var u *url.URL
 		u, err = url.Parse(loc)
 		if err != nil {
 			return
 		}
-		resolved, err = resolveWebFileRef(loc, u, cache)
+		resolved, err = resolveWebFileRef(loc, u, ctx.cache)
 		log.Debug().Msgf("Resolved location \"%s\" as a file on the web", loc)
 	case GitRef:
 		var u *GitURL
@@ -70,7 +76,7 @@ func ResolveFileRef(loc, expectedHash string, checkHash bool, cache Cache) (reso
 		if err != nil {
 			return
 		}
-		resolved, err = resolveGitFileRef(loc, u, cache)
+		resolved, err = resolveGitFileRef(loc, u, ctx.cache)
 		log.Debug().Msgf("Resolved location \"%s\" as file in a Git repository: %v", loc, resolved)
 	}
 	if resolved != nil && err == nil {
@@ -95,17 +101,19 @@ func ResolveFileRef(loc, expectedHash string, checkHash bool, cache Cache) (reso
 // ResolveRelFileRef attempts to resolve a file reference relative to another
 // one. Specifically, it will attempt to resolve `rel` against `abs`.
 // TODO: Implement security check here to prevent user escaping to host file system.
-func ResolveRelFileRef(abs, rel *FileRef, checkHash bool, cache Cache) (resolved *FileRef, err error) {
+func ResolveRelFileRef(abs, rel *FileRef, checkHash bool, ctx *Context) (resolved *FileRef, err error) {
 	if !rel.IsRelative() {
 		return nil, fmt.Errorf("supplied path is not relative: %s", rel.Location)
 	}
 	switch abs.Type() {
 	case LocalRef:
 		resolved, err = resolveRelLocalFileRef(abs.Location, rel.Location)
+	case ProfileContractRef:
+		resolved, err = resolveRelProfileContractRef(abs, rel.Location, ctx.profileDB.activeProfile)
 	case WebRef:
-		resolved, err = resolveRelWebFileRef(abs.Location, rel.Location, cache)
+		resolved, err = resolveRelWebFileRef(abs.Location, rel.Location, ctx.cache)
 	case GitRef:
-		resolved, err = resolveRelGitFileRef(abs.Location, rel.Location, cache)
+		resolved, err = resolveRelGitFileRef(abs.Location, rel.Location, ctx.cache)
 	}
 	log.Debug().Msgf("Resolved relative file reference: %v", resolved)
 	if err != nil {
@@ -169,7 +177,7 @@ func (r *FileRef) IsRelative() bool {
 }
 
 func (r *FileRef) Type() FileRefType {
-	return fileRefType(r.Location)
+	return r.fileRefType
 }
 
 // LocalRelPath returns the path of the local copy of this file relative to
@@ -207,6 +215,24 @@ func resolveRelLocalFileRef(src, rel string) (*FileRef, error) {
 	absPath, err := filepath.Abs(path.Join(path.Dir(src), rel))
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve path \"%s\" relative to \"%s\": %s", rel, src, err)
+	}
+	hash, err := hashOfFile(absPath)
+	if err != nil {
+		return nil, err
+	}
+	return &FileRef{
+		Location:  rel,
+		Hash:      hash,
+		localPath: absPath,
+	}, nil
+}
+
+func resolveRelProfileContractRef(src *FileRef, rel string, activeProfile *Profile) (*FileRef, error) {
+	// here we resolve the relative reference relative to the resolved local
+	// path of the src ref
+	absPath, err := filepath.Abs(path.Join(path.Dir(src.localPath), rel))
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve path \"%s\" relative to \"%s\": %s", rel, src.localPath, err)
 	}
 	hash, err := hashOfFile(absPath)
 	if err != nil {
@@ -276,12 +302,33 @@ relPartsLoop:
 	return resolveGitFileRef(rel, relUrl, cache)
 }
 
+func resolveProfileContractRef(loc string, activeProfile *Profile) (*FileRef, error) {
+	pc := activeProfile.getProfileContractByID(loc)
+	if pc == nil {
+		return nil, fmt.Errorf("failed to look up contract \"%s\" for profile \"%s\"", loc, activeProfile.id)
+	}
+	hash, err := hashOfFile(pc.localPath)
+	if err != nil {
+		return nil, err
+	}
+	localPath, err := filepath.Abs(pc.localPath)
+	if err != nil {
+		return nil, err
+	}
+	return &FileRef{
+		Location:    pc.url,
+		Hash:        hash,
+		localPath:   localPath,
+		fileRefType: ProfileContractRef,
+	}, nil
+}
+
 func resolveWebFileRef(loc string, u *url.URL, cache Cache) (*FileRef, error) {
 	cachedPath, err := cache.FromWeb(u)
 	if err != nil {
 		return nil, err
 	}
-	return cachedFileRef(loc, cachedPath)
+	return cachedFileRef(loc, cachedPath, WebRef)
 }
 
 func resolveGitFileRef(loc string, u *GitURL, cache Cache) (*FileRef, error) {
@@ -290,27 +337,31 @@ func resolveGitFileRef(loc string, u *GitURL, cache Cache) (*FileRef, error) {
 	if err != nil {
 		return nil, err
 	}
-	return cachedFileRef(loc, cachedPath)
+	return cachedFileRef(loc, cachedPath, GitRef)
 }
 
-func cachedFileRef(loc, cachedPath string) (*FileRef, error) {
+func cachedFileRef(loc, cachedPath string, fileRefType FileRefType) (*FileRef, error) {
 	hash, err := hashOfFile(cachedPath)
 	if err != nil {
 		return nil, err
 	}
 	return &FileRef{
-		Location:  loc,
-		Hash:      hash,
-		localPath: cachedPath,
+		Location:    loc,
+		Hash:        hash,
+		localPath:   cachedPath,
+		fileRefType: fileRefType,
 	}, nil
 }
 
-func fileRefType(loc string) FileRefType {
+func fileRefType(loc string, ctx *Context) FileRefType {
 	if strings.HasPrefix(loc, "http://") || strings.HasPrefix(loc, "https://") {
 		return WebRef
 	}
 	if strings.HasPrefix(loc, "git") {
 		return GitRef
+	}
+	if ctx.profileDB.activeProfile.getProfileContractByID(loc) != nil {
+		return ProfileContractRef
 	}
 	return LocalRef
 }

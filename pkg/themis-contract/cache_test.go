@@ -21,6 +21,14 @@ func (c *mockCache) FromWeb(u *url.URL) (string, error) {
 	return c.entry(u.String())
 }
 
+func (c *mockCache) LocalPathForGitURL(u *contract.GitURL) string {
+	path, err := c.entry(u.String())
+	if err != nil {
+		panic(err)
+	}
+	return path
+}
+
 func (c *mockCache) entry(path string) (string, error) {
 	path, ok := c.successes[path]
 	if !ok {
