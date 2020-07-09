@@ -1,12 +1,9 @@
 # Themis Contract 🖋
 
-**PROTOTYPE**: Note that `themis-contract` is a prototype right now. All code on
+**PROTOTYPE**: Note that Themis Contract is a prototype right now. All code on
 this branch is to be considered highly experimental. No semantic versioning will
-be used just yet: at present, a `v0.2.x` series is being released. Breaking
-changes can be released at any time.
-
-If you're looking for the TypeScript-based prototype, it's currently on the
-`prototype/v1` branch.
+be used just yet: at present, a `v0.2.x` series is being prepared on this 
+branch. Breaking changes can be released at any time.
 
 ## Overview
 
@@ -22,28 +19,34 @@ aims to:
 
 ## Requirements
 
-It's recommended right now that you use the Docker-based version of Themis
-Contract. To do so you'll just need Docker installed, of course.
+In order to install Themis Contract locally, you will need:
 
-This is currently only being tested on macOS and Linux.
+* Go 1.14+ (and supporting tooling, like `make`)
+* [pandoc]
+* Any LaTeX distribution that includes `pdflatex` (such as [MacTeX] for macOS)
+* [dhall-to-json]
+* Git
 
 ## Installation
 
-We have a shell script that you can use locally to interact with the Docker
-image on your local machine. It tries to take care of many of the painful
-aspects of using the Docker image, like mounting the right volumes.
+Once you have the requirements installed locally, right now you'll need to build
+Themis Contract from source and install it.
 
 ```bash
-# Fetch the themis-contract shell script
-curl -sSL \
-    https://raw.githubusercontent.com/informalsystems/themis-contract/master/scripts/themis-contract \
-    -o /usr/local/bin/themis-contract
+# Will build and install to /usr/local/bin/themis-contract
+make install
+```
 
-# Make the script executable
-chmod +x /usr/local/bin/themis-contract
+## Uninstalling
 
-# Test it's installed correctly
-themis-contract --version
+Since Themis Contract is just a single standalone binary, uninstalling just
+involves deleting that binary:
+
+```bash
+rm /usr/local/bin/themis-contract
+
+# Optional: to delete all Themis Contract-related data
+rm -rf ~/.themis/contract
 ```
 
 ## Usage
@@ -78,4 +81,5 @@ limitations under the License.
 
 [dhall]: https://dhall-lang.org/
 [pandoc]: https://pandoc.org/
-[tectonic]: https://tectonic-typesetting.github.io/
+[MacTeX]: https://www.tug.org/mactex/
+[dhall-to-json]: https://github.com/dhall-lang/dhall-haskell/tree/master/dhall-json
