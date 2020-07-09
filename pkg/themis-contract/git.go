@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -31,7 +32,7 @@ type GitURL struct {
 	Proto GitURLProto `json:"proto"` // The protocol by which we want to access the Git repository.
 	User  string      `json:"user"`  // The username of the user as whom to clone the repository.
 	Host  string      `json:"host"`  // The host URL (e.g. "github.com" or "gitlab.com").
-	Port  uint16      `json:"port"`  // The port (default: 22 for SSH, 80 for HTTPS).
+	Port  uint16      `json:"port"`  // The port (default: 22 for SSH, 443 for HTTPS).
 	Repo  string      `json:"repo"`  // The repository path (e.g. for GitHub this is `user_name/repo_name.git`).
 	Path  string      `json:"path"`  // The file/folder path within the repository.
 	Ref   string      `json:"ref"`   // The branch, commit reference or tag, if any.
@@ -41,7 +42,6 @@ type GitURL struct {
 // breaks down the different components of a Git repository URL. At present, it
 // just always assumes that HTTPS repositories are cloned on port 443 and SSH
 // ones on port 22.
-// TODO: Handle port parsing properly.
 func ParseGitURL(rawurl string) (*GitURL, error) {
 	if strings.HasPrefix(rawurl, "git+https://") {
 		u, err := url.Parse(strings.Replace(rawurl, "git+", "", 1))
@@ -54,18 +54,25 @@ func ParseGitURL(rawurl string) (*GitURL, error) {
 		if u.User != nil && len(u.User.Username()) > 0 {
 			user = u.User.Username()
 		}
+		port := 443
+		if len(u.Port()) > 0 {
+			port, err = strconv.Atoi(u.Port())
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse port from URL \"%s\": %s", rawurl, err)
+			}
+		}
 		// TODO: Should we be handling passwords here?
 		return &GitURL{
 			Proto: ProtoHTTPS,
 			User:  user,
 			Host:  hostname,
-			Port:  443,
+			Port:  uint16(port),
 			Repo:  repo,
 			Path:  strings.TrimLeft(path, "/"),
 			Ref:   u.Fragment,
 		}, nil
 	}
-	// TODO: Find a more generic way of supporting this kind of syntax
+	// TODO: Find a more generic way of supporting this kind of syntax for other hosts
 	if strings.HasPrefix(rawurl, "git@github.com") || strings.HasPrefix(rawurl, "git@gitlab.com") {
 		rawurl = "git://" + rawurl
 	}
@@ -80,7 +87,7 @@ func ParseGitURL(rawurl string) (*GitURL, error) {
 	subExps := r.SubexpNames()
 	u := &GitURL{
 		Proto: ProtoSSH,
-		Port:  22,
+		Port:  22, // TODO: Handle port parsing properly.
 	}
 	for i, match := range matches {
 		switch subExps[i] {
