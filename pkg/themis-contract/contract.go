@@ -214,13 +214,13 @@ func Update(loc string, ctx *Context) error {
 // Review allows you to fetch a pre-existing contract from a Git repository (by
 // cloning it locally). It also loads the contract into memory, thus parsing
 // and validating it.
-func Review(loc string) (*Contract, error) {
-	_, err := ParseGitURL(loc)
-	if err != nil {
-		return nil, fmt.Errorf("expected contract URL to be a valid Git URL: %s", err)
-	}
-	return nil, nil
-}
+//func Review(loc string) (*Contract, error) {
+//	_, err := ParseGitURL(loc)
+//	if err != nil {
+//		return nil, fmt.Errorf("expected contract URL to be a valid Git URL: %s", err)
+//	}
+//	return nil, nil
+//}
 
 // Path returns the file reference for this contract.
 func (c *Contract) Path() *FileRef {
