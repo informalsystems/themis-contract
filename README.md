@@ -1,14 +1,9 @@
 # Themis Contract 🖋
 
-**PROTOTYPE**: Note that Themis Contract is a prototype right now. All code on
-this branch is to be considered highly experimental. No semantic versioning will
-be used just yet: at present, a `v0.2.x` series is being prepared on this 
-branch. Breaking changes can be released at any time.
-
 ## Overview
 
-Themis Contract is a prototype tool to help with legal contracting. It currently
-aims to:
+Themis Contract is a command line-based tool to help with legal contracting.
+It currently aims to:
 
 1. Make contracting modular (in a decentralized way).
 2. Make contracting more programmatic (and eventually executable) than is
@@ -16,6 +11,13 @@ aims to:
 3. Make managing contracts more like managing software (so we can leverage
    the value that software development processes offer, like version control,
    continuous integration, etc.).
+
+**Disclaimer**
+
+Themis Contract is considered **alpha quality** at present. No semantic
+versioning will be used just yet. Breaking changes can be released at any time.
+For the original NodeJS-based prototype of Themis Contract, please see the
+`prototype/v1` branch.
 
 ## Requirements
 
@@ -37,6 +39,17 @@ Themis Contract from source and install it.
 make install
 ```
 
+## Usage
+
+See the following tutorials for details as to how to set up and use Themis
+Contract to get the most out of it:
+
+* [Setting up Themis Contract](docs/01-setup.md)
+* [Your first contract](docs/02-first-contract.md)
+* [Contracting workflows](docs/03-workflows.md)
+
+More tutorials will be coming soon!
+
 ## Uninstalling
 
 Since Themis Contract is just a single standalone binary, uninstalling just
@@ -48,15 +61,6 @@ rm /usr/local/bin/themis-contract
 # Optional: to delete all Themis Contract-related data
 rm -rf ~/.themis/contract
 ```
-
-## Usage
-
-See the following tutorials for details as to how to set up and use Themis
-Contract to get the most out of it:
-
-* [Setting up Themis Contract](./docs/setup.md)
-* [Basic contracting tutorial](./docs/basic-tutorial.md)
-* [Anatomy of a contract](./docs/contract-anatomy.md)
 
 ## Contributing
 
@@ -77,7 +81,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 
 [dhall]: https://dhall-lang.org/
 [pandoc]: https://pandoc.org/

@@ -9,14 +9,14 @@ let ThemisContract = https://raw.githubusercontent.com/informalsystems/themis-co
 let contract : ThemisContract.Contract =
     { params =
         { location = "params.dhall"
-        , hash = "aa7a53a2bf16c44b0df8839e1bbc2529b30194e6467dd5300da4dcb56f01a9f0"
+        , hash = "4cbd373af2669e5c5fc5ffc7ecd02abc16aa8fc0855f1de712a7940bb2245aee"
         }
     , upstream = None ThemisContract.FileRef
     , template =
         { format = ThemisContract.TemplateFormat.Mustache
         , file =
             { location = "contract.md"
-            , hash = "c4306d4dcbc07aad6eb53f11473856dda6d284323f2a45d96ed51bce77ff1946"
+            , hash = "6212e73deb62a698f2cf6178ab48cdd5a5615504253d5c0d06fa058ca369d1d0"
             }
         }
     }

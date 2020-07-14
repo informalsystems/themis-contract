@@ -43,7 +43,7 @@ let signatories : List Signatory =
       , email = "manderson@somewhere.com"
       }
     , { id = "bsavvy"
-      , name = "Brownyn Savvy"
+      , name = "Bronwyn Savvy"
       , email = "bronwyn@savvy.com"
       }
     ]

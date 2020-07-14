@@ -25,4 +25,6 @@ Signed,
 ![Signature]({{signature}}) \
 {{name}}
 
+Signed on: {{signed_date}}
+
 {{/signatories}}
