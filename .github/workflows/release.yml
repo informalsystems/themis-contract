@@ -84,13 +84,11 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: bin-linux
-          path: ./themis-contract-linux
 
       - name: Download MacOS Artifact
         uses: actions/download-artifact@v2
         with:
           name: bin-macos
-          path: ./themis-contract-macos
 
       - name: Create release
         id: create_release
