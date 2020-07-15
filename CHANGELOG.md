@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (`prototype/v2` branch)
+## v0.2
 
 * Completely rebuilt in Go.
 * Totally different CLI (see [README](README.md) for details).
