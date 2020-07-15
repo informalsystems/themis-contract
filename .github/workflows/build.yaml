@@ -1,10 +1,10 @@
-name: Go
+name: Build and Test
 
 on:
   push:
-    branches: [ "prototype/v2" ]
+    branches: [ "master" ]
   pull_request:
-    branches: [ "prototype/v2" ]
+    branches: [ "master" ]
 
 jobs:
 
