@@ -26,7 +26,8 @@ jobs:
           go get github.com/rakyll/statik
 
       - name: Build
-        run: make
+        run: |
+          VERSION=${{ github.ref }} make
 
       - name: Test
         run: make test
@@ -57,7 +58,8 @@ jobs:
           go get github.com/rakyll/statik
 
       - name: Build
-        run: make
+        run: |
+          VERSION=${{ github.ref }} make
 
       - name: Test
         run: make test
