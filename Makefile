@@ -1,6 +1,6 @@
 PACKAGES=$(shell go list ./...)
 OUTPUT=build/themis-contract
-VERSION?=$(shell git describe --abbrev=0)
+VERSION=$(shell git describe --tags)
 TIMESTAMP=$(shell date -u +%Y%m%d.%H%M%S)
 BUILD_FLAGS=-mod=readonly -ldflags="-X main.version=$(VERSION)-$(TIMESTAMP)"
 .DEFAULT_GOAL := build
