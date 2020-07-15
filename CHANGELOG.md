@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## Unreleased (`prototype/v2` branch)
+
+* Completely rebuilt in Go.
+* Totally different CLI (see [README](README.md) for details).
+
+## Unreleased (`prototype/v1` branch)
 
 * Remove `--style` flag from `compile` subcommand
   ([#21](https://github.com/informalsystems/themis-contract/pull/21))

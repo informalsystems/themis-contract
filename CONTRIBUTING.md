@@ -72,5 +72,4 @@ Signed-off-by: Some Name <some.name@fake.example.org>
 ```
 
 [File an issue]: https://github.com/informalsystems/themis-contract/issues/new
-
 [DCO]: https://en.wikipedia.org/wiki/Developer_Certificate_of_Origin
