@@ -31,8 +31,12 @@ In order to install Themis Contract locally, you will need:
 
 ## Installation
 
-Once you have the requirements installed locally, right now you'll need to build
-Themis Contract from source and install it.
+Once you have the requirements installed locally, you can simply download the
+latest [release] binary for your platform (right now we only build for Linux
+and MacOS) and put it somewhere in your path (e.g.
+`/usr/local/bin/themis-contract`).
+
+To rather install from source, clone this repository locally and simply run:
 
 ```bash
 # Will build and install to /usr/local/bin/themis-contract
@@ -86,3 +90,4 @@ limitations under the License.
 [pandoc]: https://pandoc.org/
 [MacTeX]: https://www.tug.org/mactex/
 [dhall-to-json]: https://github.com/dhall-lang/dhall-haskell/tree/master/dhall-json
+[release]: https://github.com/informalsystems/themis-contract/releases
