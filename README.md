@@ -2,11 +2,9 @@
 
 ![Node.js CI](https://github.com/informalsystems/themis-contract/workflows/Node.js%20CI/badge.svg?branch=master)
 
-**PROTOTYPE**: Note that `themis-contract` is a prototype right now. All code on
-this branch is to be considered highly experimental. No semantic versioning will
-be used just yet: at present, a `v0.1.x` series is being released. Breaking
-changes can be released at any time (including complete rewrites in another
-programming language).
+**PROTOTYPE**: Note that this version of Themis Contract is a prototype. New
+development is currently taking place on the `prototype/v2` branch, where the
+next iteration of Themis Contract has been rewritten in Go.
 
 ## Overview
 
