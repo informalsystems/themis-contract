@@ -804,6 +804,7 @@ func updateContractSignatories(params map[string]interface{}, signatories []*Sig
 		paramKey := fmt.Sprintf("signatory_%s", sig.Id)
 		params[paramKey] = sigArr[i]
 	}
+	params["signatories"] = sigArr
 	log.Debug().Msgf("Updated contract signatories: %v", params)
 	return params, nil
 }
