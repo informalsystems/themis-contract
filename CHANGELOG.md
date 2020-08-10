@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.1
+
+* Fix a critical compilation bug that prevented signature image details from
+  being provided during compilation
+  ([\#69](https://github.com/informalsystems/themis-contract/pull/69))
+
 ## v0.2
 
 * Completely rebuilt in Go.
