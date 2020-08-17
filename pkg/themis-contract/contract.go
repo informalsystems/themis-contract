@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"text/template"
 
@@ -773,10 +772,24 @@ func extractContractSignatories(params map[string]interface{}, contractPath stri
 }
 
 func updateContractSignatories(params map[string]interface{}, signatories []*Signatory) (map[string]interface{}, error) {
-	oldSigs, ok := params["signatories"].([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("expected \"signatories\" in parameters file to be an array, but was %s", reflect.TypeOf(params["signatories"]))
+	var oldSigs []map[string]interface{}
+	var ok bool
+
+	if oldSigs, ok = params["signatories"].([]map[string]interface{}); !ok {
+		oldSigs = make([]map[string]interface{}, 0)
+		if oldSigList, ok := params["signatories"].([]interface{}); ok {
+			for i, oldSig := range oldSigList {
+				if oldSigMap, mapOk := oldSig.(map[string]interface{}); mapOk {
+					oldSigs = append(oldSigs, oldSigMap)
+				} else {
+					return nil, fmt.Errorf("failed to interpret signatory %d in parameters file", i)
+				}
+			}
+		} else {
+			return nil, fmt.Errorf("cannot interpret \"signatories\" in parameters file")
+		}
 	}
+
 	sigJSON, err := json.Marshal(signatories)
 	if err != nil {
 		return nil, err
@@ -787,12 +800,7 @@ func updateContractSignatories(params map[string]interface{}, signatories []*Sig
 	}
 	// pass through any additional parameters defined on the signatories
 	for i, oldSig := range oldSigs {
-		oldSigMap, ok := oldSig.(map[string]interface{})
-		if !ok {
-			log.Debug().Msgf("Skipping use of extra parameters in signature %d since type was %s", i, reflect.TypeOf(oldSig))
-			continue
-		}
-		for k, v := range oldSigMap {
+		for k, v := range oldSig {
 			if _, exists := sigArr[i][k]; !exists {
 				sigArr[i][k] = v
 				log.Debug().Msgf("Populated additional parameter \"%s\" for signatory %d", k, i)
