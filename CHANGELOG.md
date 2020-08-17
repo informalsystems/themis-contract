@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.2
+
+* Fix a critical bug that prevents signing of a contract
+  ([\#70](https://github.com/informalsystems/themis-contract/pull/70)).
+
 ## v0.2.1
 
 * Fix a critical compilation bug that prevented signature image details from
