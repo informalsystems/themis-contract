@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.2.3
+
+* Fix some minor spelling mistakes in the CLI help
+  ([\#71](https://github.com/informalsystems/themis-contract/pull/71)).
+
 ## v0.2.2
 
 * Fix a critical bug that prevents signing of a contract
