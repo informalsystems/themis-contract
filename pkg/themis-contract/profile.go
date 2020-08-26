@@ -32,7 +32,7 @@ type ProfileDB struct {
 	profilesPath  string              // The path to the root of where to find all of the profiles.
 }
 
-// ActiveProfile is a way of naming and differentiating between rendering
+// Profile is a way of naming and differentiating between rendering
 // configurations used when rendering contracts.
 type Profile struct {
 	Name          string             `json:"name"`                   // A short, descriptive name for the profile.
