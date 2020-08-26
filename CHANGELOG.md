@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.2.4
 
 * Update Dhall contract template to use the package configuration on `master`
   ([\#72](https://github.com/informalsystems/themis-contract/pull/72))
