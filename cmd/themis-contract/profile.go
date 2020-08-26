@@ -20,7 +20,7 @@ func profileCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "profile",
 		Aliases: []string{"profiles"},
-		Short:   "ActiveProfile management",
+		Short:   "Profile management",
 	}
 	cmd.AddCommand(
 		profileListCmd(),
