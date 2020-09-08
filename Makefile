@@ -5,6 +5,8 @@ TIMESTAMP=$(shell date -u +%Y%m%d.%H%M%S)
 BUILD_FLAGS=-mod=readonly -ldflags="-X main.version=$(VERSION)-$(TIMESTAMP)"
 .DEFAULT_GOAL := build
 
+THEMIS_INSTALL_DIR ?= /usr/local/bin/
+
 all: build test
 
 build:
@@ -16,6 +18,6 @@ test:
 
 install: build
 	go get github.com/rakyll/statik
-	cp $(OUTPUT) /usr/local/bin/
+	cp $(OUTPUT) $(THEMIS_INSTALL_DIR)
 
 .PHONY: all build test install
