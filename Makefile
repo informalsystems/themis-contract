@@ -8,7 +8,7 @@ BUILD_FLAGS=-mod=readonly -ldflags="-X main.version=$(VERSION)-$(TIMESTAMP)"
 all: build test
 
 build:
-	cd pkg/themis-contract/ && statik -src=../../assets/
+	cd pkg/themis-contract/ && statik -f -src=../../assets/
 	go build $(BUILD_FLAGS) -o $(OUTPUT) cmd/themis-contract/*
 
 test:
