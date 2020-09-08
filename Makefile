@@ -15,6 +15,7 @@ test:
 	go test $(PACKAGES)
 
 install: build
+	go get github.com/rakyll/statik
 	cp $(OUTPUT) /usr/local/bin/
 
 .PHONY: all build test install
