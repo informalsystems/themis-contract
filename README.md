@@ -41,6 +41,8 @@ To rather install from source:
 ```bash
 git clone https://github.com/informalsystems/themis-contract.git
 cd themis-contract
+# once-off
+make deps
 # Setting THEMIS_INSTALL_DIR to our desired location
 # (default is to /usr/local/bin/)
 THEMIS_INSTALL_DIR=~/.local/bin make install
