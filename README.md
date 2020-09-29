@@ -36,11 +36,16 @@ latest [release] binary for your platform (right now we only build for Linux
 and MacOS) and put it somewhere in your path (e.g.
 `/usr/local/bin/themis-contract`).
 
-To rather install from source, clone this repository locally and simply run:
+To rather install from source:
 
 ```bash
-# Will build and install to /usr/local/bin/themis-contract
-make install
+git clone https://github.com/informalsystems/themis-contract.git
+cd themis-contract
+# once-off
+make deps
+# Setting THEMIS_INSTALL_DIR to our desired location
+# (default is to /usr/local/bin/)
+THEMIS_INSTALL_DIR=~/.local/bin make install
 ```
 
 ## Usage
