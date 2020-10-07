@@ -53,9 +53,10 @@ THEMIS_INSTALL_DIR=~/.local/bin make install
 See the following tutorials for details as to how to set up and use Themis
 Contract to get the most out of it:
 
-* [Setting up Themis Contract](docs/01-setup.md)
-* [Your first contract](docs/02-first-contract.md)
-* [Contracting workflows](docs/03-workflows.md)
+- [Setting up Themis Contract](docs/01-setup.md)
+- [Your first contract](docs/02-first-contract.md)
+- [Contracting workflows](docs/03-workflows.md)
+- [Formatting guide](docs/04-formatting.md)
 
 More tutorials will be coming soon!
 
