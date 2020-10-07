@@ -1,13 +1,16 @@
 # Formatting guide
 
-Our contracts are seeking a sweet spot between plain text readability and rich
-semantic encoding. As our practice proceeds, we have begun to establish some
-useful idioms and best practices on representing common legal constructs in
-markdown. We have opted for the less common [pandoc markdown][pandoc-markdown]
-variant, because of its support for expressive annotations that can be layered
-on top of markdown's clear but minimal syntax.
+We are seeking a sweet spot between plain text readability and rich semantic
+encoding. As our practice proceeds, we have begun to establish some useful
+idioms and best practices for representing common legal constructs in markdown.
+We have opted for the less common [pandoc markdown][pandoc-markdown] variant,
+because of its support for expressive annotations that can be layered on top of
+markdown's clear but minimal syntax and the ease with which the syntax can be
+augmented via filters.
 
-## Titles, Subtitles, and YAML Header Metadata
+## The YAML Header
+
+### Titles and subtitles
 
 The title and subtitle of a document should be specified in the [YAML metadata
 header][yaml-header]. E.g., for a contract titled "My First Contract: An
@@ -21,16 +24,18 @@ subtitle: An Example
 ```
 
 Either field may include multiple lines of text formatted using markdown, if
-the value of the YAML field uses the literal style format specifier, `|`. E.g., 
-if we want our title to span multiple lines, and include emphasizes spans:
+the value of the YAML field uses the literal style format specifier `|`. E.g.,
+if we want our title to span multiple lines, and include an emphasized span:
 
 ```markdown
 ---
 title: |
     | My **Multiline** Title
-    | with an Emphasized Spans 
+    | with an Emphasized Spans
 ---
 ```
+
+### Metadata
 
 The YAML header can include any additional arbitrary metadata. We sometimes use
 it to encode the location of a file from which the plain text contract has been
@@ -48,11 +53,13 @@ A section of a contract is specified by a header:
 
 ```markdown
 # Section 1
+
+The content of section 1.
 ```
 
 Sections can be nested
 
-<a id="subsection-example">
+<a id="subsection-example"></a>
 ```markdown
 # Section 1
 
@@ -61,9 +68,8 @@ Sections can be nested
 
 ### Section numbering
 
-By default, sections will be numbered using a dot separated, nested, 
-enumeration on export. E.g., [subsection example](#subsection-example) will
-render as
+By default, sections will be numbered using a dot separated, nested, enumeration
+on export. E.g., the [subsection example](#subsection-example) renders as
 
 ![Example showing sections prefixed with section and subsection number](./numbered-sections.png)
 
@@ -84,7 +90,7 @@ Or the shorthand `{-}`
 
 ### Clauses are just sections
 
-We represent clauses and subclauses via header-delimited sections with 
+We represent clauses and subclauses via header-delimited sections with
 descriptive titles. E.g., a clause specifying dividends on shares might
 look like this:
 
@@ -101,14 +107,12 @@ and when declared by the Board on the Shares.
 We use [`pandoc-crossref`][pandoc-crossref] to generate links to cross
 references.
 
-`pandoc-corssref` is able to generate cross references to tables, figures, code 
-blocks and more, but we generally only need it to generate cross references to 
+`pandoc-corssref` is able to generate cross references to tables, figures, code
+blocks and more, but we generally only need it to generate cross references to
 sections/clauses.
 
-To label a section as a possible reference, give it an id with the syntax
-`sec:<label>`.
-
-To refer to the section, use the syntax `@sec:<label>`
+To label a section as a possible reference, give the header an id with the
+syntax `sec:<label>`. To refer to the section, use the syntax `@sec:<label>`
 
 E.g.,
 
@@ -125,13 +129,14 @@ The above will render as
 ![Example showing section cross references](./cross-references.png)
 
 
-And the reference should be hyperlink anchored to section heading 1.1.
+`Section 1.1` will be a hyperlink anchored to the section heading 1.1.
 
 ## Enumerated lists
 
 ### Auto-numbered lists
 
-We prefer the `#.` syntax for enumerating lists with Arabic numerals:
+We prefer the `#.` syntax for enumerating lists when we don't care about which 
+enumerator will be used:
 
 ```markdown
 #. Item 1
@@ -142,10 +147,9 @@ We prefer the `#.` syntax for enumerating lists with Arabic numerals:
         #. Sub-sub item 1
 ```
 
-Note that sublists are set of by four indented spaces.
+Note that sublists are set off by four indented spaces.
 
 Pandoc will take care of enumerating the items:
-
 
 ![Example showing enumerated lists](./enumerated-lists.png)
 
