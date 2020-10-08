@@ -23,11 +23,12 @@ For the original NodeJS-based prototype of Themis Contract, please see the
 
 In order to install Themis Contract locally, you will need:
 
-* Go 1.14+ (and supporting tooling, like `make`)
-* [pandoc]
-* Any LaTeX distribution that includes `pdflatex` (such as [MacTeX] for macOS)
-* [dhall-to-json]
-* Git
+- Go 1.14+ (and supporting tooling, like `make`)
+- [pandoc]
+- [pandoc-crossref][]
+- Any LaTeX distribution that includes `pdflatex` (such as [MacTeX] for macOS)
+- [dhall-to-json]
+- Git
 
 ## Installation
 
@@ -93,6 +94,7 @@ limitations under the License.
 
 [dhall]: https://dhall-lang.org/
 [pandoc]: https://pandoc.org/
-[MacTeX]: https://www.tug.org/mactex/
+[pandoc-crossref]: https://github.com/lierdakil/pandoc-crossref#installation
+[mactex]: https://www.tug.org/mactex/
 [dhall-to-json]: https://github.com/dhall-lang/dhall-haskell/tree/master/dhall-json
 [release]: https://github.com/informalsystems/themis-contract/releases
