@@ -10,7 +10,9 @@ Markdown (or that you've used [pandoc] to convert your contract text to
 Markdown).
 
 [Example files](../examples/service-agreement/) are included in the repository
-for this basic tutorial.
+for this basic tutorial. You can also consult our [formatting
+guide](./04-formatting.md) for useful tips on markdown syntax for representing
+contracts.
 
 ## Step 1: Create a local Git repo for your contract
 
