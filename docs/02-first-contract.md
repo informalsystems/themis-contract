@@ -71,7 +71,7 @@ The hourly rate will be {{supplier.currency}} {{supplier.hourlyRate}}.
 Signed,
 
 {{#signatories}}
-![Signature]({{signature}}) \
+![Signature]({{signature}}){width=200px} \
 {{name}}
 
 Signed on: {{signed_date}}
@@ -84,7 +84,13 @@ been set up in this template. When compiling your contract to a PDF, Themis
 Contract will attempt to inject values for these variables into your template
 prior to rendering the PDF.
 
+
+Note the addition of the `width` [link attribute][link-attributes] giving us
+fine grained control over the size of the signature image.
+
 Where do these values come from? They come from your *parameters file(s)*.
+
+[link-attributes]: https://pandoc.org/MANUAL.html#extension-link_attributes
 
 ## Step 3: Set up your parameters
 
