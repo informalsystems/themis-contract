@@ -3,7 +3,7 @@
     Themis Contract. Any changes may be automatically overwritten.
 -}
 
-let ThemisContract = https://raw.githubusercontent.com/informalsystems/themis-contract/prototype/v2/config/package.dhall
+let ThemisContract = https://raw.githubusercontent.com/informalsystems/themis-contract/master/config/package.dhall
     sha256:016b3829eaee279f2ce7a740a974f1ac75758893c42d220865a487c35ff9a890
 
 let contract : ThemisContract.Contract =
