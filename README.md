@@ -19,7 +19,22 @@ versioning will be used just yet. Breaking changes can be released at any time.
 For the original NodeJS-based prototype of Themis Contract, please see the
 `prototype/v1` branch.
 
-## Requirements
+## Installation
+
+### Packaged
+
+#### MacOS
+
+Use [homebrew](https://brew.sh/) to Install from the [informal.systems
+tap](https://github.com/informalsystems/homebrew-pkgs):
+
+```bash
+brew install informalsystems/pkgs/themis-contract
+```
+
+### Manually
+
+#### Requirements
 
 In order to install Themis Contract locally, you will need:
 
@@ -30,21 +45,23 @@ In order to install Themis Contract locally, you will need:
 - [dhall-to-json]
 - Git
 
-## Installation
+#### Pre-built binaries
 
 Once you have the requirements installed locally, you can simply download the
-latest [release] binary for your platform (right now we only build for Linux
-and MacOS) and put it somewhere in your path (e.g.
+latest [release] binary for your platform (right now we only build for Linux and
+MacOS) and put it somewhere in your path (e.g.
 `/usr/local/bin/themis-contract`).
 
-To rather install from source:
+#### From Source
+
+To install from source:
 
 ```bash
 git clone https://github.com/informalsystems/themis-contract.git
 cd themis-contract
 # once-off
 make deps
-# Setting THEMIS_INSTALL_DIR to our desired location
+# Optionally setting THEMIS_INSTALL_DIR to your desired location
 # (default is to /usr/local/bin/)
 THEMIS_INSTALL_DIR=~/.local/bin make install
 ```
