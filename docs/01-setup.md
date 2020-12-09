@@ -26,14 +26,15 @@ handwritten signature.
 user-selected font, or even cryptographic signatures contained in barcodes.
 These features are not yet supported.*
 
-Let's say this image is located at `~/Documents/signature.png`.
+Let's say this image is located at `~/Documents/signature.png`. And you name is
+*Marwah Sparrow*.
 
 ```bash
-# Add a signature with name "Personal" associated with e-mail address
-# "your.personal@email.address.com", using your custom handwritten signature.
+# Add a signature with the id "msparrow" associated with e-mail address
+# "marwah@email.com", using your custom, handwritten signature.
 themis-contract signatures add \
-    Personal \
-    your.personal@email.address.com \
+    msparrow \
+    marwah@email.com \
     ~/Documents/signature.png
 
 # Now list all available signatures to see the newly added one
@@ -49,7 +50,7 @@ signature image is copied across, so you could potentially commit Themis
 Contract's data to a Git repository for backup purposes.
 
 For the above signature specifically, look in
-`~/.themis/contract/signatures/personal` for its contents.
+`~/.themis/contract/signatures/msparrow` for its contents.
 
 ## Step 2: Create a profile
 
@@ -69,7 +70,7 @@ information:
 # we'll get to that in another tutorial)
 themis-contract profile add \
     Personal \
-    --sig-id personal
+    --sig-id msparrow
 
 # List all profiles
 themis-contract profile ls
