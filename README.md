@@ -19,6 +19,17 @@ versioning will be used just yet. Breaking changes can be released at any time.
 For the original NodeJS-based prototype of Themis Contract, please see the
 `prototype/v1` branch.
 
+## 🙋🏾‍♀️ Get Involved
+
+- Say hi in one of our **chat rooms** :speech_balloon:
+    - [Register][join-zulip] on Zulip, our chat platform
+    - [`#introductions`][zulip-intros] is a great place to start
+    - [`#disco-tools`][zulip-disco] is for discussing tooling for distributed  co-op organizations (including `themis-contract`)
+
+   [join-zulip]: https://informal-systems.zulipchat.com/register/
+   [zulip-intros]: https://informal-systems.zulipchat.com/#narrow/stream/268313-Introductions
+   [zulip-disco]: https://informal-systems.zulipchat.com/#narrow/stream/268309-disco-tools
+
 ## Installation
 
 ### Packaged
