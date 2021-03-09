@@ -1,5 +1,15 @@
 # Contributing
 
+<!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
+**Table of Contents**
+
+- [Contributing](#contributing)
+    - [Contributing to the source](#contributing-to-the-source)
+        - [Signing the DCO](#signing-the-dco)
+            - [Adding the signoff retroactively](#adding-the-signoff-retroactively)
+
+<!-- markdown-toc end -->
+
 We are glad you're interested in contributing to `themis-contract`!
 Contributions are most welcome.
 
@@ -9,6 +19,8 @@ There are two principles ways to contribute at this point:
 - Contribute to the source code (including documentation).
 
 ## Contributing to the source
+
+### Signing the DCO
 
 We require that all commits be signed, certifying the [Developer Certificate
 of Origin (DCO)][DCO]. By signing your commits you confirm that you wrote
@@ -70,6 +82,13 @@ Some commit message
 
 Signed-off-by: Some Name <some.name@fake.example.org>
 ```
+
+#### Adding the signoff retroactively
+
+If you forget to signoff on one ore more commits (or if you didn't read the
+contributing guide before opening a PR ;) ) you can easily fix your commits by
+following [this
+guide from source{d}](https://github.com/src-d/guide/blob/master/developer-community/fix-DCO.md#how-to-add-sign-offs-retroactively).
 
 [File an issue]: https://github.com/informalsystems/themis-contract/issues/new
 [DCO]: https://en.wikipedia.org/wiki/Developer_Certificate_of_Origin
