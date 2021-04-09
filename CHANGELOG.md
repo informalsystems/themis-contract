@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+* Fix issue where Git repositories weren't being created correctly when
+  deriving a new contract into an empty (non-Git repo) folder
+  ([\#116](https://github.com/informalsystems/themis-contract/issues/116))
+
 ## v0.2.4
 
 * Update Dhall contract template to use the package configuration on `master`
