@@ -83,15 +83,16 @@ func New(contractPath, upstreamLoc, gitRemote string, ctx *Context) (*Contract, 
 	}
 
 	if ctx.autoCommit {
-		if !isGitRepo(contractPath) {
-			log.Info().Msgf("Initializing Git repository in contract folder: %s", contractPath)
-			if err := gitInit(contractPath, gitRemote); err != nil {
+		contractDir := path.Dir(contract.path.localPath)
+		if !isGitRepo(contractDir) {
+			log.Info().Msgf("Initializing Git repository in contract folder: %s", contractDir)
+			if err := gitInit(contractDir, gitRemote); err != nil {
 				return nil, fmt.Errorf("failed to initialize Git repository in contract folder: %s", err)
 			}
 		} else {
-			log.Info().Msgf("Contract folder %s is already within a Git repository", contractPath)
+			log.Info().Msgf("Contract folder %s is already within a Git repository", contractDir)
 		}
-		if err := gitAddAndCommit(contractPath, contract.allLocalRelativeFiles(), gitMsgNewContract, contract); err != nil {
+		if err := gitAddAndCommit(contractDir, contract.allLocalRelativeFiles(), gitMsgNewContract, contract); err != nil {
 			return nil, fmt.Errorf("failed to auto-commit change to contract repo: %s", err)
 		}
 		if ctx.autoPushChanges && len(gitRemote) > 0 {
