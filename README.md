@@ -1,3 +1,5 @@
+>***NOTE***: _This repository is no longer supported or updated by Informal Systems. If you wish to continue to develop this code yourself, we recommend you fork it._
+
 # Themis Contract 🖋
 
 ## Overview
